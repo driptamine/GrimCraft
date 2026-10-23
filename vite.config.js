@@ -6,10 +6,13 @@ import { excludeMaps, excludeModels, syncRuntimeAssets } from './scripts/sync-ru
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const r2Endpoint = env.R2_ENDPOINT_URL || '';
-  const r2Bucket = env.R2_BUCKET_NAME || '';
+  const r2Path = (env.R2_PUBLIC_PATH || '').replace(/^\/+|\/+$/g, '');
+  // r2.dev public URLs and custom domains serve the bucket root directly,
+  // so an extra path segment is appended only when explicitly configured.
+  // (R2_BUCKET_NAME stays the real bucket name for uploads and is NOT used here.)
   const modelBase =
-    mode === 'production' && r2Endpoint && r2Bucket
-      ? `${r2Endpoint}/${r2Bucket}`
+    mode === 'production' && r2Endpoint
+      ? (r2Path ? `${r2Endpoint}/${r2Path}` : r2Endpoint)
       : '';
   return {
     plugins: [

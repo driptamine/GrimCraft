@@ -43,11 +43,11 @@ Use one of these strategies:
 
 ### A. External model hosting
 
-Set these production build variables:
+Set the public model URL (r2.dev public URL or custom domain — it serves the
+bucket root, so no bucket segment is needed):
 
 ```bash
-R2_ENDPOINT_URL=https://example.r2.cloudflarestorage.com
-R2_BUCKET_NAME=grimcraft-models
+R2_ENDPOINT_URL=https://pub-abcdefgh.r2.dev
 ```
 
 Then build normally:
@@ -57,6 +57,18 @@ npm run build
 ```
 
 Production builds use those variables to rewrite model URLs through `VITE_MODEL_BASE`.
+
+Upload the models with the S3-compatible API — the Cloudflare dashboard caps
+manual uploads at 100 files, and `models/` holds ~1400:
+
+```bash
+npm run models:r2:sync
+```
+
+Dry-run first with `npm run models:r2:sync -- --dryrun`. The script needs
+`R2_BUCKET_NAME`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`
+(see `.env.example`); it skips `*.tga`/`*.zip` sidecars, mirroring the local
+sync rules.
 
 ### B. Fully self-contained build
 
@@ -95,7 +107,7 @@ Use this when the repository stays on GitHub but the Netlify deployment should r
 
 1. In Netlify, select the site and copy its **Site ID**.
 2. Create a Netlify personal access token.
-3. In GitHub, open `USER/REPO → Settings → Secrets and variables → Actions`.
+3. In GitHub, open `driptamine/GrimCraft → Settings → Secrets and variables → Actions`.
 4. Add these repository secrets:
    - `NETLIFY_AUTH_TOKEN`
    - `NETLIFY_SITE_ID`
@@ -143,20 +155,20 @@ Remove `--prod` if the workflow should create a draft preview deployment instead
 
 ## 4. Deploy to GitHub
 
-Replace `USER` and `REPO` below with the GitHub account and repository names.
+This repository is `driptamine/GrimCraft`.
 
 ### Recommended: user site or custom domain
 
 GitHub Pages works most reliably when the game is served from the domain root, for example:
 
-- `https://USER.github.io/`
+- `https://driptamine.github.io/`
 - `https://www.example.com/`
 
 The default Vite base path (`/`) already matches that layout.
 
 Enable Pages:
 
-1. Open `USER/REPO → Settings → Pages`.
+1. Open `driptamine/GrimCraft → Settings → Pages`.
 2. Under **Build and deployment**, select **GitHub Actions**.
 3. Add a workflow such as `.github/workflows/deploy-pages.yml`:
 
@@ -210,7 +222,7 @@ Omit the two `R2_*` secrets only if the deployment intentionally does not need e
 A repository project site has a subpath such as:
 
 ```text
-https://USER.github.io/REPO/
+https://driptamine.github.io/GrimCraft/
 ```
 
 That layout currently needs extra work: several runtime asset paths are root-absolute, including `/maps/...` and `/assets/...`. Building with a repository subpath alone is therefore not enough without also updating those asset URLs.
@@ -221,11 +233,14 @@ Replace every placeholder before deploying. Do not commit real tokens.
 
 | Required data | Example/placeholder | Used for | Where it goes |
 | --- | --- | --- | --- |
-| GitHub repository URL | `https://github.com/USER/REPO.git` | Source checkout and Netlify import | Git provider and Netlify |
+| GitHub repository URL | `https://github.com/driptamine/GrimCraft.git` | Source checkout and Netlify import | Git provider and Netlify |
 | Deployment branch | `main` | Workflow triggers | GitHub workflow `on.push.branches` |
 | Netlify production URL | `https://SITE.netlify.app` | Production smoke check | Browser |
 | Netlify Site ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | GitHub Action targeting the Netlify site | GitHub secret `NETLIFY_SITE_ID` |
 | Netlify personal access token | `nfp_...` | Authenticating the GitHub Action to Netlify | GitHub secret `NETLIFY_AUTH_TOKEN` |
 | Model endpoint URL | `https://example.r2.cloudflarestorage.com` | Production external model base | `R2_ENDPOINT_URL` build secret/variable |
-| Model bucket name | `grimcraft-models` | Production external model base | `R2_BUCKET_NAME` build secret/variable |
+| Model bucket name | `litloop-cloudflare-bucket` | Upload target for `models:r2:sync` | `R2_BUCKET_NAME` local env / CI secret |
+| R2 account ID | `abc123...` | S3 API upload endpoint | `R2_ACCOUNT_ID` local env / CI secret |
+| R2 API access key | `...` | Authenticating model uploads | `R2_ACCESS_KEY_ID` local env / CI secret |
+| R2 API secret key | `...` | Authenticating model uploads | `R2_SECRET_ACCESS_KEY` local env / CI secret |
 | Custom domain, if used | `https://www.example.com/` | Production user-facing URL | DNS records and hosting domain settings |

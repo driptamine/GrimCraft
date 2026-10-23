@@ -7,3 +7,6 @@
 # (This workspace is not a git repository yet.)
 /models/
 /node_modules/
+
+# Local deployment value cheat-sheets (may contain real tokens).
+values-links.md
