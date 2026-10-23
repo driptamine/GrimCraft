@@ -18,6 +18,7 @@ import { issueRightClick, pickMesh, raycastGround } from './input.js';
 import { disposeObj } from './three-helpers.js';
 import { listBuiltinMaps, selectMap, previewState, entryLabel, skirmishMapCards, defaultSkirmishMap } from './maps-menu.js';
 import { LOBBIES, capacityLabel, isFull, hasPlayers, createLobby } from './lobbies.js';
+import { resetR2Progress, subscribeR2Progress } from './r2-progress.js';
 
 export let SERVER_URL = 'https://127.0.0.1:4433/grimcraft';
 export let SERVER_CERT_HASH = '4c0409537cdf2905891d85c70369531614f138c923008c092ff72e31bc46fc25';
@@ -758,6 +759,83 @@ function _setConnectOverlay(visible) {
   }
 }
 
+let _r2Unsubscribe = null;
+
+// Standalone R2 download bar: a fixed overlay independent of the LOADING
+// panel, so R2 megabytes stay visible even when the boot bar flips between
+// model-count labels. Created lazily on first START BATTLE.
+function _ensureR2Bar() {
+  if (typeof document === 'undefined' || !document.getElementById) {
+    return null;
+  }
+  let bar = document.getElementById('r2-progress');
+  if (bar) {
+    return bar;
+  }
+  bar = document.createElement('div');
+  bar.id = 'r2-progress';
+  bar.style.cssText = [
+    'display:none', 'position:fixed', 'left:50%', 'bottom:56px',
+    'transform:translateX(-50%)', 'width:min(420px,86vw)', 'z-index:10001',
+    'pointer-events:none', 'font-family:Courier New,monospace',
+    'background:rgba(5,8,18,0.88)', 'border:1px solid rgba(80,200,255,0.4)',
+    'padding:8px 12px 10px',
+  ].join(';');
+  const title = document.createElement('div');
+  title.textContent = 'R2 DOWNLOAD';
+  title.style.cssText = 'font-size:10px;letter-spacing:.25em;color:#50c8ff;margin-bottom:6px';
+  const track = document.createElement('div');
+  track.style.cssText = 'height:10px;background:rgba(80,200,255,0.08);border:1px solid rgba(80,200,255,0.35)';
+  const fill = document.createElement('div');
+  fill.id = 'r2-progress-fill';
+  fill.style.cssText = 'height:100%;width:0%;background:#50c8ff';
+  track.appendChild(fill);
+  const label = document.createElement('div');
+  label.id = 'r2-progress-label';
+  label.style.cssText = 'margin-top:6px;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,0.75);min-height:13px';
+  bar.appendChild(title);
+  bar.appendChild(track);
+  bar.appendChild(label);
+  document.body.appendChild(bar);
+  return bar;
+}
+
+function _formatR2MB(bytes) {
+  return `${(Math.max(0, bytes) / 1048576).toFixed(1)} MB`;
+}
+
+function _renderR2Bar(snapshot) {
+  const bar = _ensureR2Bar();
+  if (!bar) {
+    return;
+  }
+  const fill = document.getElementById('r2-progress-fill');
+  const text = document.getElementById('r2-progress-label');
+  if (!snapshot || snapshot.totalFiles === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'block';
+  const total = snapshot.totalBytes > 0 ? _formatR2MB(snapshot.totalBytes) : '…';
+  if (fill) {
+    fill.style.width = `${snapshot.percent}%`;
+  }
+  if (text) {
+    const failed = snapshot.failedFiles > 0 ? ` · ⚠ ${snapshot.failedFiles} failed` : '';
+    text.textContent = `${_formatR2MB(snapshot.loadedBytes)}/${total} · ${snapshot.doneFiles}/${snapshot.totalFiles} files${failed}`;
+  }
+  if (snapshot.complete) {
+    setTimeout(() => {
+      const el = typeof document !== 'undefined' && document.getElementById
+        ? document.getElementById('r2-progress')
+        : null;
+      if (el && snapshot.complete) {
+        el.style.display = 'none';
+      }
+    }, 1500);
+  }
+}
+
 function _setLoadingUI(loading) {
   const form = document.getElementById('webTransport-connect-form');
   const wrap = document.getElementById('webTransport-load-wrap');
@@ -768,7 +846,24 @@ function _setLoadingUI(loading) {
     wrap.style.display = loading ? '' : 'none';
   }
   if (loading) {
+    resetR2Progress();
+    _ensureR2Bar();
+    if (_r2Unsubscribe) {
+      _r2Unsubscribe();
+    }
+    _r2Unsubscribe = subscribeR2Progress(_renderR2Bar);
     _updateLoadBar({ loaded: 0, total: 0, label: '' });
+  } else {
+    if (_r2Unsubscribe) {
+      _r2Unsubscribe();
+      _r2Unsubscribe = null;
+    }
+    const bar = typeof document !== 'undefined' && document.getElementById
+      ? document.getElementById('r2-progress')
+      : null;
+    if (bar) {
+      bar.style.display = 'none';
+    }
   }
 }
 

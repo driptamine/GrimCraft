@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TGALoader } from 'three/addons/loaders/TGALoader.js';
 import { DDSLoader } from 'three/addons/loaders/DDSLoader.js';
+import { reportR2Progress } from './r2-progress.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  THREE.JS HELPERS — small factories + graph utilities for the migrated game.
@@ -300,13 +301,14 @@ const _textureLoader = new THREE.TextureLoader();
 const _tgaLoader = new TGALoader();
 const _ddsLoader = new DDSLoader();
 
-export function loadTexture(url, { onLoad = null, onError = null } = {}) {
+export function loadTexture(url, { onLoad = null, onError = null, onProgress = null } = {}) {
   const done = (texture) => {
     if (onLoad) {
       onLoad(texture);
     }
   };
   const fail = (error) => {
+    reportR2Progress(url, { done: true, failed: true });
     if (onError) {
       onError(error);
     } else {
@@ -326,6 +328,12 @@ export function loadTexture(url, { onLoad = null, onError = null } = {}) {
         return response.arrayBuffer();
       })
       .then((buffer) => {
+        // Whole-file completion (bytes known only at the end here).
+        reportR2Progress(url, {
+          loaded: buffer.byteLength,
+          total: buffer.byteLength,
+          done: true,
+        });
         const parsed = lower.endsWith('.tga') ? _tgaLoader.parse(buffer) : _ddsLoader.parse(buffer, true);
         texture.image = parsed.image;
         texture.mipmaps = parsed.mipmaps || [];
@@ -337,7 +345,7 @@ export function loadTexture(url, { onLoad = null, onError = null } = {}) {
   }
   // Match the .tga/.dds path above: color rasters are sRGB; without the
   // mark three r152+ treats them as linear and washes them out (~2.2x).
-  const texture = _textureLoader.load(url, done, undefined, fail);
+  const texture = _textureLoader.load(url, done, onProgress || undefined, fail);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { reportR2Progress } from './r2-progress.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  GLTF MODELS — animated glTF/FBX loading + per-instance playback for three.js.
@@ -87,16 +88,35 @@ function _unregisterMixer(mixer) {
 
 export async function loadGltf(url, extension = '') {
   const ext = String(extension || url || '').split('?')[0].split('#')[0].toLowerCase();
+  // Byte-level R2 progress for the START BATTLE bar (R2 sends
+  // Content-Length, so lengthComputable is true and totals are real).
+  const onByteProgress = (event) => {
+    if (!event) {
+      return;
+    }
+    reportR2Progress(url, {
+      loaded: event.loaded || 0,
+      total: event.lengthComputable && event.total > 0 ? event.total : null,
+    });
+  };
   let root;
   let animations;
-  if (ext.endsWith('.fbx')) {
-    root = await _fbxLoader.loadAsync(url);
-    animations = root.animations || [];
-  } else {
-    const gltf = await _gltfLoader.loadAsync(url);
-    root = gltf.scene;
-    animations = gltf.animations || [];
+  try {
+    if (ext.endsWith('.fbx')) {
+      root = await _fbxLoader.loadAsync(url, onByteProgress);
+      animations = root.animations || [];
+    } else {
+      const gltf = await _gltfLoader.loadAsync(url, onByteProgress);
+      root = gltf.scene;
+      animations = gltf.animations || [];
+    }
+  } catch (error) {
+    // Mark finished-with-error so the progress bar never sticks on a
+    // failed download (callers fall back to procedural models).
+    reportR2Progress(url, { done: true, failed: true });
+    throw error;
   }
+  reportR2Progress(url, { done: true });
   const meshes = [];
   root.traverse((child) => {
     if (child.isMesh) {
