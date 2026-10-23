@@ -23,7 +23,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test -- --runInBand
+      # No test step: ~32 tests assert on models/ on disk, which is gitignored
+      # (1.1 GB, hosted on R2). Tests stay a local gate: npm test -- --runInBand.
       - run: npm run build
         env:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
