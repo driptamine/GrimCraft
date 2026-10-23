@@ -146,10 +146,14 @@ jobs:
         env:
           R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+      # The Netlify CLI also runs the site's build command from the app
+      # settings, so it needs the R2 base too — otherwise it would rebuild
+      # dist/ without models and deploy that instead.
       - run: npx --yes netlify-cli deploy --dir=dist --prod
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
 ```
 
 Remove `--prod` if the workflow should create a draft preview deployment instead of updating production.
