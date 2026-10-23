@@ -1,0 +1,231 @@
+{
+  "name": "Oasis Of Sharr",
+  "bounds": 256,
+  "positions": [
+    {
+      "x": -185.7,
+      "z": -96.1,
+      "team": "blue",
+      "faction": "orks"
+    },
+    {
+      "x": -154.13,
+      "z": -218.45,
+      "team": "blue",
+      "faction": "ig"
+    },
+    {
+      "x": 164.14,
+      "z": -216.06,
+      "team": "blue",
+      "faction": "necrons"
+    },
+    {
+      "x": 194.77,
+      "z": -96.73,
+      "team": "blue",
+      "faction": "tau"
+    },
+    {
+      "x": -177,
+      "z": 37,
+      "team": "red",
+      "faction": "chaos"
+    },
+    {
+      "x": -148,
+      "z": 178,
+      "team": "red",
+      "faction": "space marines"
+    },
+    {
+      "x": 150,
+      "z": 187,
+      "team": "red",
+      "faction": "dark eldar"
+    },
+    {
+      "x": 194.59,
+      "z": 32.13,
+      "team": "red",
+      "faction": "eldar"
+    }
+  ],
+  "strategicPoints": [
+    {
+      "x": 204,
+      "z": -214,
+      "kind": "point"
+    },
+    {
+      "x": 112,
+      "z": -202,
+      "kind": "point"
+    },
+    {
+      "x": 154,
+      "z": -180,
+      "kind": "point"
+    },
+    {
+      "x": 228,
+      "z": -98,
+      "kind": "point"
+    },
+    {
+      "x": 152,
+      "z": -68,
+      "kind": "point"
+    },
+    {
+      "x": 150,
+      "z": -122,
+      "kind": "point"
+    },
+    {
+      "x": 226,
+      "z": 30,
+      "kind": "point"
+    },
+    {
+      "x": 146,
+      "z": 64,
+      "kind": "point"
+    },
+    {
+      "x": 148,
+      "z": 8,
+      "kind": "point"
+    },
+    {
+      "x": 106,
+      "z": 162,
+      "kind": "point"
+    },
+    {
+      "x": 162,
+      "z": 150,
+      "kind": "point"
+    },
+    {
+      "x": 194,
+      "z": 202,
+      "kind": "point"
+    },
+    {
+      "x": -112,
+      "z": -212,
+      "kind": "point"
+    },
+    {
+      "x": -198,
+      "z": -204,
+      "kind": "point"
+    },
+    {
+      "x": -158,
+      "z": -176,
+      "kind": "point"
+    },
+    {
+      "x": -216,
+      "z": -92,
+      "kind": "point"
+    },
+    {
+      "x": -148,
+      "z": -72,
+      "kind": "point"
+    },
+    {
+      "x": -142,
+      "z": -112,
+      "kind": "point"
+    },
+    {
+      "x": -212,
+      "z": 48,
+      "kind": "point"
+    },
+    {
+      "x": -142,
+      "z": -8,
+      "kind": "point"
+    },
+    {
+      "x": -138,
+      "z": 44,
+      "kind": "point"
+    },
+    {
+      "x": -98,
+      "z": 152,
+      "kind": "point"
+    },
+    {
+      "x": -146,
+      "z": 120,
+      "kind": "point"
+    },
+    {
+      "x": -192,
+      "z": 166,
+      "kind": "point"
+    },
+    {
+      "x": 28,
+      "z": 204,
+      "kind": "point"
+    },
+    {
+      "x": -18,
+      "z": 198,
+      "kind": "point"
+    },
+    {
+      "x": 36,
+      "z": -212,
+      "kind": "point"
+    },
+    {
+      "x": -10,
+      "z": -212,
+      "kind": "point"
+    },
+    {
+      "x": 12,
+      "z": -4,
+      "kind": "point"
+    },
+    {
+      "x": 12,
+      "z": -62,
+      "kind": "point"
+    },
+    {
+      "x": 44,
+      "z": -36,
+      "kind": "point"
+    },
+    {
+      "x": -16,
+      "z": -38,
+      "kind": "point"
+    },
+    {
+      "x": 12,
+      "z": -208,
+      "kind": "relic"
+    },
+    {
+      "x": 14,
+      "z": -36,
+      "kind": "relic"
+    },
+    {
+      "x": 4,
+      "z": 198,
+      "kind": "relic"
+    }
+  ]
+}

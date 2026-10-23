@@ -1,0 +1,11 @@
+{
+  "idle": "idle_1",
+  "idle_tracking": "idle_tracking",
+  "run": "move_run_1",
+  "melee": "melee_attack_1",
+  "firing": "idle_firing_1",
+  "moveFiring": "move_firing",
+  "moveTracking": "move_tracking",
+  "die_normal_1": "die_normal_1",
+  "die_normal_2": "die_normal_2"
+}

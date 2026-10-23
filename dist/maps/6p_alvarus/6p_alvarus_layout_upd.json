@@ -1,0 +1,2893 @@
+{
+ "map": "6p_alvarus.sgb",
+ "terrain": {
+  "heightmap_file": "6p_alvarus_heightmap.png",
+  "size": [
+   257,
+   257
+  ],
+  "encoding": "8-bit gray; row 0 = z -256, col 0 = x -256; x grows to the right, z grows downward",
+  "world_half_extent": 256.0,
+  "height_scale": 0.25,
+  "cell_size": 2.0,
+  "num_cells": [
+   256,
+   256
+  ],
+  "center_cell_idx": [
+   129,
+   129
+  ],
+  "num_tile_cells": 16,
+  "tile_texture_repeat": 4,
+  "note": "world_half_extent/height_scale/cell_size/num_cells/num_tile_cells/tile_texture_repeat read directly from the VDAT chunk (field layout per amorgun/gdsquad formats/sgb.gd), not fitted",
+  "ground_texture": "art/scenarios/textures/detail/chaos_taint_02"
+ },
+ "decals": [
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -104.848,
+   "z": -48.373,
+   "size_raw": 0.0397,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -108.954,
+   "z": -76.943,
+   "size_raw": 0.0418,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -110.79,
+   "z": -86.004,
+   "size_raw": 0.0425,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 24.133,
+   "z": 68.851,
+   "size_raw": 0.0357,
+   "rotation_rad": -3.0722
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -46.699,
+   "z": -51.29,
+   "size_raw": 0.0448,
+   "rotation_rad": -5.899
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -90.689,
+   "z": -24.858,
+   "size_raw": 0.0757,
+   "rotation_rad": -1.1068
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -64.612,
+   "z": -53.006,
+   "size_raw": 0.051,
+   "rotation_rad": -0.0475
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -66.533,
+   "z": -20.216,
+   "size_raw": 0.0565,
+   "rotation_rad": -1.1566
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -42.492,
+   "z": -22.417,
+   "size_raw": 0.0594,
+   "rotation_rad": -6.1456
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -10.186,
+   "z": 74.564,
+   "size_raw": 0.0484,
+   "rotation_rad": -2.8751
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 35.755,
+   "z": 115.342,
+   "size_raw": 0.0582,
+   "rotation_rad": -2.4422
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -7.038,
+   "z": 113.802,
+   "size_raw": 0.0532,
+   "rotation_rad": -1.7136
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 15.332,
+   "z": 90.667,
+   "size_raw": 0.0499,
+   "rotation_rad": -0.9099
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 9.552,
+   "z": 70.677,
+   "size_raw": 0.0479,
+   "rotation_rad": -5.7944
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -4.425,
+   "z": 54.488,
+   "size_raw": 0.0556,
+   "rotation_rad": -1.8523
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 19.592,
+   "z": 106.515,
+   "size_raw": 0.0451,
+   "rotation_rad": -2.4422
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -45.808,
+   "z": -83.437,
+   "size_raw": 0.0357,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 8.028,
+   "z": -88.327,
+   "size_raw": 0.0388,
+   "rotation_rad": -5.28
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 7.761,
+   "z": -108.612,
+   "size_raw": 0.0344,
+   "rotation_rad": -3.7912
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -11.992,
+   "z": -118.283,
+   "size_raw": 0.0461,
+   "rotation_rad": -6.0395
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 11.482,
+   "z": -122.734,
+   "size_raw": 0.0289,
+   "rotation_rad": -4.4788
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -11.517,
+   "z": -95.763,
+   "size_raw": 0.0411,
+   "rotation_rad": -3.539
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -9.228,
+   "z": -79.749,
+   "size_raw": 0.0413,
+   "rotation_rad": -3.6319
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 4.779,
+   "z": -70.581,
+   "size_raw": 0.0408,
+   "rotation_rad": -4.4585
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -9.934,
+   "z": -105.135,
+   "size_raw": 0.0298,
+   "rotation_rad": -0.1217
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 84.488,
+   "z": -29.475,
+   "size_raw": 0.0268,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 82.574,
+   "z": 5.429,
+   "size_raw": 0.0255,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 41.983,
+   "z": 5.914,
+   "size_raw": 0.0255,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 99.315,
+   "z": -17.122,
+   "size_raw": 0.0451,
+   "rotation_rad": -0.8555
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 22.195,
+   "z": -90.114,
+   "size_raw": 0.0732,
+   "rotation_rad": -5.6033
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 78.337,
+   "z": -14.695,
+   "size_raw": 0.0411,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 95.433,
+   "z": -28.191,
+   "size_raw": 0.0411,
+   "rotation_rad": -0.4754
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -125.455,
+   "z": -127.707,
+   "size_raw": 0.0615,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -106.724,
+   "z": -132.443,
+   "size_raw": 0.0549,
+   "rotation_rad": -5.5465
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -125.292,
+   "z": -144.503,
+   "size_raw": 0.0549,
+   "rotation_rad": -0.0198
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -27.268,
+   "z": -93.895,
+   "size_raw": 0.0364,
+   "rotation_rad": -1.0251
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -88.78,
+   "z": -123.172,
+   "size_raw": 0.0549,
+   "rotation_rad": -6.0145
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -134.092,
+   "z": -107.95,
+   "size_raw": 0.0713,
+   "rotation_rad": -0.0282
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -135.215,
+   "z": -86.645,
+   "size_raw": 0.0529,
+   "rotation_rad": -6.2817
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -143.742,
+   "z": -154.505,
+   "size_raw": 0.0549,
+   "rotation_rad": -5.9316
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -126.136,
+   "z": -168.379,
+   "size_raw": 0.0549,
+   "rotation_rad": -5.9316
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -110.795,
+   "z": -94.657,
+   "size_raw": 0.0615,
+   "rotation_rad": -1.8449
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -92.296,
+   "z": -99.596,
+   "size_raw": 0.0564,
+   "rotation_rad": -0.7311
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -53.796,
+   "z": -103.259,
+   "size_raw": 0.0615,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -68.813,
+   "z": -70.913,
+   "size_raw": 0.0615,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -115.644,
+   "z": -56.702,
+   "size_raw": 0.0615,
+   "rotation_rad": -0.1675
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 148.361,
+   "z": 131.052,
+   "size_raw": 0.0729,
+   "rotation_rad": -1.5402
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 143.335,
+   "z": 94.895,
+   "size_raw": 0.077,
+   "rotation_rad": -2.0932
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 146.214,
+   "z": 69.369,
+   "size_raw": 0.0707,
+   "rotation_rad": -1.3935
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -114.381,
+   "z": -32.722,
+   "size_raw": 0.0766,
+   "rotation_rad": -5.9355
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -26.689,
+   "z": -83.963,
+   "size_raw": 0.0207,
+   "rotation_rad": -1.1155
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -24.839,
+   "z": -99.128,
+   "size_raw": 0.0399,
+   "rotation_rad": -0.4337
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -29.651,
+   "z": -101.99,
+   "size_raw": 0.0231,
+   "rotation_rad": -5.6101
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -23.898,
+   "z": -87.938,
+   "size_raw": 0.0318,
+   "rotation_rad": -5.6387
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -32.794,
+   "z": -104.455,
+   "size_raw": 0.0317,
+   "rotation_rad": -4.6542
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -28.062,
+   "z": -79.878,
+   "size_raw": 0.0264,
+   "rotation_rad": -2.4734
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -31.798,
+   "z": -98.072,
+   "size_raw": 0.0315,
+   "rotation_rad": -1.0251
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -109.53,
+   "z": -110.585,
+   "size_raw": 0.0599,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 142.282,
+   "z": 40.717,
+   "size_raw": 0.0912,
+   "rotation_rad": -2.4969
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 137.849,
+   "z": -30.09,
+   "size_raw": 0.0519,
+   "rotation_rad": -2.9549
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 174.584,
+   "z": 34.309,
+   "size_raw": 0.053,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 5.39,
+   "z": -153.904,
+   "size_raw": 0.0549,
+   "rotation_rad": -0.152
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 15.435,
+   "z": -168.4,
+   "size_raw": 0.0549,
+   "rotation_rad": -0.152
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 134.789,
+   "z": 15.244,
+   "size_raw": 0.0525,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -134.88,
+   "z": 15.225,
+   "size_raw": 0.0605,
+   "rotation_rad": -3.0265
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 152.379,
+   "z": -46.447,
+   "size_raw": 0.0707,
+   "rotation_rad": -2.2383
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 161.494,
+   "z": 10.175,
+   "size_raw": 0.0844,
+   "rotation_rad": -2.4773
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 165.924,
+   "z": -19.476,
+   "size_raw": 0.0707,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 135.406,
+   "z": -9.782,
+   "size_raw": 0.0802,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 183.811,
+   "z": -41.586,
+   "size_raw": 0.0707,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 169.185,
+   "z": 142.714,
+   "size_raw": 0.0504,
+   "rotation_rad": -3.2272
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 26.065,
+   "z": -144.262,
+   "size_raw": 0.0828,
+   "rotation_rad": -5.6909
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -101.55,
+   "z": -149.87,
+   "size_raw": 0.0539,
+   "rotation_rad": -5.6771
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -65.437,
+   "z": -133.56,
+   "size_raw": 0.08,
+   "rotation_rad": -0.4372
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 178.94,
+   "z": 59.61,
+   "size_raw": 0.0797,
+   "rotation_rad": -3.2272
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -45.991,
+   "z": -105.584,
+   "size_raw": 0.0257,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -81.852,
+   "z": -68.477,
+   "size_raw": 0.021,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -81.818,
+   "z": -106.127,
+   "size_raw": 0.0267,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -22.904,
+   "z": -92.59,
+   "size_raw": 0.035,
+   "rotation_rad": -2.356
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -112.379,
+   "z": 6.319,
+   "size_raw": 0.0482,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -114.051,
+   "z": 107.903,
+   "size_raw": 0.0635,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 118.168,
+   "z": -89.954,
+   "size_raw": 0.0597,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 118.95,
+   "z": -51.49,
+   "size_raw": 0.0538,
+   "rotation_rad": -1.7691
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -135.822,
+   "z": 87.214,
+   "size_raw": 0.0605,
+   "rotation_rad": -3.0265
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 144.796,
+   "z": -103.193,
+   "size_raw": 0.0707,
+   "rotation_rad": -1.8966
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 185.916,
+   "z": -103.558,
+   "size_raw": 0.0707,
+   "rotation_rad": -1.1464
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 117.302,
+   "z": -69.799,
+   "size_raw": 0.0435,
+   "rotation_rad": -1.4905
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 17.969,
+   "z": 142.987,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 45.042,
+   "z": 137.188,
+   "size_raw": 0.0584,
+   "rotation_rad": -3.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 70.205,
+   "z": 138.207,
+   "size_raw": 0.0707,
+   "rotation_rad": -3.0253
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 98.157,
+   "z": 140.163,
+   "size_raw": 0.0574,
+   "rotation_rad": -2.9258
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 79.98,
+   "z": 165.04,
+   "size_raw": 0.0707,
+   "rotation_rad": -2.8712
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 107.361,
+   "z": 162.618,
+   "size_raw": 0.0707,
+   "rotation_rad": -2.3258
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 128.45,
+   "z": 144.914,
+   "size_raw": 0.0707,
+   "rotation_rad": -2.5149
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 11.219,
+   "z": 166.715,
+   "size_raw": 0.0635,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -130.249,
+   "z": 66.439,
+   "size_raw": 0.0588,
+   "rotation_rad": -4.8375
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 100.842,
+   "z": -49.643,
+   "size_raw": 0.0477,
+   "rotation_rad": -2.0739
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 103.363,
+   "z": -58.372,
+   "size_raw": 0.0508,
+   "rotation_rad": -0.9435
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -53.201,
+   "z": 25.258,
+   "size_raw": 0.1052,
+   "rotation_rad": -1.732
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 26.276,
+   "z": -65.303,
+   "size_raw": 0.0811,
+   "rotation_rad": -4.4021
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 17.23,
+   "z": -23.64,
+   "size_raw": 0.0899,
+   "rotation_rad": -4.4021
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -79.123,
+   "z": 45.538,
+   "size_raw": 0.0626,
+   "rotation_rad": -1.4214
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -117.985,
+   "z": -18.31,
+   "size_raw": 0.0217,
+   "rotation_rad": -6.0323
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -87.964,
+   "z": 5.686,
+   "size_raw": 0.1013,
+   "rotation_rad": -5.386
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -106.595,
+   "z": 26.017,
+   "size_raw": 0.0676,
+   "rotation_rad": -0.9301
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -115.988,
+   "z": 31.579,
+   "size_raw": 0.0247,
+   "rotation_rad": -5.9863
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -57.898,
+   "z": 6.065,
+   "size_raw": 0.0237,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 61.777,
+   "z": -149.188,
+   "size_raw": 0.0828,
+   "rotation_rad": -5.2823
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -43.652,
+   "z": -133.421,
+   "size_raw": 0.0613,
+   "rotation_rad": -0.0286
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 146.625,
+   "z": -142.698,
+   "size_raw": 0.1109,
+   "rotation_rad": -5.2823
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -13.576,
+   "z": -138.9,
+   "size_raw": 0.08,
+   "rotation_rad": -0.0286
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 42.919,
+   "z": -177.241,
+   "size_raw": 0.084,
+   "rotation_rad": -5.3865
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 118.641,
+   "z": -33.507,
+   "size_raw": 0.0421,
+   "rotation_rad": -3.2433
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 106.48,
+   "z": -43.265,
+   "size_raw": 0.0431,
+   "rotation_rad": -0.0809
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 99.945,
+   "z": -40.893,
+   "size_raw": 0.0431,
+   "rotation_rad": -1.6096
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 102.904,
+   "z": -72.45,
+   "size_raw": 0.0515,
+   "rotation_rad": -2.6831
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 86.823,
+   "z": -83.227,
+   "size_raw": 0.0778,
+   "rotation_rad": -1.4977
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 100.632,
+   "z": -84.569,
+   "size_raw": 0.0785,
+   "rotation_rad": -0.149
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -71.719,
+   "z": -40.272,
+   "size_raw": 0.0797,
+   "rotation_rad": -5.7256
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 97.932,
+   "z": -65.33,
+   "size_raw": 0.0426,
+   "rotation_rad": -0.26
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 92.07,
+   "z": -67.894,
+   "size_raw": 0.0405,
+   "rotation_rad": -5.9305
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -105.736,
+   "z": 44.48,
+   "size_raw": 0.0373,
+   "rotation_rad": -1.8503
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 94.681,
+   "z": -53.085,
+   "size_raw": 0.0507,
+   "rotation_rad": -3.7197
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -108.742,
+   "z": 90.504,
+   "size_raw": 0.0436,
+   "rotation_rad": -2.9107
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -85.525,
+   "z": -49.773,
+   "size_raw": 0.0422,
+   "rotation_rad": -0.572
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -58.878,
+   "z": -37.786,
+   "size_raw": 0.0797,
+   "rotation_rad": -0.7468
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -34.655,
+   "z": -40.151,
+   "size_raw": 0.0448,
+   "rotation_rad": -4.7575
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -44.973,
+   "z": -37.949,
+   "size_raw": 0.0797,
+   "rotation_rad": -0.7468
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -12.614,
+   "z": -46.174,
+   "size_raw": 0.0863,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 0.445,
+   "z": 21.959,
+   "size_raw": 0.0863,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -60.303,
+   "z": 107.652,
+   "size_raw": 0.0863,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -89.469,
+   "z": 104.849,
+   "size_raw": 0.0863,
+   "rotation_rad": -1.3991
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -93.129,
+   "z": 41.201,
+   "size_raw": 0.034,
+   "rotation_rad": -2.5964
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -90.868,
+   "z": 30.108,
+   "size_raw": 0.0408,
+   "rotation_rad": -2.2685
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -76.288,
+   "z": 29.84,
+   "size_raw": 0.0408,
+   "rotation_rad": -2.1551
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 64.356,
+   "z": -48.129,
+   "size_raw": 0.0565,
+   "rotation_rad": -5.4627
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 44.38,
+   "z": -45.842,
+   "size_raw": 0.0547,
+   "rotation_rad": -4.9839
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 41.924,
+   "z": -82.077,
+   "size_raw": 0.0449,
+   "rotation_rad": -5.9975
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 54.055,
+   "z": -84.388,
+   "size_raw": 0.0428,
+   "rotation_rad": -5.9975
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 69.904,
+   "z": -81.761,
+   "size_raw": 0.0603,
+   "rotation_rad": -5.9975
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 174.066,
+   "z": -71.54,
+   "size_raw": 0.0764,
+   "rotation_rad": -1.1464
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -22.876,
+   "z": 40.322,
+   "size_raw": 0.0827,
+   "rotation_rad": -2.1271
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 26.546,
+   "z": 3.323,
+   "size_raw": 0.0863,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 95.955,
+   "z": 73.616,
+   "size_raw": 0.0863,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 96.47,
+   "z": 54.627,
+   "size_raw": 0.0713,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 71.766,
+   "z": 35.651,
+   "size_raw": 0.0661,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 41.726,
+   "z": 72.943,
+   "size_raw": 0.0932,
+   "rotation_rad": -1.8076
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 69.501,
+   "z": 116.904,
+   "size_raw": 0.0792,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 115.392,
+   "z": 117.053,
+   "size_raw": 0.0911,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 114.806,
+   "z": -118.779,
+   "size_raw": 0.0786,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 72.843,
+   "z": -110.175,
+   "size_raw": 0.0809,
+   "rotation_rad": -5.6033
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 55.326,
+   "z": -65.671,
+   "size_raw": 0.0627,
+   "rotation_rad": -5.6033
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 71.551,
+   "z": 100.65,
+   "size_raw": 0.032,
+   "rotation_rad": -3.1209
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 69.852,
+   "z": 104.466,
+   "size_raw": 0.0217,
+   "rotation_rad": -2.9871
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 9.174,
+   "z": 121.06,
+   "size_raw": 0.0694,
+   "rotation_rad": -3.4265
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 68.459,
+   "z": 97.587,
+   "size_raw": 0.0231,
+   "rotation_rad": -0.9697
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 72.265,
+   "z": 96.365,
+   "size_raw": 0.0179,
+   "rotation_rad": -0.3938
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 75.612,
+   "z": 102.896,
+   "size_raw": 0.0275,
+   "rotation_rad": -4.8402
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 75.647,
+   "z": 96.904,
+   "size_raw": 0.0286,
+   "rotation_rad": -5.2526
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 73.532,
+   "z": 106.508,
+   "size_raw": 0.0248,
+   "rotation_rad": -3.7374
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 94.087,
+   "z": 105.587,
+   "size_raw": 0.0272,
+   "rotation_rad": -3.264
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 67.0,
+   "z": 101.381,
+   "size_raw": 0.0239,
+   "rotation_rad": -4.229
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -70.968,
+   "z": -94.606,
+   "size_raw": 0.032,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -67.27,
+   "z": -100.456,
+   "size_raw": 0.0217,
+   "rotation_rad": -0.0904
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -65.404,
+   "z": -95.758,
+   "size_raw": 0.0357,
+   "rotation_rad": -0.3056
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -71.789,
+   "z": -89.976,
+   "size_raw": 0.0231,
+   "rotation_rad": -4.1319
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -75.518,
+   "z": -91.263,
+   "size_raw": 0.0191,
+   "rotation_rad": -4.0639
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -72.582,
+   "z": -100.074,
+   "size_raw": 0.0241,
+   "rotation_rad": -1.3784
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -69.221,
+   "z": -85.7,
+   "size_raw": 0.0264,
+   "rotation_rad": -1.4484
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -76.909,
+   "z": -94.577,
+   "size_raw": 0.0213,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -67.951,
+   "z": -90.456,
+   "size_raw": 0.0228,
+   "rotation_rad": -1.108
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -45.943,
+   "z": -2.666,
+   "size_raw": 0.0626,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -34.432,
+   "z": 28.774,
+   "size_raw": 0.0626,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -23.536,
+   "z": 26.393,
+   "size_raw": 0.0347,
+   "rotation_rad": -5.1741
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -53.525,
+   "z": -62.394,
+   "size_raw": 0.0527,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -47.668,
+   "z": -77.516,
+   "size_raw": 0.0264,
+   "rotation_rad": -1.4484
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -47.292,
+   "z": -63.947,
+   "size_raw": 0.0264,
+   "rotation_rad": -3.4654
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -52.014,
+   "z": -69.75,
+   "size_raw": 0.0264,
+   "rotation_rad": -3.4654
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 116.395,
+   "z": 35.331,
+   "size_raw": 0.0658,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -109.0,
+   "z": 58.237,
+   "size_raw": 0.0374,
+   "rotation_rad": -5.3764
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -115.83,
+   "z": 60.375,
+   "size_raw": 0.0357,
+   "rotation_rad": -5.3517
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -116.027,
+   "z": 89.605,
+   "size_raw": 0.0508,
+   "rotation_rad": -5.052
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -114.548,
+   "z": 77.212,
+   "size_raw": 0.0508,
+   "rotation_rad": -4.2459
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -113.422,
+   "z": 68.772,
+   "size_raw": 0.0508,
+   "rotation_rad": -4.4762
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -77.953,
+   "z": 59.762,
+   "size_raw": 0.0811,
+   "rotation_rad": -1.4214
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -90.668,
+   "z": 71.175,
+   "size_raw": 0.0564,
+   "rotation_rad": -1.4214
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -117.991,
+   "z": 48.838,
+   "size_raw": 0.0421,
+   "rotation_rad": -0.2626
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -104.031,
+   "z": 52.971,
+   "size_raw": 0.0431,
+   "rotation_rad": -3.3833
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -95.901,
+   "z": 51.315,
+   "size_raw": 0.0431,
+   "rotation_rad": -4.912
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -109.653,
+   "z": 78.741,
+   "size_raw": 0.0416,
+   "rotation_rad": -5.4359
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -81.159,
+   "z": 83.697,
+   "size_raw": 0.0729,
+   "rotation_rad": -4.8001
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -92.363,
+   "z": 85.81,
+   "size_raw": 0.0565,
+   "rotation_rad": -4.6878
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -99.615,
+   "z": 62.262,
+   "size_raw": 0.0427,
+   "rotation_rad": -3.5624
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -100.953,
+   "z": 81.078,
+   "size_raw": 0.0513,
+   "rotation_rad": -2.9498
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -64.736,
+   "z": 64.842,
+   "size_raw": 0.0412,
+   "rotation_rad": -2.2913
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -59.415,
+   "z": 68.047,
+   "size_raw": 0.0412,
+   "rotation_rad": -0.739
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -100.337,
+   "z": 87.568,
+   "size_raw": 0.05,
+   "rotation_rad": -4.9969
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -31.292,
+   "z": 91.904,
+   "size_raw": 0.0827,
+   "rotation_rad": -2.1271
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -61.384,
+   "z": 51.576,
+   "size_raw": 0.0408,
+   "rotation_rad": -2.4819
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -48.068,
+   "z": 58.556,
+   "size_raw": 0.0408,
+   "rotation_rad": -2.4819
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -45.542,
+   "z": 70.992,
+   "size_raw": 0.0408,
+   "rotation_rad": -3.0167
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -51.516,
+   "z": 79.793,
+   "size_raw": 0.0488,
+   "rotation_rad": -3.0167
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": -66.116,
+   "z": 82.529,
+   "size_raw": 0.0485,
+   "rotation_rad": -2.1561
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 91.628,
+   "z": -42.21,
+   "size_raw": 0.0682,
+   "rotation_rad": -3.1992
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 81.88,
+   "z": -42.117,
+   "size_raw": 0.0649,
+   "rotation_rad": -2.2584
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -103.238,
+   "z": -167.984,
+   "size_raw": 0.0549,
+   "rotation_rad": -0.152
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -93.193,
+   "z": -182.48,
+   "size_raw": 0.0549,
+   "rotation_rad": -0.152
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -74.499,
+   "z": -165.407,
+   "size_raw": 0.0828,
+   "rotation_rad": -5.6909
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -37.716,
+   "z": -165.478,
+   "size_raw": 0.0828,
+   "rotation_rad": -5.2823
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -8.023,
+   "z": -172.092,
+   "size_raw": 0.0828,
+   "rotation_rad": -5.2823
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -50.61,
+   "z": -199.693,
+   "size_raw": 0.1033,
+   "rotation_rad": -5.3865
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 100.912,
+   "z": -152.618,
+   "size_raw": 0.1001,
+   "rotation_rad": -6.202
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -161.272,
+   "z": -116.57,
+   "size_raw": 0.0729,
+   "rotation_rad": -4.5962
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -161.793,
+   "z": -89.553,
+   "size_raw": 0.0861,
+   "rotation_rad": -4.5962
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -135.506,
+   "z": -63.648,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -140.937,
+   "z": -39.143,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -138.669,
+   "z": 40.793,
+   "size_raw": 0.0625,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -162.463,
+   "z": -27.351,
+   "size_raw": 0.055,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -138.601,
+   "z": -8.765,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -162.533,
+   "z": 34.832,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -184.117,
+   "z": -17.763,
+   "size_raw": 0.055,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -188.952,
+   "z": 8.44,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -161.682,
+   "z": 11.599,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -180.031,
+   "z": 47.794,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -146.745,
+   "z": -137.345,
+   "size_raw": 0.0504,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -169.129,
+   "z": -57.132,
+   "size_raw": 0.0797,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -139.611,
+   "z": 112.781,
+   "size_raw": 0.0625,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -151.691,
+   "z": 63.866,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -163.474,
+   "z": 106.821,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -186.517,
+   "z": 101.144,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.2025
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -162.624,
+   "z": 83.588,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -201.885,
+   "z": 75.667,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.2025
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 182.092,
+   "z": 103.879,
+   "size_raw": 0.1203,
+   "rotation_rad": -1.2494
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -150.261,
+   "z": 134.059,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -121.491,
+   "z": 131.507,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.9526
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -96.112,
+   "z": 136.519,
+   "size_raw": 0.0707,
+   "rotation_rad": -4.4556
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -67.657,
+   "z": 137.477,
+   "size_raw": 0.0707,
+   "rotation_rad": -3.0253
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -38.224,
+   "z": 134.627,
+   "size_raw": 0.0707,
+   "rotation_rad": -3.3137
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -52.866,
+   "z": 158.298,
+   "size_raw": 0.0707,
+   "rotation_rad": -3.3137
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -26.655,
+   "z": 155.333,
+   "size_raw": 0.0707,
+   "rotation_rad": -2.3258
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": -11.011,
+   "z": 133.435,
+   "size_raw": 0.0707,
+   "rotation_rad": -2.5149
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": -111.759,
+   "z": 157.045,
+   "size_raw": 0.0635,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -101.768,
+   "z": 70.759,
+   "size_raw": 0.0237,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -85.878,
+   "z": 115.572,
+   "size_raw": 0.0227,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -52.542,
+   "z": 115.708,
+   "size_raw": 0.0227,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -20.141,
+   "z": 93.702,
+   "size_raw": 0.0204,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": -6.121,
+   "z": 31.596,
+   "size_raw": 0.0247,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 0.112,
+   "z": -46.32,
+   "size_raw": 0.0247,
+   "rotation_rad": -0.082
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 0.722,
+   "z": -98.497,
+   "size_raw": 0.0509,
+   "rotation_rad": -0.1225
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -0.483,
+   "z": -111.234,
+   "size_raw": 0.0598,
+   "rotation_rad": -0.5831
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 1.167,
+   "z": -122.655,
+   "size_raw": 0.0434,
+   "rotation_rad": -0.5831
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 2.645,
+   "z": 82.771,
+   "size_raw": 0.0491,
+   "rotation_rad": -3.4265
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 5.461,
+   "z": 102.826,
+   "size_raw": 0.0694,
+   "rotation_rad": -4.2703
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": -1.35,
+   "z": 91.932,
+   "size_raw": 0.0613,
+   "rotation_rad": -4.7605
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -6.823,
+   "z": 100.728,
+   "size_raw": 0.0412,
+   "rotation_rad": -1.5153
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -11.655,
+   "z": 86.966,
+   "size_raw": 0.027,
+   "rotation_rad": -0.2244
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -13.119,
+   "z": 94.118,
+   "size_raw": 0.046,
+   "rotation_rad": -0.6139
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 126.945,
+   "z": 60.112,
+   "size_raw": 0.0774,
+   "rotation_rad": -2.7799
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 70.85,
+   "z": 55.564,
+   "size_raw": 0.0896,
+   "rotation_rad": -4.6272
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 40.182,
+   "z": -23.303,
+   "size_raw": 0.0626,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": 26.551,
+   "z": 43.039,
+   "size_raw": 0.1126,
+   "rotation_rad": -1.1614
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -20.962,
+   "z": 112.916,
+   "size_raw": 0.0683,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -45.959,
+   "z": 98.38,
+   "size_raw": 0.032,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -49.659,
+   "z": 92.163,
+   "size_raw": 0.032,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": -73.78,
+   "z": 98.856,
+   "size_raw": 0.0425,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -101.733,
+   "z": 35.972,
+   "size_raw": 0.0373,
+   "rotation_rad": -5.8937
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -105.478,
+   "z": -8.817,
+   "size_raw": 0.0361,
+   "rotation_rad": -5.3218
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 103.361,
+   "z": 87.676,
+   "size_raw": 0.0406,
+   "rotation_rad": -4.4993
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 80.387,
+   "z": 83.965,
+   "size_raw": 0.0495,
+   "rotation_rad": -4.4993
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 75.105,
+   "z": 68.89,
+   "size_raw": 0.0896,
+   "rotation_rad": -4.6272
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 59.509,
+   "z": 51.524,
+   "size_raw": 0.0778,
+   "rotation_rad": -4.4728
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 125.166,
+   "z": 71.504,
+   "size_raw": 0.0615,
+   "rotation_rad": -1.9585
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 117.372,
+   "z": 15.694,
+   "size_raw": 0.057,
+   "rotation_rad": -4.4144
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 104.243,
+   "z": 16.987,
+   "size_raw": 0.0782,
+   "rotation_rad": -5.1237
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 88.756,
+   "z": 19.604,
+   "size_raw": 0.0896,
+   "rotation_rad": -3.0453
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 41.501,
+   "z": 28.922,
+   "size_raw": 0.0556,
+   "rotation_rad": -1.8523
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 45.887,
+   "z": 41.838,
+   "size_raw": 0.0474,
+   "rotation_rad": -2.4553
+  },
+  {
+   "ref": "art/decals/urban/urban_rubble03",
+   "x": 56.784,
+   "z": 20.749,
+   "size_raw": 0.0474,
+   "rotation_rad": -2.4553
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 119.075,
+   "z": 80.949,
+   "size_raw": 0.0615,
+   "rotation_rad": -1.9585
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 109.182,
+   "z": 81.938,
+   "size_raw": 0.0537,
+   "rotation_rad": -1.9585
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 118.194,
+   "z": 91.235,
+   "size_raw": 0.0523,
+   "rotation_rad": -1.9585
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 118.035,
+   "z": 57.094,
+   "size_raw": 0.0406,
+   "rotation_rad": -4.4993
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 121.341,
+   "z": 50.537,
+   "size_raw": 0.0406,
+   "rotation_rad": -4.4993
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 111.311,
+   "z": 52.006,
+   "size_raw": 0.0406,
+   "rotation_rad": -0.3075
+  },
+  {
+   "ref": "art/decals/jungle/stone_cliff_05",
+   "x": 144.134,
+   "z": -70.16,
+   "size_raw": 0.0857,
+   "rotation_rad": -1.5578
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 72.535,
+   "z": 17.675,
+   "size_raw": 0.0896,
+   "rotation_rad": -3.0453
+  },
+  {
+   "ref": "art/decals/jungle/jungle_mud_02",
+   "x": 113.356,
+   "z": 2.113,
+   "size_raw": 0.0798,
+   "rotation_rad": -5.0903
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 84.488,
+   "z": -29.475,
+   "size_raw": 0.0268,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 67.672,
+   "z": -66.197,
+   "size_raw": 0.022,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 67.683,
+   "z": -66.475,
+   "size_raw": 0.022,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 1.95,
+   "z": 40.931,
+   "size_raw": 0.046,
+   "rotation_rad": -0.6139
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 8.605,
+   "z": 39.354,
+   "size_raw": 0.0363,
+   "rotation_rad": -5.023
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 59.927,
+   "z": 65.049,
+   "size_raw": 0.031,
+   "rotation_rad": -2.7841
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 23.131,
+   "z": 81.1,
+   "size_raw": 0.031,
+   "rotation_rad": -3.5594
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 50.033,
+   "z": 110.821,
+   "size_raw": 0.0275,
+   "rotation_rad": -4.8402
+  },
+  {
+   "ref": "art/decals/z_all/crater_dust_01",
+   "x": -26.305,
+   "z": 5.914,
+   "size_raw": 0.0891,
+   "rotation_rad": -4.2368
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -25.418,
+   "z": -17.801,
+   "size_raw": 0.0373,
+   "rotation_rad": -2.4079
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -23.065,
+   "z": -22.821,
+   "size_raw": 0.0373,
+   "rotation_rad": -3.4989
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -22.325,
+   "z": -29.611,
+   "size_raw": 0.0373,
+   "rotation_rad": -3.2783
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 8.499,
+   "z": -0.795,
+   "size_raw": 0.0373,
+   "rotation_rad": -2.4079
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 28.77,
+   "z": -47.455,
+   "size_raw": 0.0373,
+   "rotation_rad": -2.4079
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 29.89,
+   "z": -43.945,
+   "size_raw": 0.0373,
+   "rotation_rad": -0.5655
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 54.806,
+   "z": -32.121,
+   "size_raw": 0.0481,
+   "rotation_rad": -0.5165
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 51.415,
+   "z": -19.194,
+   "size_raw": 0.0301,
+   "rotation_rad": -1.6232
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 62.089,
+   "z": -15.509,
+   "size_raw": 0.0373,
+   "rotation_rad": -0.5655
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 66.9,
+   "z": -18.348,
+   "size_raw": 0.0373,
+   "rotation_rad": -1.5362
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 66.782,
+   "z": -32.951,
+   "size_raw": 0.0373,
+   "rotation_rad": -1.7158
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -60.278,
+   "z": 95.792,
+   "size_raw": 0.0412,
+   "rotation_rad": -2.2913
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -79.987,
+   "z": 95.391,
+   "size_raw": 0.0373,
+   "rotation_rad": -2.2913
+  },
+  {
+   "ref": "art/decals/z_all/crater_charred_01",
+   "x": 36.084,
+   "z": 159.953,
+   "size_raw": 0.0514,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 45.757,
+   "z": -97.854,
+   "size_raw": 0.0492,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/z_all/crater_02",
+   "x": 96.763,
+   "z": -97.536,
+   "size_raw": 0.0492,
+   "rotation_rad": 0.0
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 87.989,
+   "z": -110.082,
+   "size_raw": 0.0205,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 55.855,
+   "z": -109.586,
+   "size_raw": 0.0199,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 18.018,
+   "z": -102.045,
+   "size_raw": 0.0199,
+   "rotation_rad": -6.2781
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 23.22,
+   "z": -119.064,
+   "size_raw": 0.0373,
+   "rotation_rad": -0.5655
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 32.811,
+   "z": -120.808,
+   "size_raw": 0.0373,
+   "rotation_rad": -1.4633
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": 56.347,
+   "z": -97.377,
+   "size_raw": 0.0373,
+   "rotation_rad": -1.4633
+  },
+  {
+   "ref": "art/decals/z_all/chaos_taint_02",
+   "x": -3.367,
+   "z": -60.008,
+   "size_raw": 0.0291,
+   "rotation_rad": -0.3048
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 61.849,
+   "z": 35.968,
+   "size_raw": 0.0238,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 85.894,
+   "z": 35.914,
+   "size_raw": 0.0238,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 111.523,
+   "z": 65.99,
+   "size_raw": 0.0238,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 57.977,
+   "z": 117.908,
+   "size_raw": 0.0238,
+   "rotation_rad": -0.1431
+  },
+  {
+   "ref": "art/decals/jungle/jungle_rubble01",
+   "x": 57.879,
+   "z": 78.219,
+   "size_raw": 0.0238,
+   "rotation_rad": -0.1431
+  }
+ ],
+ "entities": [
+  {
+   "id": 1006,
+   "blueprint": "starting_position",
+   "x": 101.077,
+   "y": 10.0,
+   "z": -110.94
+  },
+  {
+   "id": 1007,
+   "blueprint": "starting_position",
+   "x": 102.983,
+   "y": 10.0,
+   "z": -14.762
+  },
+  {
+   "id": 1008,
+   "blueprint": "starting_position",
+   "x": 93.694,
+   "y": 10.0,
+   "z": 105.686
+  },
+  {
+   "id": 1009,
+   "blueprint": "starting_position",
+   "x": -111.926,
+   "y": 8.0,
+   "z": 109.791
+  },
+  {
+   "id": 1010,
+   "blueprint": "starting_position",
+   "x": -114.058,
+   "y": 8.0,
+   "z": 5.38
+  },
+  {
+   "id": 1011,
+   "blueprint": "starting_position",
+   "x": -110.369,
+   "y": 8.697,
+   "z": -109.468
+  },
+  {
+   "id": 1014,
+   "blueprint": "strategic_objective_struct",
+   "x": 0.0,
+   "y": 10.0,
+   "z": -46.0
+  },
+  {
+   "id": 1016,
+   "blueprint": "strategic_point_flag",
+   "x": 88.0,
+   "y": 10.0,
+   "z": -110.0
+  },
+  {
+   "id": 1017,
+   "blueprint": "strategic_point_flag",
+   "x": 56.0,
+   "y": 10.0,
+   "z": -110.0
+  },
+  {
+   "id": 1018,
+   "blueprint": "strategic_point_flag",
+   "x": 18.0,
+   "y": 10.0,
+   "z": -102.0
+  },
+  {
+   "id": 1023,
+   "blueprint": "strategic_point_flag",
+   "x": 112.0,
+   "y": 16.75,
+   "z": 66.0
+  },
+  {
+   "id": 1024,
+   "blueprint": "strategic_point_flag",
+   "x": 58.0,
+   "y": 10.0,
+   "z": 118.0
+  },
+  {
+   "id": 1025,
+   "blueprint": "strategic_point_flag",
+   "x": 58.0,
+   "y": 10.0,
+   "z": 78.0
+  },
+  {
+   "id": 1026,
+   "blueprint": "strategic_point_flag",
+   "x": 42.0,
+   "y": 10.0,
+   "z": 6.0
+  },
+  {
+   "id": 1027,
+   "blueprint": "strategic_point_flag",
+   "x": 82.0,
+   "y": 10.0,
+   "z": 6.0
+  },
+  {
+   "id": 1028,
+   "blueprint": "strategic_point_flag",
+   "x": 84.0,
+   "y": 10.0,
+   "z": -30.0
+  },
+  {
+   "id": 1029,
+   "blueprint": "strategic_point_flag",
+   "x": -86.0,
+   "y": 10.0,
+   "z": 116.0
+  },
+  {
+   "id": 1030,
+   "blueprint": "strategic_point_flag",
+   "x": -52.0,
+   "y": 10.0,
+   "z": 116.0
+  },
+  {
+   "id": 1031,
+   "blueprint": "strategic_point_flag",
+   "x": -20.0,
+   "y": 10.0,
+   "z": 94.0
+  },
+  {
+   "id": 1032,
+   "blueprint": "strategic_point_flag",
+   "x": -82.0,
+   "y": 10.0,
+   "z": -106.0
+  },
+  {
+   "id": 1033,
+   "blueprint": "strategic_point_flag",
+   "x": -82.0,
+   "y": 10.0,
+   "z": -68.0
+  },
+  {
+   "id": 1034,
+   "blueprint": "strategic_point_flag",
+   "x": -46.0,
+   "y": 10.0,
+   "z": -106.0
+  },
+  {
+   "id": 1035,
+   "blueprint": "strategic_point_flag",
+   "x": -116.0,
+   "y": 10.0,
+   "z": 32.0
+  },
+  {
+   "id": 1036,
+   "blueprint": "strategic_point_flag",
+   "x": -58.0,
+   "y": 10.0,
+   "z": 6.0
+  },
+  {
+   "id": 1037,
+   "blueprint": "strategic_point_flag",
+   "x": -118.0,
+   "y": 9.25,
+   "z": -18.0
+  },
+  {
+   "id": 1038,
+   "blueprint": "relic_struct",
+   "x": 86.0,
+   "y": 17.0,
+   "z": 36.0
+  },
+  {
+   "id": 1039,
+   "blueprint": "relic_struct",
+   "x": 68.0,
+   "y": 15.5,
+   "z": -66.0
+  },
+  {
+   "id": 1040,
+   "blueprint": "relic_struct",
+   "x": -118.0,
+   "y": 10.0,
+   "z": -56.0
+  },
+  {
+   "id": 1041,
+   "blueprint": "relic_struct",
+   "x": -102.0,
+   "y": 17.0,
+   "z": 70.0
+  },
+  {
+   "id": 1042,
+   "blueprint": "slag_deposit",
+   "x": 62.0,
+   "y": 17.0,
+   "z": 36.0
+  },
+  {
+   "id": 1044,
+   "blueprint": "slag_deposit",
+   "x": -84.0,
+   "y": 16.25,
+   "z": 38.0
+  },
+  {
+   "id": 1045,
+   "blueprint": "strategic_objective_struct",
+   "x": -6.0,
+   "y": 10.0,
+   "z": 32.0
+  },
+  {
+   "id": 1048,
+   "blueprint": "landscape_02",
+   "x": -121.442,
+   "y": 12.258,
+   "z": 83.719
+  },
+  {
+   "id": 1049,
+   "blueprint": "landscape_02b",
+   "x": 154.073,
+   "y": 18.583,
+   "z": 59.099
+  },
+  {
+   "id": 1050,
+   "blueprint": "landscape_02b",
+   "x": -15.834,
+   "y": 15.768,
+   "z": -142.783
+  },
+  {
+   "id": 1051,
+   "blueprint": "landscape_02",
+   "x": -115.57,
+   "y": 13.956,
+   "z": -143.816
+  },
+  {
+   "id": 1052,
+   "blueprint": "landscape_02",
+   "x": -82.802,
+   "y": 15.9,
+   "z": -149.64
+  },
+  {
+   "id": 1053,
+   "blueprint": "landscape_02b",
+   "x": 86.274,
+   "y": 13.299,
+   "z": -141.506
+  },
+  {
+   "id": 1054,
+   "blueprint": "landscape_02b",
+   "x": -35.159,
+   "y": 14.207,
+   "z": -143.199
+  },
+  {
+   "id": 1055,
+   "blueprint": "landscape_02b",
+   "x": -135.705,
+   "y": 15.691,
+   "z": 88.582
+  },
+  {
+   "id": 1056,
+   "blueprint": "landscape_02b",
+   "x": 153.427,
+   "y": 26.555,
+   "z": 95.53
+  },
+  {
+   "id": 1057,
+   "blueprint": "landscape_02",
+   "x": 148.1,
+   "y": 25.456,
+   "z": -126.653
+  },
+  {
+   "id": 1058,
+   "blueprint": "landscape_02",
+   "x": 150.255,
+   "y": 24.109,
+   "z": 68.243
+  },
+  {
+   "id": 1059,
+   "blueprint": "landscape_02",
+   "x": -141.043,
+   "y": 7.31,
+   "z": -113.99
+  },
+  {
+   "id": 1060,
+   "blueprint": "landscape_02",
+   "x": -137.887,
+   "y": 11.386,
+   "z": -92.76
+  },
+  {
+   "id": 1061,
+   "blueprint": "landscape_02b",
+   "x": -137.349,
+   "y": 16.341,
+   "z": -79.863
+  },
+  {
+   "id": 1062,
+   "blueprint": "landscape_02b",
+   "x": 115.039,
+   "y": 14.422,
+   "z": -76.403
+  },
+  {
+   "id": 1063,
+   "blueprint": "landscape_02b",
+   "x": 35.394,
+   "y": 15.019,
+   "z": -142.883
+  },
+  {
+   "id": 1064,
+   "blueprint": "landscape_02",
+   "x": 51.832,
+   "y": 16.33,
+   "z": -145.969
+  },
+  {
+   "id": 1065,
+   "blueprint": "landscape_02",
+   "x": 16.672,
+   "y": 12.678,
+   "z": -138.055
+  },
+  {
+   "id": 1066,
+   "blueprint": "landscape_02b",
+   "x": 164.697,
+   "y": 30.965,
+   "z": -98.232
+  },
+  {
+   "id": 1067,
+   "blueprint": "landscape_02",
+   "x": -95.392,
+   "y": 6.977,
+   "z": 129.076
+  },
+  {
+   "id": 1068,
+   "blueprint": "landscape_02b",
+   "x": 86.561,
+   "y": 14.637,
+   "z": -49.665
+  },
+  {
+   "id": 1069,
+   "blueprint": "landscape_02",
+   "x": -156.688,
+   "y": 20.07,
+   "z": -153.478
+  },
+  {
+   "id": 1070,
+   "blueprint": "landscape_02b",
+   "x": -123.97,
+   "y": 14.161,
+   "z": 58.305
+  },
+  {
+   "id": 1071,
+   "blueprint": "landscape_02b",
+   "x": -97.336,
+   "y": 10.941,
+   "z": 84.267
+  },
+  {
+   "id": 1072,
+   "blueprint": "landscape_02b",
+   "x": 158.014,
+   "y": 25.889,
+   "z": -63.888
+  },
+  {
+   "id": 1073,
+   "blueprint": "landscape_02b",
+   "x": 104.337,
+   "y": 11.877,
+   "z": 31.991
+  },
+  {
+   "id": 1074,
+   "blueprint": "landscape_02b",
+   "x": 154.179,
+   "y": 28.848,
+   "z": -41.602
+  },
+  {
+   "id": 1075,
+   "blueprint": "landscape_02",
+   "x": 142.194,
+   "y": 6.676,
+   "z": 31.533
+  },
+  {
+   "id": 1076,
+   "blueprint": "landscape_02",
+   "x": 118.291,
+   "y": 15.42,
+   "z": -47.992
+  },
+  {
+   "id": 1077,
+   "blueprint": "landscape_02b",
+   "x": 140.576,
+   "y": 19.053,
+   "z": 6.468
+  },
+  {
+   "id": 1078,
+   "blueprint": "landscape_02",
+   "x": 173.695,
+   "y": 32.822,
+   "z": -4.229
+  },
+  {
+   "id": 1079,
+   "blueprint": "landscape_02",
+   "x": 0.823,
+   "y": 5.81,
+   "z": -99.479
+  },
+  {
+   "id": 1080,
+   "blueprint": "landscape_02",
+   "x": 11.679,
+   "y": 5.067,
+   "z": 102.283
+  },
+  {
+   "id": 1081,
+   "blueprint": "landscape_02",
+   "x": 102.954,
+   "y": 8.61,
+   "z": 27.742
+  },
+  {
+   "id": 1082,
+   "blueprint": "landscape_02",
+   "x": 71.606,
+   "y": 6.136,
+   "z": 59.568
+  },
+  {
+   "id": 1084,
+   "blueprint": "landscape_02",
+   "x": 63.802,
+   "y": 3.738,
+   "z": 48.662
+  },
+  {
+   "id": 1085,
+   "blueprint": "landscape_02",
+   "x": 83.117,
+   "y": 10.905,
+   "z": 19.397
+  },
+  {
+   "id": 1086,
+   "blueprint": "landscape_02",
+   "x": 54.455,
+   "y": 9.501,
+   "z": 50.922
+  },
+  {
+   "id": 1087,
+   "blueprint": "landscape_02",
+   "x": -5.095,
+   "y": 9.501,
+   "z": 96.091
+  },
+  {
+   "id": 1099,
+   "blueprint": "landscape_02b",
+   "x": -13.873,
+   "y": 16.572,
+   "z": 141.708
+  },
+  {
+   "id": 1100,
+   "blueprint": "landscape_02",
+   "x": 85.817,
+   "y": 15.09,
+   "z": 138.499
+  },
+  {
+   "id": 1101,
+   "blueprint": "landscape_02",
+   "x": 53.325,
+   "y": 18.313,
+   "z": 145.711
+  },
+  {
+   "id": 1102,
+   "blueprint": "landscape_02b",
+   "x": -117.281,
+   "y": 17.231,
+   "z": 143.585
+  },
+  {
+   "id": 1103,
+   "blueprint": "landscape_02b",
+   "x": 5.452,
+   "y": 16.817,
+   "z": 141.303
+  },
+  {
+   "id": 1104,
+   "blueprint": "landscape_02b",
+   "x": -65.051,
+   "y": 23.027,
+   "z": 143.987
+  },
+  {
+   "id": 1105,
+   "blueprint": "landscape_02",
+   "x": -81.343,
+   "y": 20.81,
+   "z": 147.769
+  },
+  {
+   "id": 1106,
+   "blueprint": "landscape_02",
+   "x": -46.551,
+   "y": 18.062,
+   "z": 138.367
+  },
+  {
+   "id": 1107,
+   "blueprint": "landscape_02",
+   "x": -56.6,
+   "y": 7.31,
+   "z": -46.163
+  },
+  {
+   "id": 1108,
+   "blueprint": "landscape_02",
+   "x": -69.235,
+   "y": 11.322,
+   "z": -30.314
+  },
+  {
+   "id": 1109,
+   "blueprint": "landscape_02b",
+   "x": -77.109,
+   "y": 15.567,
+   "z": -34.411
+  },
+  {
+   "id": 1110,
+   "blueprint": "landscape_02",
+   "x": -147.071,
+   "y": 7.31,
+   "z": -9.066
+  },
+  {
+   "id": 1111,
+   "blueprint": "landscape_02",
+   "x": -143.915,
+   "y": 13.165,
+   "z": 12.164
+  },
+  {
+   "id": 1112,
+   "blueprint": "landscape_02b",
+   "x": -143.377,
+   "y": 16.821,
+   "z": 25.062
+  }
+ ]
+}

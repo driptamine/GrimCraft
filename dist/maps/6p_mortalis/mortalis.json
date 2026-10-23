@@ -1,0 +1,195 @@
+{
+  "name": "Mortalis",
+  "bounds": 256,
+  "positions": [
+    {
+      "x": -93,
+      "z": -22,
+      "team": "blue",
+      "faction": "orks"
+    },
+    {
+      "x": -4,
+      "z": -104,
+      "team": "blue",
+      "faction": "ig"
+    },
+    {
+      "x": 101,
+      "z": -72,
+      "team": "blue",
+      "faction": "necrons"
+    },
+    {
+      "x": -81,
+      "z": 93,
+      "team": "red",
+      "faction": "chaos"
+    },
+    {
+      "x": 24,
+      "z": 103,
+      "team": "red",
+      "faction": "space marines"
+    },
+    {
+      "x": 114,
+      "z": 55,
+      "team": "red",
+      "faction": "dark eldar"
+    }
+  ],
+  "strategicPoints": [
+    {
+      "x": -100,
+      "z": -58,
+      "kind": "point"
+    },
+    {
+      "x": -108,
+      "z": -4,
+      "kind": "point"
+    },
+    {
+      "x": -70,
+      "z": 112,
+      "kind": "point"
+    },
+    {
+      "x": -108,
+      "z": 94,
+      "kind": "point"
+    },
+    {
+      "x": -94,
+      "z": 58,
+      "kind": "point"
+    },
+    {
+      "x": -48,
+      "z": 78,
+      "kind": "point"
+    },
+    {
+      "x": 88,
+      "z": -40,
+      "kind": "point"
+    },
+    {
+      "x": 66,
+      "z": -70,
+      "kind": "point"
+    },
+    {
+      "x": 0,
+      "z": 74,
+      "kind": "point"
+    },
+    {
+      "x": 122,
+      "z": -50,
+      "kind": "point"
+    },
+    {
+      "x": 108,
+      "z": -112,
+      "kind": "point"
+    },
+    {
+      "x": -82,
+      "z": 2,
+      "kind": "point"
+    },
+    {
+      "x": -72,
+      "z": -48,
+      "kind": "point"
+    },
+    {
+      "x": -42,
+      "z": -120,
+      "kind": "point"
+    },
+    {
+      "x": 32,
+      "z": -120,
+      "kind": "point"
+    },
+    {
+      "x": 18,
+      "z": -80,
+      "kind": "point"
+    },
+    {
+      "x": -30,
+      "z": -82,
+      "kind": "point"
+    },
+    {
+      "x": 118,
+      "z": 20,
+      "kind": "point"
+    },
+    {
+      "x": 88,
+      "z": 66,
+      "kind": "point"
+    },
+    {
+      "x": 98,
+      "z": 10,
+      "kind": "point"
+    },
+    {
+      "x": 44,
+      "z": 72,
+      "kind": "point"
+    },
+    {
+      "x": -4,
+      "z": 108,
+      "kind": "point"
+    },
+    {
+      "x": 50,
+      "z": 110,
+      "kind": "point"
+    },
+    {
+      "x": 116,
+      "z": 94,
+      "kind": "point"
+    },
+    {
+      "x": -38,
+      "z": 36,
+      "kind": "relic"
+    },
+    {
+      "x": 20,
+      "z": 50,
+      "kind": "relic"
+    },
+    {
+      "x": -52,
+      "z": -12,
+      "kind": "relic"
+    },
+    {
+      "x": -4,
+      "z": -48,
+      "kind": "relic"
+    },
+    {
+      "x": 54,
+      "z": -38,
+      "kind": "relic"
+    },
+    {
+      "x": 66,
+      "z": 16,
+      "kind": "relic"
+    }
+  ],
+  "placeholder": false
+}

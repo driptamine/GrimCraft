@@ -1,0 +1,112 @@
+{
+  "name": "Into The Breach",
+  "bounds": 256,
+  "positions": [
+    {
+      "x": -77,
+      "z": -71,
+      "team": "blue",
+      "faction": "orks"
+    },
+    {
+      "x": 78,
+      "z": -70,
+      "team": "blue",
+      "faction": "ig"
+    },
+    {
+      "x": -78,
+      "z": 71,
+      "team": "red",
+      "faction": "chaos"
+    },
+    {
+      "x": 77,
+      "z": 70,
+      "team": "red",
+      "faction": "space marines"
+    }
+  ],
+  "strategicPoints": [
+    {
+      "x": 48,
+      "z": -114,
+      "kind": "point"
+    },
+    {
+      "x": 46,
+      "z": -46,
+      "kind": "point"
+    },
+    {
+      "x": -46,
+      "z": -46,
+      "kind": "point"
+    },
+    {
+      "x": -46,
+      "z": -114,
+      "kind": "point"
+    },
+    {
+      "x": -46,
+      "z": 44,
+      "kind": "point"
+    },
+    {
+      "x": -48,
+      "z": 112,
+      "kind": "point"
+    },
+    {
+      "x": 44,
+      "z": 44,
+      "kind": "point"
+    },
+    {
+      "x": 46,
+      "z": 112,
+      "kind": "point"
+    },
+    {
+      "x": 98,
+      "z": 40,
+      "kind": "point"
+    },
+    {
+      "x": 98,
+      "z": -42,
+      "kind": "point"
+    },
+    {
+      "x": -100,
+      "z": -42,
+      "kind": "point"
+    },
+    {
+      "x": -100,
+      "z": 40,
+      "kind": "point"
+    },
+    {
+      "x": 102,
+      "z": -100,
+      "kind": "relic"
+    },
+    {
+      "x": 102,
+      "z": 98,
+      "kind": "relic"
+    },
+    {
+      "x": -104,
+      "z": 98,
+      "kind": "relic"
+    },
+    {
+      "x": -104,
+      "z": -100,
+      "kind": "relic"
+    }
+  ]
+}

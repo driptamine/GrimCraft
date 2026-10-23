@@ -1,0 +1,9 @@
+{
+  "idle": "idle_1",
+  "run": "move_run_1",
+  "melee": "melee_attack_1",
+  "firing": "idle_firing_1",
+  "moveFiring": "move_firing_1",
+  "build": "build_1",
+  "repair": "repair_1"
+}

@@ -1,0 +1,121 @@
+{
+  "energy_core.glb": [
+    "build_1",
+    "build_2",
+    "build_3",
+    "build_placement",
+    "death",
+    "idle",
+    "research",
+    "vis_empty",
+    "vis_main"
+  ],
+  "forbidden_archive.glb": [
+    "build_1",
+    "build_2",
+    "death",
+    "idle",
+    "vis_build",
+    "vis_empty",
+    "vis_main"
+  ],
+  "greater_summoning_core.glb": [
+    "audio",
+    "build_1",
+    "build_2",
+    "build_3",
+    "build_placement",
+    "death",
+    "idle",
+    "vis_build",
+    "vis_empty",
+    "vis_normal"
+  ],
+  "listening_post.glb": [
+    "build_phasing",
+    "build_placement",
+    "special_ability_1",
+    "vis_empty",
+    "vis_level_1",
+    "vis_level_2",
+    "vis_level_3"
+  ],
+  "monolith.glb": [
+    "add_on_1",
+    "add_on_1_50_percent",
+    "add_on_1_70_percent",
+    "add_on_1a",
+    "add_on_2",
+    "add_on_2_idle",
+    "add_on_2a",
+    "add_on_2b",
+    "add_on_2c",
+    "add_on_3",
+    "add_on_3_idle",
+    "add_on_3b",
+    "build_stage_1",
+    "build_stage_1_idle",
+    "build_stage_2",
+    "return_transformation",
+    "vis_damage",
+    "vis_empty",
+    "vis_main",
+    "vis_pillars"
+  ],
+  "plasma_generator.glb": [
+    "build_1",
+    "build_2",
+    "build_4",
+    "build_placement",
+    "die_1",
+    "idle_1",
+    "vis_empty",
+    "vis_main"
+  ],
+  "summoning_core.glb": [
+    "build_1",
+    "build_2",
+    "build_placement",
+    "build_start",
+    "die_1_a",
+    "idle",
+    "vis_die_build",
+    "vis_die_normal",
+    "vis_empty",
+    "vis_summoning_core_bits"
+  ],
+  "summoning_core_big.glb": [
+    "build_1",
+    "build_2",
+    "build_placement",
+    "build_start",
+    "die_1_a",
+    "idle",
+    "vis_die_build",
+    "vis_die_normal",
+    "vis_empty",
+    "vis_summoning_core_bits"
+  ],
+  "thermoplasma_generator.glb": [
+    "build_1",
+    "build_2",
+    "build_3",
+    "die",
+    "idle",
+    "vis_empty",
+    "vis_main"
+  ],
+  "turret.glb": [
+    "build_1",
+    "build_2",
+    "build_3",
+    "build_placement",
+    "death",
+    "empty_motion _2sec",
+    "empty_motion _3sec",
+    "idle",
+    "vis_addon",
+    "vis_empty",
+    "vis_main"
+  ]
+}

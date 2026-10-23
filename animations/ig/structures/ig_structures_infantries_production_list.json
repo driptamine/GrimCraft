@@ -1,0 +1,4 @@
+{
+  "hq.glb": ["tech_priest.glb", "guardsmen.glb", "commissar.glb", "priest.glb", "sanctioned_psyker.glb"],
+  "infantry.glb": ["guardsmen.glb", "heavy_weapon_platoon.glb", "kasrkin.glb", "ogryn.glb"]
+}

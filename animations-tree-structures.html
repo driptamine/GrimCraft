@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grimcraft — IG Structure Animation Data (ASCII Tree)</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --panel-bg: #0c1216;
+            --accent-color: #00ff88;
+            --secondary-color: #50c8ff;
+            --error-color: #ff4444;
+            --text-color: #d0e0d8;
+            --border-color: rgba(0, 255, 136, 0.2);
+        }
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            padding: 30px;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .header {
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        h1 { margin: 0; font-size: 24px; letter-spacing: 0.1em; color: #fff; }
+        .subtitle { font-size: 10px; color: var(--accent-color); opacity: 0.7; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        
+        .unit-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .unit-header {
+            background: rgba(0, 255, 136, 0.1);
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .unit-name { color: #fff; font-weight: bold; text-transform: uppercase; font-size: 13px; }
+        .anim-count { font-size: 10px; color: var(--accent-color); }
+        
+        .tree-box {
+            padding: 15px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        pre {
+            margin: 0;
+            white-space: pre;
+            font-size: 11px;
+            color: var(--text-color);
+        }
+        
+        .cat-build { color: #ffcc00; }
+        .cat-idle { color: #aaa; }
+        .cat-combat { color: #ff4444; }
+        .cat-vis { color: #555; }
+        .cat-research { color: #cc66ff; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 255, 136, 0.2); }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 136, 0.4); }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+        #search {
+            background: #111;
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 8px 12px;
+            width: 300px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>TACTICAL STRUCTURE MANIFEST</h1>
+            <div class="subtitle">FACTION: IMPERIAL GUARD // SOURCE: .GLB METADATA // SYSTEM: GRIMCRAFT</div>
+        </div>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="FILTER STRUCTURES OR ANIMATIONS...">
+        </div>
+    </div>
+
+    <div id="grid" class="grid">
+        <div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--accent-color);">
+            [ LOADING TACTICAL DATABASE... ]
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const searchInput = document.getElementById('search');
+        let animationData = {};
+
+        async function init() {
+            try {
+                const response = await fetch('ig-structures-animations.json');
+                animationData = await response.json();
+                render();
+            } catch (e) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; color: var(--error-color); padding: 40px;">[ ERROR: FAILED TO LOAD JSON DATA. ENSURE SERVER IS RUNNING. ]<br>${e.message}</div>`;
+            }
+        }
+
+        function getColorClass(name) {
+            name = name.toLowerCase();
+            if (name.includes('build') || name.includes('scaffold') || name.includes('placement')) return 'cat-build';
+            if (name.includes('idle')) return 'cat-idle';
+            if (name.includes('firing') || name.includes('aim') || name.includes('tracking')) return 'cat-combat';
+            if (name.includes('research') || name.includes('piston') || name.includes('production') || name.includes('doors')) return 'cat-research';
+            if (name.startsWith('vis_')) return 'cat-vis';
+            return '';
+        }
+
+        function render(filter = '') {
+            grid.innerHTML = '';
+            const query = filter.toLowerCase();
+
+            // Sort filenames alphabetically
+            const filenames = Object.keys(animationData).sort();
+
+            for (const filename of filenames) {
+                const anims = animationData[filename];
+                
+                if (filter && !filename.toLowerCase().includes(query) && !anims.some(a => a.toLowerCase().includes(query))) {
+                    continue;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'unit-card';
+                
+                const unitName = filename.replace('.glb', '').replace(/_/g, ' ');
+                
+                let asciiTree = `┃\n`;
+                if (anims.length === 0) {
+                    asciiTree += `┗━ [ NO ANIMATIONS ]\n`;
+                } else {
+                    anims.forEach((anim, idx) => {
+                        const isLast = idx === anims.length - 1;
+                        const prefix = isLast ? "┗━ " : "┣━ ";
+                        const colorClass = getColorClass(anim);
+                        asciiTree += `${prefix}<span class="${colorClass}">${anim}</span>\n`;
+                    });
+                }
+
+                card.innerHTML = `
+                    <div class="unit-header">
+                        <span class="unit-name">${unitName}</span>
+                        <span class="anim-count">${anims.length} UNITS</span>
+                    </div>
+                    <div class="tree-box">
+                        <pre>${asciiTree}</pre>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        searchInput.addEventListener('input', (e) => render(e.target.value));
+        init();
+    </script>
+</body>
+</html>

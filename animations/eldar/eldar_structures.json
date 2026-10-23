@@ -1,0 +1,105 @@
+{
+  "advanced_warp_generator.glb": [
+    "BUILD_PLACEMENT",
+    "DEATH_1",
+    "IDLE_1",
+    "VIS_DAMAGE",
+    "WARP_IN_1",
+    "WARP_IN_2"
+  ],
+  "aspect_portal.glb": [
+    "die_1",
+    "idle_1",
+    "vis_damage",
+    "vis_upgrade_a",
+    "vis_upgrade_b",
+    "vis_upgrade_c",
+    "vis_upgrade_d",
+    "warp_in_1",
+    "warp_in_2"
+  ],
+  "land_mine.glb": [],
+  "listening_post.glb": [
+    "AIM_HORZ_MAIN",
+    "AIM_VERT_MAIN",
+    "BUILD",
+    "BUILD_PLACEMENT",
+    "DIE_1",
+    "FIRE_BRIGHTLANCE",
+    "FIRE_STARCANNON",
+    "IDLE_GUNS_1",
+    "IDLE_GUNS_2",
+    "IDLE_GUNS_3",
+    "VIS_DAMAGE",
+    "VIS_STAGE_1",
+    "VIS_STAGE_2",
+    "VIS_STAGE_3"
+  ],
+  "soul_shrine.glb": [
+    "BUILD_PLACEMENT",
+    "IDLE_1",
+    "VIS_DAMAGE",
+    "WARP_IN_1",
+    "WARP_IN_2"
+  ],
+  "support_platform.glb": [
+    "AIM_MAIN_HORIZONTAL",
+    "AIM_MAIN_VERT",
+    "BUILD_1",
+    "BUILD_PLACEMENT",
+    "DEATH_1",
+    "FIRE_D_CANNON",
+    "FIRE_TWIN",
+    "IDLE_HULL_1",
+    "VIS_DAMAGE",
+    "VIS_D_CANNON",
+    "VIS_TWIN_SCATTER"
+  ],
+  "support_portal.glb": [
+    "BUILD_PLACEMENT",
+    "DIE_1",
+    "IDLE_1",
+    "VIS_DAMAGE",
+    "VIS_UPGRADE_A",
+    "VIS_UPGRADE_B",
+    "VIS_UPGRADE_C",
+    "WARP_IN_1",
+    "WARP_IN_2"
+  ],
+  "support_portal_ulthwe.glb": [
+    "aim_main_horizontal",
+    "aim_main_vert",
+    "build_1",
+    "build_placement",
+    "death_1",
+    "fire_d_cannon",
+    "fire_twin",
+    "idle_hull_1",
+    "vis_d_cannon",
+    "vis_damage",
+    "vis_twin_scatter"
+  ],
+  "warp_generator.glb": [
+    "build_placement",
+    "die_1",
+    "idle_1",
+    "vis_damage",
+    "warp_in_1",
+    "warp_in_2"
+  ],
+  "webway_assembly.glb": [
+    "build_placement",
+    "die_1",
+    "idle_1",
+    "vis_damage",
+    "warp_in_1",
+    "warp_in_2"
+  ],
+  "webway_gate.glb": [
+    "BUILD_PLACEMENT",
+    "IDLE_1",
+    "VIS_DAMAGE",
+    "WARP_IN_1",
+    "WARP_IN_2"
+  ]
+}

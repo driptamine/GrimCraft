@@ -1,0 +1,63 @@
+{
+  "bigger_generator": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1",
+      "phase_2": "BUILD_1_IDLE",
+      "phase_3": "BUILD_2"
+    }
+  },
+  "da_boyz_hut": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1",
+      "phase_2": "BUILD_1_IDLE",
+      "phase_3": "BUILD_2"
+    }
+  },
+  "generator": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2"
+    }
+  },
+  "land_mine": {
+    "phases": {}
+  },
+  "listening_post": {
+    "phases": {
+      "placement": "build_placement"
+    }
+  },
+  "mek_shop": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1",
+      "phase_2": "BUILD_1_IDLE",
+      "phase_3": "BUILD_2"
+    }
+  },
+  "pile_o_guns": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1",
+      "phase_2": "BUILD_2"
+    }
+  },
+  "settlement": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1",
+      "phase_2": "BUILD_2"
+    }
+  },
+  "waagh_banner": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_1_idle",
+      "phase_3": "build_2"
+    }
+  }
+}

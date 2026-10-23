@@ -1,0 +1,4 @@
+{
+  "webway_assembly.glb": ["bonesinger.glb", "guardian.glb", "ranger.glb"],
+  "aspect_portal.glb": ["howling_banshee.glb", "dark_reaper.glb", "fire_dragon.glb", "warp_spider.glb"]
+}

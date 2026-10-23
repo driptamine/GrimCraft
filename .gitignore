@@ -1,0 +1,9 @@
+# Local environment files may contain secrets or machine-specific URLs.
+.env*
+!.env.example
+
+# Large runtime model tree; production can use external model hosting.
+# Keep assets/ tracked: the UI icons are build-time sources.
+# (This workspace is not a git repository yet.)
+/models/
+/node_modules/

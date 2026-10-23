@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="soulstorm_icon.png">
+<title>GRIMCRAFT</title>
+<style>
+:root { color-scheme:dark; }
+* { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0f; overflow:hidden; font-family:'Courier New',monospace; user-select:none; }
+  #renderCanvas { width:100vw; height:100vh; display:block; touch-action:none; }
+
+  /* Reinforce queue strip — now inside its own panel */
+  #hud-reinforce {
+    display:none; flex-direction:column; gap:3px; margin-top:2px;
+  }
+  #hud-reinforce-label {
+    font-size:7.5px; letter-spacing:.12em; color:#50c8ff; opacity:.45;
+  }
+  #hud-reinforce-queue {
+    display:flex; gap:3px; align-items:center; flex-wrap:wrap; overflow:hidden;
+  }
+
+  /* CoD-style crosshair: four long ticks with a clear gap in the middle. */
+  #fps-crosshair {
+    display:none; position:fixed; left:50%; top:50%; width:46px; height:46px;
+    transform:translate(-50%,-50%); z-index:15; pointer-events:none;
+    filter:drop-shadow(0 0 2px #000);
+    background:
+      linear-gradient(#7dff9a,#7dff9a) center 7px / 2px 12px no-repeat,
+      linear-gradient(#7dff9a,#7dff9a) center calc(100% - 7px) / 2px 12px no-repeat,
+      linear-gradient(#7dff9a,#7dff9a) 7px center / 12px 2px no-repeat,
+      linear-gradient(#7dff9a,#7dff9a) calc(100% - 7px) center / 12px 2px no-repeat;
+  }
+  /* CoD-style hitmarker X: four diagonal ticks with a clear gap in the middle. */
+  #fps-hitmarker {
+    display:none; position:fixed; left:50%; top:50%; width:28px; height:28px;
+    transform:translate(-50%,-50%); z-index:16; pointer-events:none;
+    filter:drop-shadow(0 0 2px #000);
+  }
+  #fps-hitmarker::before, #fps-hitmarker::after {
+    content:''; position:absolute; left:50%; top:50%; width:28px; height:2px;
+    background:linear-gradient(to right, #fff 0 9px, transparent 9px 19px, #fff 19px 100%);
+  }
+  #fps-hitmarker::before { transform:translate(-50%,-50%) rotate(45deg); }
+  #fps-hitmarker::after { transform:translate(-50%,-50%) rotate(-45deg); }
+  #selBox {
+    display:none; position:fixed;
+    border:1.5px solid rgba(80,200,255,0.9);
+    background:rgba(80,200,255,0.05); pointer-events:none; z-index:5;
+  }
+  #win {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);
+    justify-content:center; align-items:center; flex-direction:column; gap:16px; z-index:50;
+  }
+  #win h2 { font-size:36px; letter-spacing:.3em; color:#fff; }
+  #win p { color:rgba(255,255,255,.5); font-size:13px; }
+  #win button {
+    background:rgba(10,10,20,.9); border:1px solid rgba(80,200,255,.5);
+    color:#50c8ff; font-family:'Courier New',monospace; font-size:12px;
+    letter-spacing:.15em; padding:10px 24px; cursor:pointer;
+  }
+  @keyframes mPing {
+    0%   { transform:translate(-50%,-50%) scale(.3); opacity:1; }
+    100% { transform:translate(-50%,-50%) scale(2.5); opacity:0; }
+  }
+  @keyframes mPingInner {
+    0%   { transform:translate(-50%,-50%) scale(.3); opacity:0.9; }
+    100% { transform:translate(-50%,-50%) scale(1.2); opacity:0; }
+  }
+  .move-marker {
+    position:fixed; pointer-events:none; z-index:9999;
+    width:28px; height:28px;
+    border:2.5px solid #d0ffe6;
+    border-radius:50%;
+    animation:mPing .5s ease-out forwards;
+    box-shadow:0 0 12px 3px #a0ffcc, 0 0 5px 1px #fff;
+    background: radial-gradient(circle, rgba(180,255,210,0.18) 0%, transparent 70%);
+  }
+  #buildCursor { display:none; position:fixed; pointer-events:none; z-index:6; }
+
+  /* ── 3D Model Upload ─────────────────────────────────────────────── */
+  #model-upload-btn {
+    position:fixed; top:50px; right:12px; z-index:20;
+    background:rgba(5,8,18,0.92); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #model-upload-btn:hover { background:rgba(80,200,255,0.15); border-color:#50c8ff; color:#fff; }
+
+  #model-upload-panel {
+    display:none; position:fixed; top:80px; right:12px; z-index:20;
+    width:270px;
+    background:rgba(5,8,18,0.97); border:1px solid rgba(80,200,255,0.35);
+    padding:12px; font-family:'Courier New',monospace;
+    font-size:9px; color:#50c8ff; letter-spacing:.08em;
+    pointer-events:all;
+  }
+  #model-upload-panel.open { display:block; }
+  #model-upload-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff; margin-bottom:8px;
+    border-bottom:1px solid rgba(80,200,255,0.2); padding-bottom:5px;
+  }
+  #model-drop-zone {
+    border:1px dashed rgba(80,200,255,0.4); padding:14px 8px;
+    text-align:center; cursor:pointer; transition:all .15s; margin-bottom:8px;
+    color:rgba(80,200,255,0.6);
+  }
+  #model-drop-zone:hover, #model-drop-zone.dragover {
+    border-color:#50c8ff; background:rgba(80,200,255,0.08); color:#fff;
+  }
+  #model-drop-zone .dz-icon { font-size:22px; margin-bottom:4px; }
+  #model-drop-zone .dz-text { font-size:8px; line-height:1.5; }
+  #model-file-input { display:none; }
+  #model-status {
+    font-size:8px; color:rgba(80,200,255,0.5); min-height:14px;
+    text-align:center; margin-bottom:6px;
+  }
+  #model-status.ok  { color:#44ff88; }
+  #model-status.err { color:#ff6644; }
+  #model-status.loading { color:#ffe066; }
+  .model-info-row {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:8px; color:rgba(80,200,255,0.5); margin-bottom:4px;
+  }
+  .model-info-row .miv { color:#fff; }
+  #model-clear-btn {
+    width:100%; margin-top:6px;
+    background:rgba(255,80,60,0.08); border:1px solid rgba(255,80,60,0.3);
+    color:#ff6644; font-family:'Courier New',monospace;
+    font-size:8px; letter-spacing:.1em; padding:4px;
+    cursor:pointer; transition:all .15s;
+  }
+  #model-clear-btn:hover { background:rgba(255,80,60,0.2); border-color:#ff6644; }
+
+  /* ── Terrain upload panel ───────────────────────────────────────────────── */
+  #terrain-upload-btn {
+    position:fixed; top:82px; right:12px; z-index:20;
+    background:rgba(5,12,8,0.92); border:1px solid rgba(80,200,120,0.35);
+    color:#50c878; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #terrain-upload-btn:hover { background:rgba(80,200,120,0.15); border-color:#50c878; color:#fff; }
+  #grid-toggle-btn {
+    position:fixed; top:112px; right:12px; z-index:20;
+    background:rgba(5,12,8,0.92); border:1px solid rgba(80,200,120,0.35);
+    color:#50c878; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #grid-toggle-btn:hover { background:rgba(80,200,120,0.15); border-color:#50c878; color:#fff; }
+  #grid-toggle-btn.off { color:#334433; border-color:rgba(80,200,120,0.15); }
+
+  /* ── Entities Panel ──────────────────────────────────────────────── */
+  #entities-toggle-btn {
+    position:fixed; top:232px; right:12px; z-index:20;
+    background:rgba(12,8,22,0.92); border:1px solid rgba(160,100,255,0.35);
+    color:#b07aff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #entities-toggle-btn:hover { background:rgba(160,100,255,0.15); border-color:#b07aff; color:#fff; }
+  #entities-toggle-btn.active { background:rgba(160,100,255,0.18); border-color:#b07aff; color:#fff; }
+
+  #entities-panel {
+    display:none; position:fixed; top:262px; right:12px; z-index:20;
+    width:270px; max-height:calc(100vh - 310px);
+    background:rgba(8,5,18,0.97); border:1px solid rgba(160,100,255,0.35);
+    font-family:'Courier New',monospace; font-size:9px;
+    color:#b07aff; letter-spacing:.08em; pointer-events:all;
+    flex-direction:column;
+  }
+  #entities-panel.open { display:flex; }
+
+  #entities-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff;
+    border-bottom:1px solid rgba(160,100,255,0.2); padding:8px 10px 6px;
+    display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+  }
+  #entities-panel-title span { opacity:.5; font-size:8px; font-weight:normal; letter-spacing:.08em; }
+
+  #entities-search {
+    margin:6px 8px; background:rgba(160,100,255,0.07);
+    border:1px solid rgba(160,100,255,0.25); color:#fff;
+    font-family:'Courier New',monospace; font-size:8px;
+    padding:4px 7px; letter-spacing:.06em; outline:none; flex-shrink:0;
+    width:calc(100% - 16px); box-sizing:border-box;
+  }
+  #entities-search::placeholder { color:rgba(160,100,255,0.35); }
+  #entities-search:focus { border-color:#b07aff; }
+
+  #entities-toolbar {
+    display:flex; gap:4px; padding:0 8px 6px; flex-shrink:0;
+  }
+  .entities-tb-btn {
+    flex:1; background:rgba(160,100,255,0.07); border:1px solid rgba(160,100,255,0.2);
+    color:#b07aff; font-family:'Courier New',monospace; font-size:7.5px;
+    letter-spacing:.06em; padding:3px 4px; cursor:pointer; transition:all .12s;
+    text-align:center;
+  }
+  .entities-tb-btn:hover { background:rgba(160,100,255,0.2); border-color:#b07aff; color:#fff; }
+
+  #entities-list {
+    overflow-y:auto; flex:1; min-height:0;
+    scrollbar-width:thin; scrollbar-color:rgba(160,100,255,0.25) transparent;
+  }
+  #entities-list::-webkit-scrollbar { width:4px; }
+  #entities-list::-webkit-scrollbar-thumb { background:rgba(160,100,255,0.3); border-radius:2px; }
+
+  .entity-row {
+    display:flex; align-items:center; gap:5px;
+    border-bottom:1px solid rgba(160,100,255,0.07);
+    padding:4px 8px; min-height:20px;
+    transition:background .1s; cursor:default;
+    flex-wrap:wrap;
+  }
+  .entity-row:hover { background:rgba(160,100,255,0.08); }
+  .entity-team-dot {
+    width:6px; height:6px; border-radius:50%; flex-shrink:0;
+    background:rgba(160,100,255,0.3);
+  }
+  .entity-team-dot.team-player { background:#44aaff; box-shadow:0 0 4px #44aaff; }
+  .entity-team-dot.team-enemy  { background:#ff4d4d; box-shadow:0 0 4px #ff4d4d; }
+  .entity-id { color:#fff; font-size:8.5px; flex-shrink:0; }
+  .entity-tag {
+    font-size:7px; color:#d0b8ff; letter-spacing:.04em;
+    padding:1px 4px; border:1px solid rgba(160,100,255,0.25);
+    border-radius:2px; background:rgba(160,100,255,0.07);
+  }
+  .entity-comps { color:rgba(160,100,255,0.6); font-size:7.5px; letter-spacing:.03em; }
+  .entities-empty {
+    padding:14px 10px; text-align:center; color:rgba(160,100,255,0.4); font-size:8px;
+  }
+  #entities-count {
+    border-top:1px solid rgba(160,100,255,0.15);
+    padding:5px 10px; font-size:8px; color:rgba(160,100,255,0.5);
+    letter-spacing:.12em; flex-shrink:0;
+  }
+
+  /* ── Decals selection panel (left) ─────────────────────────────── */
+  #decals-panel-btn {
+    position:fixed; left:12px; top:50px; z-index:20;
+    background:rgba(8,18,28,0.92); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #decals-panel-btn:hover { background:rgba(80,200,255,0.15); border-color:#50c8ff; color:#fff; }
+  #decals-panel-btn.active { background:rgba(80,200,255,0.18); border-color:#50c8ff; color:#fff; }
+
+  #decals-panel {
+    display:none; position:fixed; left:12px; top:82px; z-index:20;
+    width:230px; max-height:calc(100vh - 120px);
+    background:rgba(8,18,28,0.97); border:1px solid rgba(80,200,255,0.35);
+    font-family:'Courier New',monospace; font-size:9px;
+    color:#50c8ff; letter-spacing:.08em; pointer-events:all;
+    flex-direction:column;
+  }
+  #decals-panel.open { display:flex; }
+  #decals-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff;
+    border-bottom:1px solid rgba(80,200,255,0.2); padding:8px 10px 6px;
+    display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+  }
+  #decals-panel-title span { opacity:.5; font-size:8px; font-weight:normal; letter-spacing:.08em; }
+  #decals-panel-master, #decals-panel-hover {
+    width:100%; background:rgba(80,200,255,0.10); border:none;
+    border-bottom:1px solid rgba(80,200,255,0.2);
+    color:#d0f0ff; font-family:inherit; font-size:9px; letter-spacing:.14em;
+    padding:6px 10px; cursor:pointer; text-align:left; flex-shrink:0;
+  }
+  #decals-panel-master:hover, #decals-panel-hover:hover { background:rgba(80,200,255,0.2); color:#fff; }
+
+  #decal-selection-list {
+    overflow-y:auto; flex:1; min-height:0;
+    scrollbar-width:thin; scrollbar-color:rgba(80,200,255,0.25) transparent;
+  }
+  #decal-selection-list::-webkit-scrollbar { width:4px; }
+  #decal-selection-list::-webkit-scrollbar-thumb { background:rgba(80,200,255,0.3); border-radius:2px; }
+
+  .decal-sel-row {
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px;
+    background:none; border:none; border-bottom:1px solid rgba(80,200,255,0.07);
+    padding:4px 10px; color:#9fd8ff; font-family:inherit; font-size:8px;
+    letter-spacing:.04em; cursor:pointer; transition:background .1s;
+    text-align:left;
+  }
+  .decal-sel-row:hover { background:rgba(80,200,255,0.12); color:#fff; }
+  .decal-sel-row.selected {
+    background:rgba(80,200,255,0.28); color:#fff;
+    box-shadow:inset 2px 0 0 #50c8ff;
+  }
+  .decal-sel-count { color:rgba(80,200,255,0.55); font-size:7.5px; flex-shrink:0; }
+  .decal-sel-row.selected .decal-sel-count { color:#d0f0ff; }
+  /* tree view — groups + per-instance rows (80 stone_cliff_05 etc.) */
+  .decal-group { border-bottom:1px solid rgba(80,200,255,0.08); }
+  .decal-group-row {
+    width:100%; display:flex; align-items:center; gap:6px;
+    background:rgba(80,200,255,0.04); border:none;
+    padding:5px 8px; color:#cfeaff; font-family:inherit; font-size:8px;
+    letter-spacing:.04em; cursor:pointer; text-align:left; transition:background .1s;
+  }
+  .decal-group-row:hover { background:rgba(80,200,255,0.14); color:#fff; }
+  .decal-group-row.selected { background:rgba(80,200,255,0.22); color:#fff; box-shadow:inset 2px 0 0 #50c8ff; }
+  .decal-expand-btn { width:10px; flex-shrink:0; color:rgba(80,200,255,0.7); font-size:9px; text-align:center; }
+  .decal-group-eye { width:16px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; background:none; border:none; cursor:pointer; color:rgba(80,200,255,0.85); transition:opacity .12s, color .12s; padding:0; }
+  .decal-group-eye:hover { color:#fff; }
+  .decal-group-eye.off { color:rgba(80,200,255,0.25); }
+  .decal-group-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .decal-group-children { background:rgba(0,10,18,0.35); }
+  .decal-instance-row {
+    width:100%; display:flex; align-items:center; gap:6px;
+    background:none; border:none; border-top:1px solid rgba(80,200,255,0.05);
+    padding:3px 8px 3px 22px; color:rgba(159,216,255,0.75); font-family:inherit; font-size:7.5px;
+    letter-spacing:.03em; cursor:pointer; text-align:left; transition:background .09s;
+  }
+  .decal-instance-row:hover { background:rgba(80,200,255,0.10); color:#e6f4ff; }
+  .decal-instance-row.selected { background:rgba(80,200,255,0.26); color:#fff; box-shadow:inset 2px 0 0 #50c8ff; }
+  .decal-instance-idx { color:rgba(80,200,255,0.45); min-width:26px; flex-shrink:0; }
+  .decal-instance-row.selected .decal-instance-idx { color:#d0f0ff; }
+  .decal-instance-coords { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:.85; }
+  .decal-instance-size { color:rgba(80,200,255,0.5); flex-shrink:0; font-size:7px; }
+  .decal-instance-row.selected .decal-instance-size { color:#d0f0ff; }
+  #decal-pos-controls { border-top:1px solid rgba(80,200,255,0.15); background:rgba(0,12,20,0.45); padding:6px 8px 7px; flex-shrink:0; }
+  .decal-pos-header { font-size:7px; letter-spacing:.14em; color:rgba(80,200,255,0.55); margin-bottom:5px; }
+  .decal-slider-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+  .decal-slider-row label { width:10px; flex-shrink:0; font-size:8px; color:rgba(80,200,255,0.7); text-align:center; }
+  .decal-slider-row input[type=range] { flex:1; accent-color:#50c8ff; cursor:pointer; height:14px; }
+  .decal-slider-row span { min-width:42px; text-align:right; font-size:7.5px; color:#d0f0ff; letter-spacing:.04em; }
+  .decals-empty {
+    padding:14px 10px; text-align:center; color:rgba(80,200,255,0.4); font-size:8px;
+  }
+  #decals-panel-count {
+    border-top:1px solid rgba(80,200,255,0.15);
+    padding:5px 10px; font-size:8px; color:rgba(80,200,255,0.5);
+    letter-spacing:.12em; flex-shrink:0;
+  }
+
+  /* ── Pathfinding tab (right) ───────────────────────────────────── */
+  #pathfinding-panel-btn {
+    position:fixed; top:352px; right:12px; z-index:20;
+    background:rgba(8,18,28,0.92); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #pathfinding-panel-btn:hover { background:rgba(80,200,255,0.15); border-color:#50c8ff; color:#fff; }
+  #pathfinding-panel-btn.active { background:rgba(80,200,255,0.18); border-color:#50c8ff; color:#fff; }
+  #pathfinding-panel {
+    display:none; position:fixed; right:12px; top:414px; z-index:20;
+    width:230px; max-height:calc(100vh - 420px); min-height:120px;
+    background:rgba(8,18,28,0.97); border:1px solid rgba(80,200,255,0.35);
+    font-family:'Courier New',monospace; font-size:9px;
+    color:#50c8ff; letter-spacing:.08em; pointer-events:all;
+    flex-direction:column;
+  }
+  #pathfinding-panel.open { display:flex; }
+  #pathfinding-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff;
+    border-bottom:1px solid rgba(80,200,255,0.2); padding:8px 10px 6px;
+    display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+  }
+  #pathfinding-panel-title span { opacity:.5; font-size:8px; font-weight:normal; letter-spacing:.08em; }
+  #pathfinding-list { overflow-y:auto; flex:1; min-height:0; }
+  .pf-mode-row {
+    width:100%; display:flex; flex-direction:column; gap:2px;
+    background:none; border:none; border-bottom:1px solid rgba(80,200,255,0.07);
+    padding:6px 10px; font-family:inherit; cursor:pointer; text-align:left;
+  }
+  .pf-mode-row:hover { background:rgba(80,200,255,0.12); }
+  .pf-mode-row.active { background:rgba(80,200,255,0.20); box-shadow:inset 2px 0 0 #50c8ff; }
+  .pf-mode-name { color:#e6f4ff; font-size:9px; letter-spacing:.1em; }
+  .pf-mode-desc { color:rgba(159,216,255,0.6); font-size:7.5px; letter-spacing:.03em; }
+  #pathfinding-status {
+    border-top:1px solid rgba(80,200,255,0.15);
+    padding:5px 10px; font-size:8px; color:rgba(80,200,255,0.5);
+    letter-spacing:.12em; flex-shrink:0;
+  }
+  .pathfinding-empty {
+    padding:14px 10px; text-align:center; color:rgba(80,200,255,0.4); font-size:8px;
+  }
+
+  /* ── Camera panel (right) ─────────────────────────────────────────── */
+  #camera-panel-btn {
+    position:fixed; top:292px; right:12px; z-index:20;
+    background:rgba(8,18,28,0.92); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #camera-panel-btn:hover { background:rgba(80,200,255,0.15); border-color:#50c8ff; color:#fff; }
+  #camera-panel-btn.active { background:rgba(80,200,255,0.18); border-color:#50c8ff; color:#fff; }
+
+  #switch-faction-btn {
+    position:fixed; top:322px; right:12px; z-index:20;
+    background:rgba(8,18,28,0.92); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #switch-faction-btn:hover { background:rgba(80,200,255,0.15); border-color:#50c8ff; color:#fff; }
+
+  #camera-panel {
+    display:none; position:fixed; top:322px; right:12px; z-index:20;
+    width:250px; background:rgba(8,18,28,0.95); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace; font-size:9px;
+    padding-bottom:8px; pointer-events:all;
+  }
+  #camera-panel.open { display:block; }
+  #camera-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff;
+    border-bottom:1px solid rgba(80,200,255,0.2); padding:8px 10px 6px; margin-bottom:6px;
+  }
+  #camera-readout {
+    font-size:7.5px; color:#d0f0ff; letter-spacing:.04em; line-height:1.5;
+    padding:0 10px; margin-bottom:6px; white-space:pre; min-height:22px;
+  }
+  .camera-slider-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; padding:0 10px; }
+  .camera-slider-row label { width:52px; flex-shrink:0; font-size:8px; color:rgba(80,200,255,0.7); }
+  .camera-slider-row input[type=range] { flex:1; accent-color:#50c8ff; cursor:pointer; height:14px; min-width:0; }
+  .camera-slider-row span { min-width:52px; text-align:right; font-size:7.5px; color:#d0f0ff; letter-spacing:.04em; }
+  #camera-reset-btn {
+    width:calc(100% - 20px); margin:4px 10px 0; background:rgba(80,200,255,0.10);
+    border:1px solid rgba(80,200,255,0.25); color:#50c8ff;
+    font-family:'Courier New',monospace; font-size:8px; letter-spacing:.14em;
+    padding:5px 0; cursor:pointer;
+  }
+  #camera-reset-btn:hover { background:rgba(80,200,255,0.2); color:#fff; }
+  #camera-fps-btn {
+    position:fixed; top:382px; right:12px; z-index:20;
+    background:rgba(8,18,28,0.92); border:1px solid rgba(80,200,255,0.35);
+    color:#50c8ff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #camera-fps-btn:hover { background:rgba(80,200,255,0.15); border-color:#50c8ff; color:#fff; }
+  #camera-fps-btn.active { background:rgba(80,200,255,0.18); border-color:#50c8ff; color:#fff; }
+
+  /* ── Nodes Panel ─────────────────────────────────────────────────── */
+  #nodes-toggle-btn {
+    position:fixed; top:142px; right:12px; z-index:20;
+    background:rgba(12,8,22,0.92); border:1px solid rgba(160,100,255,0.35);
+    color:#b07aff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #nodes-toggle-btn:hover { background:rgba(160,100,255,0.15); border-color:#b07aff; color:#fff; }
+  #nodes-toggle-btn.active { background:rgba(160,100,255,0.18); border-color:#b07aff; color:#fff; }
+
+  #scatter-btn {
+    position:fixed; top:172px; right:12px; z-index:20;
+    background:rgba(12,8,22,0.92); border:1px solid rgba(160,100,255,0.35);
+    color:#b07aff; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px;
+    cursor:pointer; transition:all .15s; pointer-events:all;
+    display:flex; align-items:center; gap:5px;
+  }
+  #scatter-btn:hover { background:rgba(160,100,255,0.15); border-color:#b07aff; color:#fff; }
+  #scatter-btn.active { background:rgba(160,100,255,0.18); border-color:#b07aff; color:#fff; }
+  #scatter-panel {
+    display:none; position:fixed; top:202px; right:12px; z-index:20;
+    width:200px; background:rgba(8,5,18,0.97); border:1px solid rgba(160,100,255,0.35);
+    padding:10px 12px; font-family:'Courier New',monospace;
+    font-size:9px; color:#b07aff; letter-spacing:.08em; pointer-events:all;
+  }
+
+  #nodes-panel {
+    display:none; position:fixed; top:172px; right:12px; z-index:20;
+    width:270px; max-height:calc(100vh - 220px);
+    background:rgba(8,5,18,0.97); border:1px solid rgba(160,100,255,0.35);
+    font-family:'Courier New',monospace; font-size:9px;
+    color:#b07aff; letter-spacing:.08em; pointer-events:all;
+    display:none; flex-direction:column;
+  }
+  #nodes-panel.open { display:flex; }
+
+  #nodes-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff;
+    border-bottom:1px solid rgba(160,100,255,0.2); padding:8px 10px 6px;
+    display:flex; justify-content:space-between; align-items:center; flex-shrink:0;
+  }
+  #nodes-panel-title span { opacity:.5; font-size:8px; font-weight:normal; letter-spacing:.08em; }
+
+  #nodes-search {
+    margin:6px 8px; background:rgba(160,100,255,0.07);
+    border:1px solid rgba(160,100,255,0.25); color:#fff;
+    font-family:'Courier New',monospace; font-size:8px;
+    padding:4px 7px; letter-spacing:.06em; outline:none; flex-shrink:0;
+    width:calc(100% - 16px); box-sizing:border-box;
+  }
+  #nodes-search::placeholder { color:rgba(160,100,255,0.35); }
+  #nodes-search:focus { border-color:#b07aff; }
+
+  #nodes-toolbar {
+    display:flex; gap:4px; padding:0 8px 6px; flex-shrink:0;
+  }
+  .nodes-tb-btn {
+    flex:1; background:rgba(160,100,255,0.07); border:1px solid rgba(160,100,255,0.2);
+    color:#b07aff; font-family:'Courier New',monospace; font-size:7.5px;
+    letter-spacing:.06em; padding:3px 4px; cursor:pointer; transition:all .12s;
+    text-align:center;
+  }
+  .nodes-tb-btn:hover { background:rgba(160,100,255,0.2); border-color:#b07aff; color:#fff; }
+
+  #nodes-list {
+    overflow-y:auto; flex:1; min-height:0;
+    scrollbar-width:thin; scrollbar-color:rgba(160,100,255,0.25) transparent;
+  }
+  #nodes-list::-webkit-scrollbar { width:4px; }
+  #nodes-list::-webkit-scrollbar-thumb { background:rgba(160,100,255,0.3); border-radius:2px; }
+
+  .node-row {
+    display:flex; align-items:center; gap:0;
+    border-bottom:1px solid rgba(160,100,255,0.07);
+    transition:background .1s; cursor:default;
+    min-height:24px;
+  }
+  .node-row:hover { background:rgba(160,100,255,0.08); }
+  .node-row.selected { background:rgba(160,100,255,0.15); }
+  .node-row.hidden-row { opacity:.45; }
+
+  .node-indent { flex-shrink:0; display:inline-block; }
+  .node-expand-btn {
+    width:16px; height:24px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:8px; color:rgba(160,100,255,0.5); cursor:pointer;
+    user-select:none; transition:color .1s;
+  }
+  .node-expand-btn:hover { color:#b07aff; }
+  .node-expand-btn.leaf { cursor:default; color:rgba(160,100,255,0.15); }
+
+  .node-eye {
+    width:20px; height:24px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; cursor:pointer; transition:opacity .12s;
+    color:rgba(160,100,255,0.7); user-select:none;
+  }
+  .node-eye:hover { color:#fff; }
+  .node-eye.off { color:rgba(160,100,255,0.2); }
+
+  .node-icon {
+    width:16px; flex-shrink:0; font-size:9px; text-align:center;
+    opacity:.7;
+  }
+  .node-name {
+    flex:1; font-size:8px; color:#d0b8ff; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; padding:0 3px;
+    letter-spacing:.04em;
+  }
+  .node-name.mesh-name { color:#b07aff; }
+  .node-name.root-name { color:#fff; font-size:8.5px; }
+  .node-name.light-name { color:#ffe066; }
+  .node-name.cam-name   { color:#44ff88; }
+  .node-type-tag {
+    font-size:7px; color:rgba(160,100,255,0.4); letter-spacing:.04em;
+    padding:1px 4px; border:1px solid rgba(160,100,255,0.15); margin-right:4px;
+    flex-shrink:0; white-space:nowrap;
+  }
+  .node-type-tag.mesh  { color:rgba(160,100,255,0.6); border-color:rgba(160,100,255,0.25); }
+  .node-type-tag.light { color:#ffe066; border-color:rgba(255,220,60,0.25); }
+  .node-type-tag.cam   { color:#44ff88; border-color:rgba(68,255,136,0.25); }
+  .node-type-tag.squad    { color:#88ccff; border-color:rgba(136,204,255,0.3); }
+  .node-type-tag.soldier  { color:rgba(160,100,255,0.5); border-color:rgba(160,100,255,0.2); }
+  .node-type-tag.building { color:#ffaa44; border-color:rgba(255,170,68,0.3); }
+  .node-type-tag.builder  { color:#ffe066; border-color:rgba(255,220,60,0.25); }
+  .node-type-tag.jet      { color:#88eeff; border-color:rgba(136,238,255,0.3); }
+  .node-type-tag.apc      { color:#88ff88; border-color:rgba(136,255,136,0.3); }
+  .node-type-tag.point    { color:#ff8888; border-color:rgba(255,136,136,0.3); }
+  .node-type-tag.ground   { color:rgba(160,100,255,0.4); border-color:rgba(160,100,255,0.15); }
+  .node-type-tag.grid     { color:rgba(160,100,255,0.3); border-color:rgba(160,100,255,0.12); }
+  .node-type-tag.setting  { color:#b07aff; border-color:rgba(160,100,255,0.3); }
+
+  #nodes-empty {
+    padding:16px; text-align:center; color:rgba(160,100,255,0.3);
+    font-size:8px; letter-spacing:.1em;
+  }
+  #nodes-count {
+    font-size:7.5px; color:rgba(160,100,255,0.4); letter-spacing:.08em;
+    padding:4px 10px; border-top:1px solid rgba(160,100,255,0.12);
+    flex-shrink:0; text-align:right;
+  }
+  #terrain-upload-panel {
+    display:none; position:fixed; top:142px; right:12px; z-index:20;
+    width:270px; max-height:calc(100vh - 160px);
+    background:rgba(5,12,8,0.97); border:1px solid rgba(80,200,120,0.35);
+    padding:12px; font-family:'Courier New',monospace;
+    font-size:9px; color:#50c878; letter-spacing:.08em; pointer-events:all;
+    overflow-y:auto;
+  }
+  #terrain-upload-panel.open { display:block; }
+  #terrain-panel-title {
+    font-size:10px; letter-spacing:.22em; color:#fff; margin-bottom:8px;
+    border-bottom:1px solid rgba(80,200,120,0.2); padding-bottom:5px;
+  }
+  #maps-panel { display:flex; gap:6px; margin-top:4px; align-items:flex-start; }
+  #maps-list { flex:1; min-width:0; max-height:150px; overflow-y:auto; }
+  #maps-preview { width:120px; flex:none; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); border:1px solid rgba(80,200,120,0.25); }
+  #maps-preview img { width:100%; height:auto; display:block; }
+  .maps-preview-cap { font-size:7.5px; color:#cfe8d8; letter-spacing:.06em; padding:3px 2px; text-align:center; text-transform:capitalize; }
+  #terrain-texture-list { margin-top:4px; max-height:170px; overflow-y:auto; }
+  #decals-list { margin-top:4px; max-height:160px; overflow-y:auto; }
+  #terrain-layers-list { margin-top:4px; max-height:100px; overflow-y:auto; }
+  .terrain-tex-row { font-size:7.5px; color:#aeb6bf; padding:2px 0; word-break:break-all; }
+  .terrain-tex-row.terrain-tex-title { color:#e6ebf2; font-weight:600; }
+  .maps-entry {
+    width:100%; text-align:left; cursor:pointer;
+    background:rgba(80,200,120,0.08); border:1px solid rgba(80,200,120,0.25);
+    color:#cfe8d8; font-family:'Courier New',monospace; font-size:8px;
+    letter-spacing:.08em; padding:4px 7px; margin:3px 0;
+    text-transform:capitalize; transition:all .12s;
+  }
+  .maps-entry:hover { background:rgba(80,200,120,0.2); border-color:#50c878; color:#fff; }
+  .maps-entry.active { background:rgba(80,200,120,0.22); border-color:#50c878; color:#fff; }
+  .maps-empty {
+    color:rgba(80,200,120,0.4); font-size:8px; letter-spacing:.1em;
+    padding:6px 2px; text-align:center;
+  }
+  .terrain-section-label {
+    font-size:8px; color:rgba(80,200,120,0.55); letter-spacing:.12em;
+    margin:8px 0 4px; text-transform:uppercase;
+  }
+  .terrain-dz {
+    border:1px dashed rgba(80,200,120,0.4); padding:10px 8px;
+    text-align:center; cursor:pointer; transition:all .15s; margin-bottom:6px;
+    color:rgba(80,200,120,0.6); font-size:8px; line-height:1.6;
+  }
+  .terrain-dz:hover, .terrain-dz.dragover {
+    border-color:#50c878; background:rgba(80,200,120,0.08); color:#fff;
+  }
+  .terrain-dz .dz-icon { font-size:18px; margin-bottom:2px; }
+  .terrain-status {
+    font-size:7.5px; min-height:12px; text-align:center; margin-bottom:4px;
+    color:rgba(80,200,120,0.5);
+  }
+  .terrain-status.ok  { color:#44ff88; }
+  .terrain-status.err { color:#ff6644; }
+  .terrain-status.loading { color:#ffe066; }
+  .terrain-prop-row {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:8px; padding:2px 0; border-bottom:1px solid rgba(80,200,120,0.1);
+    color:rgba(80,200,120,0.7);
+  }
+  .terrain-prop-row button {
+    background:rgba(255,80,60,0.1); border:1px solid rgba(255,80,60,0.3);
+    color:#ff6644; font-family:inherit; font-size:7px; padding:1px 5px;
+    cursor:pointer;
+  }
+  #terrain-props-list { max-height:80px; overflow-y:auto; margin-bottom:6px; }
+  .terrain-slider-row { display:flex; align-items:center; gap:6px; margin-bottom:4px; font-size:8px; }
+  .terrain-slider-row label { min-width:60px; color:rgba(80,200,120,0.6); }
+  .terrain-slider-row input[type=range] { flex:1; accent-color:#50c878; }
+  .terrain-slider-row span { min-width:30px; text-align:right; color:#fff; }
+  #terrain-clear-btn {
+    width:100%; margin-top:6px;
+    background:rgba(255,80,60,0.08); border:1px solid rgba(255,80,60,0.3);
+    color:#ff6644; font-family:'Courier New',monospace;
+    font-size:8px; letter-spacing:.1em; padding:4px; cursor:pointer;
+  }
+  #terrain-clear-btn:hover { background:rgba(255,80,60,0.2); }
+  #terrain-mesh-clear-btn {
+    width:100%; margin-top:4px;
+    background:rgba(255,80,60,0.08); border:1px solid rgba(255,80,60,0.3);
+    color:#ff6644; font-family:'Courier New',monospace;
+    font-size:8px; letter-spacing:.1em; padding:3px; cursor:pointer;
+  }
+  #terrain-mesh-clear-btn:hover { background:rgba(255,80,60,0.2); }
+  #model-scale-wrap { margin-bottom:6px; }
+  #model-scale-label { font-size:8px; color:rgba(80,200,255,0.55); margin-bottom:3px; }
+  #model-scale-row { display:flex; align-items:center; gap:6px; }
+  #model-scale { width:100%; accent-color:#50c8ff; cursor:pointer; }
+  #model-scale-val { font-size:8px; color:#fff; min-width:28px; text-align:right; }
+  .model-offset-row { display:flex; align-items:center; gap:4px; margin-bottom:3px; }
+  .model-offset-axis { font-size:8px; color:rgba(80,200,255,0.7); width:10px; flex-shrink:0; }
+  .model-offset-row input[type=range] { flex:1; accent-color:#50c8ff; cursor:pointer; }
+  .model-offset-val { font-size:8px; color:#fff; min-width:34px; text-align:right; }
+  .model-slider-section-label { font-size:7.5px; letter-spacing:.12em; color:rgba(80,200,255,0.45); margin:6px 0 3px; }
+
+  /* Collapsible slider sections */
+  .slider-section-header {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:7.5px; letter-spacing:.12em; color:rgba(80,200,255,0.55);
+    margin:6px 0 2px; cursor:pointer; padding:2px 0;
+    border-bottom:1px solid rgba(80,200,255,0.1);
+    user-select:none; transition:color .12s;
+  }
+  .slider-section-header:hover { color:#50c8ff; }
+  .ss-arrow { font-size:9px; transition:transform .15s; }
+  .ss-arrow.collapsed { transform:rotate(-90deg); }
+
+  /* Animation slots */
+  .anim-slot-row {
+    display:flex; align-items:center; gap:4px;
+    background:rgba(80,200,255,0.04); border:1px solid rgba(80,200,255,0.15);
+    padding:3px 5px; font-size:8px;
+  }
+  .anim-slot-row.loaded { border-color:rgba(80,200,255,0.45); background:rgba(80,200,255,0.09); }
+  .anim-slot-label { color:#50c8ff; letter-spacing:.06em; flex-shrink:0; width:46px; }
+  .anim-slot-file { flex:1; color:rgba(80,200,255,0.45); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:7px; }
+  .anim-slot-row.loaded .anim-slot-file { color:#44ff88; }
+  .anim-slot-btn {
+    background:rgba(80,200,255,0.1); border:1px solid rgba(80,200,255,0.3);
+    color:#50c8ff; font-family:'Courier New',monospace; font-size:10px;
+    width:18px; height:18px; cursor:pointer; flex-shrink:0; padding:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .anim-slot-btn:hover { background:rgba(80,200,255,0.25); border-color:#50c8ff; color:#fff; }
+
+  /* Animation list from GLB */
+  #anim-list-section {
+    display:none; margin-top:6px;
+  }
+  #anim-list-section-label {
+    font-size:7.5px; letter-spacing:.18em; color:#50c8ff; opacity:.5;
+    margin-bottom:4px;
+  }
+  #anim-list-scroll {
+    max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;
+    scrollbar-width:thin; scrollbar-color:rgba(80,200,255,0.25) transparent;
+  }
+  .anim-list-item {
+    display:flex; align-items:center; gap:3px;
+    background:rgba(80,200,255,0.04); border:1px solid rgba(80,200,255,0.12);
+    padding:2px 4px; font-size:7.5px;
+  }
+  .anim-list-name {
+    flex:1; color:rgba(80,200,255,0.75); overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; letter-spacing:.04em;
+  }
+  .anim-assign-btn {
+    background:rgba(80,200,255,0.08); border:1px solid rgba(80,200,255,0.25);
+    color:#50c8ff; font-family:'Courier New',monospace; font-size:7px;
+    letter-spacing:.04em; padding:1px 4px; cursor:pointer; flex-shrink:0;
+    transition:all .12s; white-space:nowrap;
+  }
+  .anim-assign-btn:hover { background:rgba(80,200,255,0.22); border-color:#50c8ff; color:#fff; }
+  .anim-assign-btn.assigned-idle  { background:rgba(255,220,60,0.18); border-color:#ffe066; color:#ffe066; }
+  .anim-assign-btn.assigned-run   { background:rgba(60,255,140,0.18); border-color:#44ff88; color:#44ff88; }
+  .anim-assign-btn.assigned-shoot { background:rgba(255,100,60,0.18); border-color:#ff6644; color:#ff6644; }
+  .anim-assign-btn.assigned-shootMove { background:rgba(120,160,255,0.18); border-color:#78a0ff; color:#78a0ff; }
+  #anim-list-hint {
+    font-size:7px; color:rgba(80,200,255,0.35); text-align:center;
+    margin-top:2px; letter-spacing:.04em;
+  }
+
+  /* Capture progress bars (styled via Linaria primitives in js/hud) */
+</style>
+  <script type="module" crossorigin src="/assets/index-BbQibwVG.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CDLT49jl.css">
+</head>
+<body>
+<canvas id="renderCanvas"></canvas>
+<div id="selBox"></div>
+<div id="buildCursor"></div>
+<div id="capBarsContainer"></div>
+<div id="fps-crosshair"></div>
+<div id="fps-hitmarker"></div>
+<div id="gunPoseTip" style="position:fixed;display:none;top:8px;left:8px;z-index:95;pointer-events:none;background:rgba(10,10,20,.82);color:#ffd27f;border:1px solid rgba(255,210,127,.4);padding:6px 10px;font:11px monospace;white-space:pre;"></div>
+<div id="gunPosePanel" style="position:fixed;display:none;top:8px;right:8px;z-index:96;background:rgba(10,10,20,.88);color:#ffd27f;border:1px solid rgba(255,210,127,.4);padding:8px 10px;font:11px monospace;">
+  <div style="margin-bottom:6px;">GUN POSE <span style="opacity:.6;">P exit · C copy</span></div>
+  <div>pos X <input id="gunPosX" type="range" min="-1" max="1" step="0.01" style="width:130px;vertical-align:middle;"> <span id="gunPosXv"></span></div>
+  <div>pos Y <input id="gunPosY" type="range" min="-1" max="1" step="0.01" style="width:130px;vertical-align:middle;"> <span id="gunPosYv"></span></div>
+  <div>pos Z <input id="gunPosZ" type="range" min="-2" max="0" step="0.01" style="width:130px;vertical-align:middle;"> <span id="gunPosZv"></span></div>
+  <div>rot X <input id="gunRotX" type="range" min="-180" max="180" step="1" style="width:130px;vertical-align:middle;"> <span id="gunRotXv"></span></div>
+  <div>rot Y <input id="gunRotY" type="range" min="-180" max="180" step="1" style="width:130px;vertical-align:middle;"> <span id="gunRotYv"></span></div>
+  <div>rot Z <input id="gunRotZ" type="range" min="-180" max="180" step="1" style="width:130px;vertical-align:middle;"> <span id="gunRotZv"></span></div>
+  <div>scale <input id="gunScale" type="range" min="0.3" max="2.5" step="0.01" style="width:130px;vertical-align:middle;"> <span id="gunScalev"></span></div>
+</div>
+<div id="cursorCoords" style="position:absolute;left:8px;bottom:8px;color:#8ae;background:rgba(10,10,20,0.65);padding:3px 7px;font:11px monospace;border:1px solid rgba(136,170,238,0.35);pointer-events:none;z-index:90;">x: –　z: –</div>
+<div id="decalHoverTip" style="position:absolute;display:none;top:0;left:0;color:#cfc;background:rgba(10,25,10,0.8);padding:3px 8px;font:11px monospace;border:1px solid rgba(180,255,180,0.4);border-radius:3px;pointer-events:none;z-index:91;white-space:nowrap;"></div>
+
+<!-- 3D Model Upload -->
+<button id="terrain-upload-btn" onclick="toggleTerrainPanel()">🌍 TERRAIN</button>
+<button id="grid-toggle-btn" onclick="toggleGrid()">▦ GRID</button>
+<button id="nodes-toggle-btn" onclick="toggleNodesPanel()">◈ NODES</button>
+<button id="scatter-btn" onclick="toggleScatterPanel()">⟺ SCATTER</button>
+<div id="scatter-panel">
+  <div style="font-size:9px;letter-spacing:.18em;color:#fff;margin-bottom:6px;opacity:.7">⟺ FORMATION SCATTER</div>
+  <div style="display:flex;align-items:center;gap:7px">
+    <input type="range" id="scatter-slider" min="0.4" max="4.0" step="0.1" value="1.0"
+      style="flex:1;accent-color:#b07aff;cursor:pointer" oninput="onScatterInput(this.value)">
+    <span id="scatter-val" style="color:#fff;font-weight:bold;font-size:10px;min-width:30px;text-align:right">1.0x</span>
+  </div>
+  <div style="font-size:9px;letter-spacing:.18em;color:#fff;margin:8px 0 4px;opacity:.7">⊙ HOVER AREA</div>
+  <div style="display:flex;align-items:center;gap:7px">
+    <input type="range" id="hitbox-slider" min="0.5" max="6.0" step="0.1" value="2.8"
+      style="flex:1;accent-color:#ff6040;cursor:pointer" oninput="onHitboxInput(this.value)">
+    <span id="hitbox-val" style="color:#fff;font-weight:bold;font-size:10px;min-width:30px;text-align:right">2.8</span>
+  </div>
+  <div style="margin-top:6px">
+    <button id="hitbox-debug-btn" onclick="toggleHitboxDebug()"
+      style="width:100%;padding:3px 6px;font-family:'Courier New',monospace;font-size:8px;letter-spacing:.1em;
+             background:rgba(255,96,64,0.08);border:1px solid rgba(255,96,64,0.3);color:rgba(255,96,64,0.6);
+             cursor:pointer;transition:all .12s">
+      ◻ SHOW HITBOXES
+    </button>
+  </div>
+</div>
+
+<button id="entities-toggle-btn" onclick="toggleEntitiesPanel()">✦ ENTITIES</button>
+
+<button id="decals-panel-btn" onclick="toggleDecalsPanel()">▣ DECALS/TEXTURE</button>
+<div id="decals-panel">
+  <div id="decals-panel-title">▣ DECALS / TEXTURE <span id="decals-panel-subtitle">PLACED ON MAP</span></div>
+  <button id="decals-panel-master" data-decal-toggle onclick="toggleSgbDecals()">👁 DECALS: SHOW</button>
+  <button id="decals-panel-hover" data-decal-hover onclick="toggleDecalHover()">◈ HOVER: ON</button>
+  <div id="decal-selection-list"><div class="decals-empty">LOAD A MAP TO LIST PLACED DECALS</div></div>
+  <div id="decal-pos-controls" style="display:none">
+    <div class="decal-pos-header">SELECTED POSITION</div>
+    <div class="decal-slider-row"><label>X</label><input type="range" id="decal-pos-x" min="-256" max="256" step="0.5" value="0"><span id="decal-pos-x-val">0.0</span></div>
+    <div class="decal-slider-row"><label>Y</label><input type="range" id="decal-pos-y" min="-10" max="70" step="0.2" value="0"><span id="decal-pos-y-val">0.0</span></div>
+    <div class="decal-slider-row"><label>Z</label><input type="range" id="decal-pos-z" min="-256" max="256" step="0.5" value="0"><span id="decal-pos-z-val">0.0</span></div>
+  </div>
+  <div id="decals-panel-count"></div>
+</div>
+
+<button id="pathfinding-panel-btn" onclick="togglePathfindingPanel()">⌖ PATHFINDING</button>
+<div id="pathfinding-panel">
+  <div id="pathfinding-panel-title">⌖ PATHFINDING <span id="pathfinding-panel-subtitle">SQUAD ROUTING</span></div>
+  <div id="pathfinding-list"><div class="pathfinding-empty">OPEN PANEL TO LIST MODES</div></div>
+  <div id="pathfinding-status"></div>
+</div>
+
+<button id="camera-panel-btn" onclick="toggleCameraPanel()">◉ CAMERA</button>
+<div id="camera-panel">
+  <div id="camera-panel-title">◉ CAMERA</div>
+  <div id="camera-readout">POS —&#10;TGT —</div>
+  <div class="camera-slider-row"><label>ALPHA°</label><input type="range" id="camera-alpha" min="0" max="360" step="1" value="270" oninput="updateCameraParam('alpha', this.value)"><span id="camera-alpha-val">270°</span></div>
+  <div class="camera-slider-row"><label>BETA°</label><input type="range" id="camera-beta" min="8" max="80" step="0.5" value="52" oninput="updateCameraParam('beta', this.value)"><span id="camera-beta-val">52°</span></div>
+  <div class="camera-slider-row"><label>RADIUS</label><input type="range" id="camera-radius" min="6" max="800" step="1" value="62" oninput="updateCameraParam('radius', this.value)"><span id="camera-radius-val">62</span></div>
+  <div class="camera-slider-row"><label>TGT X</label><input type="range" id="camera-tx" min="-128" max="128" step="1" value="0" oninput="updateCameraParam('tx', this.value)"><span id="camera-tx-val">0</span></div>
+  <div class="camera-slider-row"><label>TGT Y</label><input type="range" id="camera-ty" min="-10" max="60" step="0.5" value="0" oninput="updateCameraParam('ty', this.value)"><span id="camera-ty-val">0</span></div>
+  <div class="camera-slider-row"><label>TGT Z</label><input type="range" id="camera-tz" min="-128" max="128" step="1" value="0" oninput="updateCameraParam('tz', this.value)"><span id="camera-tz-val">0</span></div>
+  <button id="camera-reset-btn" onclick="resetCameraPanel()">↺ RESET</button>
+</div>
+
+<button id="camera-fps-btn" onclick="toggleCameraFps()">◉ FIRST-PERSON: OFF</button>
+
+<button id="switch-faction-btn" onclick="switchFaction()">⇄ SWITCH FACTION</button>
+
+<div id="nodes-panel">
+  <div id="nodes-panel-title">◈ SCENE NODES <span id="nodes-panel-subtitle">— ALL MESHES</span></div>
+  <input id="nodes-search" type="text" placeholder="FILTER NODES…" oninput="filterNodes(this.value)">
+  <div id="nodes-toolbar">
+    <button class="nodes-tb-btn" onclick="nodesShowAll()">SHOW ALL</button>
+    <button class="nodes-tb-btn" onclick="nodesHideAll()">HIDE ALL</button>
+    <button class="nodes-tb-btn" onclick="nodesRefresh()">↺ REFRESH</button>
+  </div>
+  <div id="nodes-list"><div id="nodes-empty">OPEN PANEL TO SCAN NODES</div></div>
+  <div id="nodes-count"></div>
+</div>
+
+<div id="entities-panel">
+  <div id="entities-panel-title">✦ ENTITIES <span id="entities-panel-subtitle">— ECS WORLD</span></div>
+  <input id="entities-search" type="text" placeholder="FILTER ENTITIES…" oninput="entitiesFilter(this.value)">
+  <div id="entities-toolbar">
+    <button class="entities-tb-btn" onclick="entitiesRefresh()">↺ REFRESH</button>
+  </div>
+  <div id="entities-list"><div class="entities-empty">OPEN PANEL TO SCAN ENTITIES</div></div>
+  <div id="entities-count"></div>
+</div>
+<div id="terrain-upload-panel">
+  <div id="terrain-panel-title">🌍 TERRAIN &amp; ENVIRONMENT</div>
+
+  <!-- BUILT-IN MAPS -->
+  <div class="terrain-section-label">BUILT-IN MAPS (maps/*/*.sgb)</div>
+  <div id="maps-panel">
+    <div id="maps-list"></div>
+    <div id="maps-preview"><div class="maps-empty">SELECT A MAP</div></div>
+  </div>
+
+  <!-- MAP TEXTURES -->
+  <div class="terrain-section-label">MAP TEXTURES</div>
+  <div id="terrain-texture-list"><div class="maps-empty">LOAD A MAP FIRST</div></div>
+
+  <!-- DECALS BROWSER (maps/6p_alvarus/decals/) -->
+  <div class="terrain-section-label">DECALS (maps/6p_alvarus/decals/)</div>
+  <input id="decals-search" type="text" placeholder="FIND DECAL…" oninput="filterDecals(this.value)">
+  <div id="decals-list"><div class="maps-empty">NO DECAL FILES IN maps/6p_alvarus/decals/</div></div>
+
+  <!-- TERRAIN LAYERS (toggleable sheets) -->
+  <div class="terrain-section-label">TERRAIN LAYERS</div>
+  <div id="terrain-layers-list"><div class="maps-empty">NO LAYERS YET</div></div>
+  <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+    <button onclick="rotateTerrainLayers()">↻ ROTATE</button>
+    <span class="terrain-status" id="terrain-layer-angle-val" style="flex:1">270°</span>
+  </div>
+
+  <!-- SGB DECALS (DATAENTY instances projected on terrain) -->
+  <div class="terrain-section-label">SGB DECALS</div>
+  <div class="terrain-status" id="terrain-decal-status">NO DECALS IN THIS SGB</div>
+  <div class="terrain-slider-row">
+    <label>SCALE</label>
+    <input type="range" id="terrain-decal-scale" min="1" max="60" step="0.5" value="6"
+           oninput="updateSgbDecalScale(this.value)">
+    <span id="terrain-decal-scale-val">6</span>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button data-decal-toggle onclick="toggleSgbDecals()">👁 DECALS: SHOW</button>
+  </div>
+
+  <!-- TERRAIN MESH -->
+  <div class="terrain-section-label">TERRAIN MESH (.glb / .gltf / .sgb)</div>
+  <div class="terrain-dz" id="terrain-mesh-dz"
+       onclick="document.getElementById('terrain-mesh-input').click()"
+       ondragover="event.preventDefault();this.classList.add('dragover')"
+       ondragleave="this.classList.remove('dragover')"
+       ondrop="handleTerrainMeshDrop(event)">
+    <div class="dz-icon">🗻</div>
+    Drop GLB terrain or .sgb map or click to browse<br>
+    <span style="opacity:.5;font-size:7px">replaces the flat ground plane</span>
+  </div>
+  <input type="file" id="terrain-mesh-input" accept=".glb,.gltf,.bin,.sgb" multiple style="display:none"
+         onchange="handleTerrainMeshFiles(this.files)">
+  <div class="terrain-status" id="terrain-mesh-status">NO TERRAIN MESH LOADED</div>
+  <div class="terrain-slider-row">
+    <label>SCALE</label>
+    <input type="range" id="terrain-mesh-scale" min="-200" max="100" step="1" value="0"
+           oninput="updateTerrainMeshScale(this.value)">
+    <span id="terrain-mesh-scale-val">1.00</span>
+  </div>
+  <div class="terrain-slider-row">
+    <label>Y OFFSET</label>
+    <input type="range" id="terrain-mesh-y" min="-20" max="20" step="0.1" value="0"
+           oninput="updateTerrainMeshY(this.value)">
+    <span id="terrain-mesh-y-val">0.0</span>
+  </div>
+  <div class="terrain-slider-row">
+    <label>ROTATION</label>
+    <input type="range" id="terrain-map-rotate" min="0" max="360" step="1" value="90"
+           oninput="updateTerrainMapRotate(this.value)">
+    <span id="terrain-map-rotate-val">90°</span>
+  </div>
+  <div class="terrain-status terrain-rotate-status" id="terrain-map-orient">CAMERA 0° · MAP 0°</div>
+  <button id="terrain-mesh-clear-btn" onclick="clearTerrainMesh()">✕ REMOVE TERRAIN MESH</button>
+
+  <!-- GROUND TEXTURE -->
+  <div class="terrain-section-label">GROUND TEXTURE (.jpg / .png)</div>
+  <div class="terrain-dz" id="terrain-tex-dz"
+       onclick="document.getElementById('terrain-tex-input').click()"
+       ondragover="event.preventDefault();this.classList.add('dragover')"
+       ondragleave="this.classList.remove('dragover')"
+       ondrop="handleTerrainTexDrop(event)">
+    <div class="dz-icon">🖼</div>
+    Drop image or click to browse
+  </div>
+  <input type="file" id="terrain-tex-input" accept=".jpg,.jpeg,.png,.webp" style="display:none"
+         onchange="loadTerrainTexture(this.files[0])">
+  <div class="terrain-status" id="terrain-tex-status">NO TEXTURE — USING SOLID COLOUR</div>
+
+  <div class="terrain-slider-row">
+    <label>TILE X</label>
+    <input type="range" id="tex-tile-x" min="1" max="40" step="1" value="8"
+           oninput="updateTexTiling()">
+    <span id="tex-tile-x-val">8</span>
+  </div>
+  <div class="terrain-slider-row">
+    <label>TILE Y</label>
+    <input type="range" id="tex-tile-y" min="1" max="40" step="1" value="8"
+           oninput="updateTexTiling()">
+    <span id="tex-tile-y-val">8</span>
+  </div>
+
+  <!-- ENVIRONMENT PROPS -->
+  <div class="terrain-section-label">ENVIRONMENT PROPS (.glb / .gltf)</div>
+  <div class="terrain-dz" id="terrain-prop-dz"
+       onclick="document.getElementById('terrain-prop-input').click()"
+       ondragover="event.preventDefault();this.classList.add('dragover')"
+       ondragleave="this.classList.remove('dragover')"
+       ondrop="handleTerrainPropDrop(event)">
+    <div class="dz-icon">🌳</div>
+    Drop GLB prop or click to browse<br>
+    <span style="opacity:.5;font-size:7px">scattered randomly across map</span>
+  </div>
+  <input type="file" id="terrain-prop-input" accept=".glb,.gltf,.bin" multiple style="display:none"
+         onchange="handleTerrainPropFiles(this.files)">
+  <div class="terrain-status" id="terrain-prop-status">NO PROPS LOADED</div>
+
+  <div class="terrain-slider-row">
+    <label>COUNT</label>
+    <input type="range" id="prop-count" min="1" max="80" step="1" value="20"
+           oninput="document.getElementById('prop-count-val').textContent=this.value">
+    <span id="prop-count-val">20</span>
+  </div>
+  <div class="terrain-slider-row">
+    <label>SCALE</label>
+    <input type="range" id="prop-scale" min="-200" max="100" step="1" value="0"
+           oninput="updatePropScale(this.value)">
+    <span id="prop-scale-val">1.00</span>
+  </div>
+  <div class="terrain-slider-row">
+    <label>AVOID CENTER</label>
+    <input type="range" id="prop-avoid" min="0" max="40" step="1" value="18"
+           oninput="document.getElementById('prop-avoid-val').textContent=this.value">
+    <span id="prop-avoid-val">18</span>
+  </div>
+  <button onclick="rescatterProps()" style="width:100%;background:rgba(80,200,120,0.1);border:1px solid rgba(80,200,120,0.35);color:#50c878;font-family:inherit;font-size:8px;padding:3px;cursor:pointer;margin-bottom:4px;letter-spacing:.1em;">↺ RESCATTER</button>
+
+  <div id="terrain-props-list"></div>
+
+  <button id="terrain-clear-btn" onclick="clearAllTerrain()">✕ CLEAR ALL TERRAIN</button>
+
+  <!-- BRIGHTNESS -->
+  <div class="terrain-section-label" style="margin-top:10px">☀ SCENE BRIGHTNESS</div>
+  <div class="terrain-slider-row">
+    <label>LEVEL</label>
+    <input type="range" id="brightness-slider" min="0.2" max="8" step="0.1" value="1"
+           oninput="setBrightness(parseFloat(this.value))">
+    <span id="brightness-val">1.00</span>
+  </div>
+</div>
+
+<button id="model-upload-btn" onclick="toggleModelPanel()">&#x2B06; SOLDIER MODEL</button>
+<div id="model-upload-panel">
+  <div id="model-upload-panel-title">&#x2B06; SOLDIER MODEL + ANIMATIONS</div>
+
+  <!-- STEP 1: BASE MODEL -->
+  <div class="model-slider-section-label" style="margin-top:0">STEP 1 — BASE MODEL (.glb / .gltf / .fbx)</div>
+  <div id="model-drop-zone" onclick="document.getElementById('model-file-input').click()"
+       ondragover="event.preventDefault();this.classList.add('dragover')"
+       ondragleave="this.classList.remove('dragover')"
+       ondrop="handleModelDrop(event)">
+    <div class="dz-icon">🧊</div>
+    <div class="dz-text">DROP .GLB / .GLTF / .FBX<br>or click to browse<br><span style="opacity:.45;font-size:7px">for .gltf select all companion files together<br>animations auto-detected from all formats</span></div>
+  </div>
+  <input type="file" id="model-file-input" accept=".glb,.gltf,.fbx,.bin,.png,.jpg,.jpeg,.webp" multiple onchange="handleModelFiles(this.files)">
+  <div id="model-status">NO MODEL LOADED · USING DEFAULT</div>
+
+  <!-- DETECTED ANIMATIONS FROM BASE MODEL -->
+  <div id="anim-list-section">
+    <div id="anim-list-section-label">ANIMATIONS IN MODEL — CLICK TO ASSIGN ▾</div>
+    <div id="anim-list-scroll"></div>
+    <div id="anim-list-hint">assign each clip to idle / run / shoot</div>
+  </div>
+
+
+  <!-- LOADED MODEL CONTROLS -->
+  <div id="model-loaded-info" style="display:none">
+    <div class="model-info-row"><span>FILE</span><span class="miv" id="mi-name">—</span></div>
+    <div class="model-info-row"><span>SIZE</span><span class="miv" id="mi-size">—</span></div>
+
+    <!-- SCALE -->
+    <div class="slider-section-header" onclick="toggleSliderSection('scale')">
+      <span>SCALE</span><span id="scale-arrow" class="ss-arrow">▾</span>
+    </div>
+    <div id="slider-section-scale">
+      <div id="model-scale-wrap">
+        <div id="model-scale-label">SCALE: <span id="model-scale-val">1.000</span>x
+          <input type="number" id="model-scale-num" min="0.001" max="50" step="0.001" value="1"
+            style="width:52px;background:rgba(80,200,255,0.07);border:1px solid rgba(80,200,255,0.3);color:#fff;font-family:inherit;font-size:8px;padding:1px 3px;margin-left:4px;"
+            oninput="updateModelScaleFromNum(this.value)">
+        </div>
+        <div id="model-scale-row">
+          <!-- log-scale slider: value = log10(scale)*100, range -300..+170 = 0.001x..14.8x -->
+          <input type="range" id="model-scale" min="-300" max="170" step="1" value="0"
+                 oninput="updateModelScaleFromSlider(this.value)">
+        </div>
+      </div>
+    </div>
+
+    <!-- POSITION -->
+    <div class="slider-section-header" onclick="toggleSliderSection('pos')">
+      <span>POSITION OFFSET</span><span id="pos-arrow" class="ss-arrow">▾</span>
+    </div>
+    <div id="slider-section-pos">
+      <div class="model-offset-row">
+        <span class="model-offset-axis">X</span>
+        <input type="range" id="model-off-x" min="-3" max="3" step="0.05" value="0" oninput="updateModelOffset('x',this.value)">
+        <span class="model-offset-val" id="model-off-x-val">0.00</span>
+      </div>
+      <div class="model-offset-row">
+        <span class="model-offset-axis">Y</span>
+        <input type="range" id="model-off-y" min="-3" max="3" step="0.05" value="0" oninput="updateModelOffset('y',this.value)">
+        <span class="model-offset-val" id="model-off-y-val">0.00</span>
+      </div>
+      <div class="model-offset-row">
+        <span class="model-offset-axis">Z</span>
+        <input type="range" id="model-off-z" min="-3" max="3" step="0.05" value="0" oninput="updateModelOffset('z',this.value)">
+        <span class="model-offset-val" id="model-off-z-val">0.00</span>
+      </div>
+    </div>
+
+    <!-- ROTATION -->
+    <div class="slider-section-header" onclick="toggleSliderSection('rot')">
+      <span>ROTATION</span><span id="rot-arrow" class="ss-arrow">▾</span>
+    </div>
+    <div id="slider-section-rot">
+      <div class="model-offset-row">
+        <span class="model-offset-axis">X</span>
+        <input type="range" id="model-rot-x" min="-180" max="180" step="1" value="0" oninput="updateModelRotation('x',this.value)">
+        <span class="model-offset-val" id="model-rot-x-val">0°</span>
+      </div>
+      <div class="model-offset-row">
+        <span class="model-offset-axis">Y</span>
+        <input type="range" id="model-rot-y" min="-180" max="180" step="1" value="0" oninput="updateModelRotation('y',this.value)">
+        <span class="model-offset-val" id="model-rot-y-val">0°</span>
+      </div>
+      <div class="model-offset-row">
+        <span class="model-offset-axis">Z</span>
+        <input type="range" id="model-rot-z" min="-180" max="180" step="1" value="0" oninput="updateModelRotation('z',this.value)">
+        <span class="model-offset-val" id="model-rot-z-val">0°</span>
+      </div>
+    </div>
+
+    <button id="model-clear-btn" onclick="clearCustomModel()">✕ REMOVE · USE DEFAULT</button>
+  </div>
+</div>
+
+<div id="topbar-root"></div>
+<div id="hud-root"></div>
+<div id="win">
+  <h2 id="winText">BLUE WINS</h2><p>ALL ENEMY FORCES DESTROYED</p>
+  <button onclick="resetGame()">PLAY AGAIN</button>
+</div>
+
+</body>
+</html>

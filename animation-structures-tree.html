@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grimcraft — IG Structure Animation Extraction Tree (ASCII)</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body {
+            background: #0a0a0f;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+        pre {
+            background: rgba(0, 255, 136, 0.03);
+            border-left: 3px solid rgba(0, 255, 136, 0.3);
+            padding: 12px;
+            margin-bottom: 25px;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        h1 { border-bottom: 1px solid #00ff88; padding-bottom: 5px; color: #fff; font-size: 18px; }
+        .status-container { margin: 15px 0; padding: 10px; border: 1px solid #333; background: #111; }
+        .loading { color: #ffcc44; }
+        .success { color: #50c8ff; }
+        .error { color: #ff4444; }
+        .filename { color: #fff; font-weight: bold; margin-bottom: 5px; display: block; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <h1>IG STRUCTURE ANIMATION DATA EXTRACTION</h1>
+    <div class="status-container">
+        Status: <span id="status">Initializing...</span>
+    </div>
+    <div id="output"></div>
+
+    <canvas id="renderCanvas" style="display:none;"></canvas>
+
+    <script>
+        const models = [
+            'models/ig/structures/hq.glb',
+            'models/ig/structures/hq-anim.glb',
+            'models/ig/structures/infantry.glb',
+            'models/ig/structures/mechanized.glb',
+            'models/ig/structures/listening_post.glb',
+            'models/ig/structures/plasma_generator.glb',
+            'models/ig/structures/tactica_control.glb',
+            'models/ig/structures/mars_pattern.glb',
+            'models/ig/structures/turret_heavy_bolter.glb'
+        ];
+
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        async function startExtraction() {
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+
+            for (const path of models) {
+                status.innerHTML = `<span class="loading">Loading: ${path}</span>`;
+                try {
+                    const container = await BABYLON.SceneLoader.LoadAssetContainerAsync("", path, scene);
+                    
+                    const fileName = path.split('/').pop();
+                    let asciiTree = `<span class="filename">${fileName}</span>\n`;
+                    asciiTree += ` ┃\n`;
+                    
+                    if (container.animationGroups.length === 0) {
+                        asciiTree += ` ┗━ [ NO ANIMATION GROUPS FOUND ]\n`;
+                    } else {
+                        const sortedAnims = [...container.animationGroups].sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        sortedAnims.forEach((ag, idx) => {
+                            const isLast = idx === sortedAnims.length - 1;
+                            const prefix = isLast ? " ┗━ " : " ┣━ ";
+                            asciiTree += `${prefix}${ag.name}\n`;
+                        });
+                    }
+
+                    const pre = document.createElement('pre');
+                    pre.innerHTML = asciiTree;
+                    output.appendChild(pre);
+
+                    container.dispose();
+                } catch (e) {
+                    const errorPre = document.createElement('pre');
+                    errorPre.className = 'error';
+                    errorPre.textContent = `[FAILURE] ${path}: ${e.message}`;
+                    output.appendChild(errorPre);
+                }
+            }
+            status.innerHTML = `<span class="success">ALL DATA EXTRACTED SUCCESSFULLY</span>`;
+        }
+
+        setTimeout(startExtraction, 500);
+    </script>
+</body>
+</html>

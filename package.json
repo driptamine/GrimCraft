@@ -1,0 +1,26 @@
+{
+  "name": "grimcraft-rts",
+  "version": "1.0.0",
+  "description": "Real-time strategy game built with Three.js / ECS",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "sync-assets": "node scripts/sync-runtime-assets.mjs",
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@linaria/core": "^8.1.1",
+    "@linaria/react": "^8.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.2.0",
+    "@wyw-in-js/babel-preset": "^2.3.1",
+    "@wyw-in-js/vite": "^2.3.1",
+    "vite": "^6.0.0"
+  }
+}

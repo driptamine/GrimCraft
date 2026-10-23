@@ -1,0 +1,56 @@
+{
+  "armoury": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT"
+    }
+  },
+  "barracks": {
+    "phases": {
+      "placement": "build_placement"
+    }
+  },
+  "command_hq": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1_plane_drop",
+      "phase_2": "build_2_landed",
+      "phase_3": "build_3_take_off",
+      "phase_4": "build_4_unfold",
+      "phase_5": "build_5_unfold_2"
+    }
+  },
+  "land_mine": {
+    "phases": {}
+  },
+  "listening_post": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD"
+    }
+  },
+  "machine_cult": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT"
+    }
+  },
+  "orbital_relay": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT"
+    }
+  },
+  "plasma_generator": {
+    "phases": {
+      "placement": "build_placement"
+    }
+  },
+  "progenitor_temple": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT"
+    }
+  },
+  "thermo_plasma_generator": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "ecclesiarchal_chapel.glb": ["servitor.glb", "missionary.glb"],
+  "adepta_sororitas_convent.glb": ["battle_sister.glb", "canoness.glb"],
+  "holy_reliquary_v2.glb": ["celestian.glb", "sister_repentia.glb", "death_cult_assassin.glb", "confessor.glb"]
+}

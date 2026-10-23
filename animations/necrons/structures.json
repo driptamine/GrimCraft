@@ -1,0 +1,76 @@
+{
+  "energy_core": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_3"
+    }
+  },
+  "forbidden_archive": {
+    "phases": {
+      "phase_1": "build_1",
+      "phase_2": "build_2"
+    }
+  },
+  "greater_summoning_core": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_3"
+    }
+  },
+  "listening_post": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_phasing"
+    }
+  },
+  "monolith": {
+    "phases": {
+      "phase_1": "build_stage_1",
+      "phase_2": "build_stage_1_idle",
+      "phase_3": "build_stage_2"
+    }
+  },
+  "plasma_generator": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_4"
+    }
+  },
+  "summoning_core": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_start"
+    }
+  },
+  "summoning_core_big": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_start"
+    }
+  },
+  "thermoplasma_generator": {
+    "phases": {
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_3"
+    }
+  },
+  "turret": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2",
+      "phase_3": "build_3"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "armoury": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "chaos_icon": {
+    "phases": {
+      "phase_1": "BUILD"
+    }
+  },
+  "chaos_temple": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "desecrated_stronghold": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1",
+      "phase_2": "BUILD_2_RISE"
+    }
+  },
+  "greater_sacrificial_circle": {
+    "phases": {
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "land_mine": {
+    "phases": {}
+  },
+  "listening_post": {
+    "phases": {}
+  },
+  "machine_pit": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "plasma_generator": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "warp_in_1",
+      "phase_2": "warp_in_2"
+    }
+  },
+  "sacrificial_circle": {
+    "phases": {
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "thermo_plasma_generator": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  }
+}

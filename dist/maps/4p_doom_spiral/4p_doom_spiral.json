@@ -1,0 +1,102 @@
+{
+  "name": "Doom Spiral",
+  "bounds": 256,
+  "positions": [
+    {
+      "x": -102.86,
+      "z": -111.25,
+      "team": "blue",
+      "faction": "orks"
+    },
+    {
+      "x": 94.16,
+      "z": -89.58,
+      "team": "blue",
+      "faction": "ig"
+    },
+    {
+      "x": -104.43,
+      "z": 102.31,
+      "team": "red",
+      "faction": "chaos"
+    },
+    {
+      "x": 101.87,
+      "z": 107.57,
+      "team": "red",
+      "faction": "space marines"
+    }
+  ],
+  "strategicPoints": [
+    {
+      "x": 110,
+      "z": -106,
+      "kind": "point"
+    },
+    {
+      "x": 116,
+      "z": 118,
+      "kind": "point"
+    },
+    {
+      "x": -124,
+      "z": 120,
+      "kind": "point"
+    },
+    {
+      "x": -116,
+      "z": -120,
+      "kind": "point"
+    },
+    {
+      "x": -40,
+      "z": -92,
+      "kind": "point"
+    },
+    {
+      "x": -92,
+      "z": -46,
+      "kind": "point"
+    },
+    {
+      "x": -90,
+      "z": 36,
+      "kind": "point"
+    },
+    {
+      "x": -46,
+      "z": 86,
+      "kind": "point"
+    },
+    {
+      "x": 50,
+      "z": 88,
+      "kind": "point"
+    },
+    {
+      "x": 92,
+      "z": 46,
+      "kind": "point"
+    },
+    {
+      "x": 94,
+      "z": -48,
+      "kind": "point"
+    },
+    {
+      "x": -26,
+      "z": -28,
+      "kind": "point"
+    },
+    {
+      "x": 30,
+      "z": 28,
+      "kind": "point"
+    },
+    {
+      "x": 50,
+      "z": -92,
+      "kind": "point"
+    }
+  ]
+}

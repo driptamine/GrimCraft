@@ -1,0 +1,11 @@
+{
+  "idle": "idle_1",
+  "run": "run_1",
+  "melee": "melee_1",
+  "firing": "melee_1",
+  "moveFiring": "melee_1",
+  "flyLaunch": "fly_launch",
+  "flyIdle": "fly_idle",
+  "flyLand": "fly_land",
+  "die_normal_1": "die_1"
+}

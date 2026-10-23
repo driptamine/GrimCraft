@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grimcraft - Feature Overview (One Dark)</title>
+    <style>
+        :root {
+            --bg-color: #282c34;
+            --panel-bg: #21252b;
+            --accent-blue: #61afef;
+            --accent-green: #98c379;
+            --accent-orange: #d19a66;
+            --accent-red: #e06c75;
+            --accent-purple: #c678dd;
+            --text-color: #abb2bf;
+            --border-color: #3e4451;
+            --comment-color: #5c6370;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            counter-reset: section-counter;
+        }
+
+        h1 {
+            color: var(--accent-purple);
+            text-align: center;
+            letter-spacing: 0.1em;
+            text-transform: lowercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+            font-weight: normal;
+        }
+
+        h1::before { content: "class "; color: var(--accent-blue); }
+        h1::after { content: " {}"; color: var(--text-color); }
+
+        h2 {
+            color: var(--accent-blue);
+            margin-top: 40px;
+            font-size: 1.3em;
+            font-weight: normal;
+            border-bottom: 1px solid rgba(171, 178, 191, 0.1);
+            padding-bottom: 5px;
+            counter-increment: section-counter;
+        }
+
+        h2::before { content: counter(section-counter) ". "; color: var(--comment-color); }
+
+        h3 {
+            color: var(--accent-green);
+            font-size: 1.1em;
+            margin-top: 25px;
+            font-weight: normal;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+            counter-reset: feature-counter;
+        }
+
+        li {
+            margin-bottom: 12px;
+            padding-left: 35px;
+            position: relative;
+            counter-increment: feature-counter;
+        }
+
+        li::before {
+            content: counter(feature-counter);
+            position: absolute;
+            left: 0;
+            color: var(--comment-color);
+            font-weight: normal;
+            width: 25px;
+            text-align: right;
+            padding-right: 8px;
+            font-size: 0.9em;
+        }
+
+        ul ul {
+            margin-top: 10px;
+            counter-reset: sub-feature-counter;
+        }
+
+        ul ul li {
+            counter-increment: sub-feature-counter;
+        }
+
+        ul ul li::before {
+            content: counter(feature-counter) "." counter(sub-feature-counter);
+            width: 35px;
+            left: -10px;
+        }
+
+        strong {
+            color: var(--accent-orange);
+            font-weight: normal;
+        }
+
+        code {
+            background: rgba(171, 178, 191, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent-green);
+        }
+
+        .highlight {
+            color: var(--accent-red);
+        }
+
+        .section-icon {
+            color: var(--comment-color);
+            font-style: normal;
+            margin-right: 8px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.85em;
+            color: var(--comment-color);
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GrimcraftFeatures</h1>
+        <p style="color: var(--comment-color);">// Grimcraft is a feature-rich, browser-based Real-Time Strategy (RTS) game built using Babylon.js and a custom Entity Component System (ECS).</p>
+
+        <h2>CoreSystems</h2>
+        <ul>
+            <li><strong>Entity Component System (ECS):</strong> A robust, modular engine architecture using a <code>World</code> class to manage entities, components, and decoupled systems.</li>
+            <li><strong>Resource Management:</strong> Dual-resource economy with <span class="highlight">Gold</span> and <span class="highlight">Energy</span>. Gold is used for units and buildings, while Energy is generated by Power Plants.</li>
+            <li><strong>Victory/Defeat Logic:</strong> Automated win/loss detection based on the destruction of all player-owned units and structures.</li>
+            <li><strong>Multiplayer Engine:</strong> Built-in support for <strong>WebTransport (QUIC)</strong> networking, featuring server-authoritative snapshots and position deltas for low-latency synchronization.</li>
+        </ul>
+
+        <h2>UnitSquadMechanics</h2>
+        <ul>
+            <li><strong>Squad-Based Control:</strong> Units are managed in squads of up to 13 members (12 regular soldiers + 1 Sergeant).</li>
+            <li><strong>Formation System:</strong> Dynamic formations with 13 slots, featuring smooth rotation and "sprint-to-catch-up" logic for soldiers falling behind.</li>
+            <li><strong>Diverse Unit Types:</strong>
+                <ul>
+                    <li><strong>Soldiers:</strong> Base combat units with individual health and stats.</li>
+                    <li><strong>Sergeants (Superiors):</strong> Distinguished by purple/yellow hats; essential for squad leadership.</li>
+                    <li><strong>Grenadiers:</strong> Upgraded soldiers equipped with grenade launchers for area-of-effect damage.</li>
+                    <li><strong>Builders:</strong> Specialized units for constructing buildings and securing strategic points.</li>
+                    <li><strong>APCs (Armored Personnel Carriers):</strong> Heavy vehicles that can transport up to 2 squads or builders. Features a turret-mounted laser cannon.</li>
+                    <li><strong>Fighter Jets:</strong> Flying units with three flight modes: Orbit (Patrol), Hold (Hover), and Attack (Strafe runs). Features homing missiles.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>CombatWeaponry</h2>
+        <ul>
+            <li><strong>Projectile Variety:</strong> Standard Bullets, high-damage Lasers, pulsing Plasma "asteroids", arcing Grenades, and homing Missiles.</li>
+            <li><strong>Targeting System:</strong> Focus-fire on specific enemies with visual "Target Pulse" feedback.</li>
+            <li><strong>Auto-Chase:</strong> Optional AI pursuit for units to automatically engage nearby hostiles.</li>
+            <li><strong>Physical Feedback:</strong> Units feature "stagger" and "scatter" states when hit by heavy weapons or explosions.</li>
+        </ul>
+
+        <h2>ConstructionStructures</h2>
+        <ul>
+            <li><strong>Ghost Previews:</strong> Real-time holographic scaffolds for planning base layouts.</li>
+            <li><strong>Structure Types:</strong> Barracks, Thermo Generators, Defensive Towers, Gun Turrets, and Airfields.</li>
+            <li><strong>Strategic Points:</strong> Capturable locations providing Gold income, upgradeable with Listening Posts and Tower Bases.</li>
+        </ul>
+
+        <h2>UI_HUD</h2>
+        <ul>
+            <li><strong>Minimap:</strong> Real-time display with click-to-pan functionality.</li>
+            <li><strong>Unit Portraits:</strong> Detailed stats and health monitoring for selected units.</li>
+            <li><strong>Action Grid:</strong> Contextual commands for building and unit management.</li>
+            <li><strong>Range Circles:</strong> Visualized attack ranges (A key) for tactical positioning.</li>
+        </ul>
+
+        <h2>VisualsNavigation</h2>
+        <ul>
+            <li><strong>Environment Presets:</strong> Steppe, Jungle, and River terrains.</li>
+            <li><strong>Animation System:</strong> Skeletal animation for Idle, Run, and Shoot states.</li>
+            <li><strong>Advanced Camera:</strong> Edge-scrolling, Alt+drag orbiting, and smooth zoom.</li>
+            <li><strong>Rally Points:</strong> Visual flags and dashed path indicators for unit production.</li>
+        </ul>
+
+        <footer>
+            /* End of Features Log - Compiled 2026-06-12 */
+        </footer>
+    </div>
+</body>
+</html>

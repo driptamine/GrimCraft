@@ -1,0 +1,6 @@
+{
+  "command_hq.glb": ["servitor.glb", "scout.glb", "skull_probe.glb"],
+  "barracks.glb": ["space_marine.glb", "assault_marine.glb", "grey_knight.glb"],
+  "orbital_relay.glb": ["terminator.glb", "assault_terminator.glb"],
+  "progenitor_temple.glb": ["apothecary.glb", "librarian.glb", "chaplain.glb"]
+}

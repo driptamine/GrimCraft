@@ -1,0 +1,41 @@
+{
+  "name": "Alvarus",
+  "bounds": 256,
+  "positions": [
+    { "x": -105.69, "z": -93.69, "team": "blue", "faction": "orks" },
+    { "x": 14.76, "z": -102.98, "team": "blue", "faction": "ig" },
+    { "x": 110.94, "z": -101.08, "team": "blue", "faction": "necrons" },
+    { "x": -109.79, "z": 111.93, "team": "red", "faction": "chaos" },
+    { "x": -5.38, "z": 114.06, "team": "red", "faction": "space marines" },
+    { "x": 109.47, "z": 110.37, "team": "red", "faction": "eldar" }
+  ],
+  "ringPerPosition": false,
+  "ringOffsets": [[-20, -20], [20, -20], [-20, 20], [20, 20]],
+  "centerPoints": [[-22, 0], [0, -20], [0, 20], [22, 0], [0, 0]],
+  "strategicPoints": [
+    { "x": 110, "z": -88, "kind": "point" },
+    { "x": 110, "z": -56, "kind": "point" },
+    { "x": 102, "z": -18, "kind": "point" },
+    { "x": -66, "z": -112, "kind": "point" },
+    { "x": -118, "z": -58, "kind": "point" },
+    { "x": -78, "z": -58, "kind": "point" },
+    { "x": -6, "z": -42, "kind": "point" },
+    { "x": -6, "z": -82, "kind": "point" },
+    { "x": 30, "z": -84, "kind": "point" },
+    { "x": -116, "z": 86, "kind": "point" },
+    { "x": -116, "z": 52, "kind": "point" },
+    { "x": -94, "z": 20, "kind": "point" },
+    { "x": 106, "z": 82, "kind": "point" },
+    { "x": 68, "z": 82, "kind": "point" },
+    { "x": 106, "z": 46, "kind": "point" },
+    { "x": -32, "z": 116, "kind": "point" },
+    { "x": -6, "z": 58, "kind": "point" },
+    { "x": 18, "z": 118, "kind": "point" },
+    { "x": -36, "z": -86, "kind": "relic" },
+    { "x": 66, "z": -68, "kind": "relic" },
+    { "x": 56, "z": 118, "kind": "relic" },
+    { "x": -70, "z": 102, "kind": "relic" },
+    { "x": -24, "z": 0, "kind": "objective" },
+    { "x": 40, "z": 0, "kind": "objective" }
+  ]
+}

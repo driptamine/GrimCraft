@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grimcraft — IG Infantry Animation Extraction Tree (ASCII)</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body {
+            background: #0a0a0f;
+            color: #50c8ff;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+        pre {
+            background: rgba(80, 200, 255, 0.03);
+            border-left: 3px solid rgba(80, 200, 255, 0.3);
+            padding: 12px;
+            margin-bottom: 25px;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        h1 { border-bottom: 1px solid #50c8ff; padding-bottom: 5px; color: #fff; font-size: 18px; }
+        .status-container { margin: 15px 0; padding: 10px; border: 1px solid #333; background: #111; }
+        .loading { color: #ffcc44; }
+        .success { color: #00ff88; }
+        .error { color: #ff4444; }
+        .filename { color: #fff; font-weight: bold; margin-bottom: 5px; display: block; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <h1>IG INFANTRY ANIMATION DATA EXTRACTION</h1>
+    <div class="status-container">
+        Status: <span id="status">Initializing...</span>
+    </div>
+    <div id="output"></div>
+
+    <canvas id="renderCanvas" style="display:none;"></canvas>
+
+    <script>
+        const models = [
+            'models/ig/infantry/guardsmen.glb',
+            'models/ig/infantry/guardsmen_sergeant.glb',
+            'models/ig/infantry/kasrkin.glb',
+            'models/ig/infantry/kasrkin_sergeant.glb',
+            'models/ig/infantry/ogryn.glb',
+            'models/ig/infantry/ogryn_bonehead.glb',
+            'models/ig/infantry/aa_ogryn.glb',
+            'models/ig/infantry/commissar.glb',
+            'models/ig/infantry/imperial_captain.glb',
+            'models/ig/infantry/tech_priest.glb',
+            'models/ig/infantry/vindicare_temple_assassin.glb',
+            'models/ig/infantry/sanctioned_psyker.glb',
+            'models/ig/infantry/priest.glb',
+            'models/ig/infantry/aa_priest.glb',
+            'models/ig/infantry/heavy_weapon_platoon.glb',
+            'models/ig/infantry/heavy_weapon_platoon_deployed.glb'
+        ];
+
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        async function startExtraction() {
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+
+            for (const path of models) {
+                status.innerHTML = `<span class="loading">Loading: ${path}</span>`;
+                try {
+                    // LoadAssetContainerAsync does NOT add models to the scene by default
+                    const container = await BABYLON.SceneLoader.LoadAssetContainerAsync("", path, scene);
+                    
+                    const fileName = path.split('/').pop();
+                    let asciiTree = `<span class="filename">${fileName}</span>\n`;
+                    asciiTree += ` ┃\n`;
+                    
+                    if (container.animationGroups.length === 0) {
+                        asciiTree += ` ┗━ [ NO ANIMATION GROUPS FOUND ]\n`;
+                    } else {
+                        // Sort animation groups alphabetically for better tree organization
+                        const sortedAnims = [...container.animationGroups].sort((a, b) => a.name.localeCompare(b.name));
+                        
+                        sortedAnims.forEach((ag, idx) => {
+                            const isLast = idx === sortedAnims.length - 1;
+                            const prefix = isLast ? " ┗━ " : " ┣━ ";
+                            asciiTree += `${prefix}${ag.name}\n`;
+                        });
+                    }
+
+                    const pre = document.createElement('pre');
+                    pre.innerHTML = asciiTree;
+                    output.appendChild(pre);
+
+                    // Dispose to free GPU/JS memory
+                    container.dispose();
+                } catch (e) {
+                    const errorPre = document.createElement('pre');
+                    errorPre.className = 'error';
+                    errorPre.textContent = `[FAILURE] ${path}: ${e.message}`;
+                    output.appendChild(errorPre);
+                }
+            }
+            status.innerHTML = `<span class="success">ALL DATA EXTRACTED SUCCESSFULLY</span>`;
+        }
+
+        // Delay slightly to ensure Babylon engine is ready
+        setTimeout(startExtraction, 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "tau_hq.glb": ["earth_caste_builder.glb", "stealth_warrior.glb", "vespid.glb"],
+  "tau_barracks.glb": ["fire_warrior.glb", "pathfinder.glb", "commander.glb", "broadside_battlesuit.glb", "crisis_suit.glb"],
+  "tau_kroot_nest.glb": ["kroot_warrior.glb", "kroot_shaper.glb", "kroot_hounds.glb", "krootox.glb"]
+}

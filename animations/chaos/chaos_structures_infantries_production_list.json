@@ -1,0 +1,6 @@
+{
+  "desecrated_stronghold.glb": ["heretic.glb", "cultist.glb", "chaos_sorcerer.glb"],
+  "chaos_temple.glb": ["chaos_space_marine.glb", "raptor.glb", "khorne_berzerker.glb"],
+  "sacrificial_circle.glb": ["horror.glb", "possessed_chaos_marine.glb"],
+  "greater_sacrificial_circle.glb": ["obliterator.glb"]
+}

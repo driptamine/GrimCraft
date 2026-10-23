@@ -1,0 +1,104 @@
+{
+  "name": "Vandea Coast",
+  "bounds": 256,
+  "positions": [
+    {
+      "x": -107.7,
+      "z": -107.9,
+      "team": "blue",
+      "faction": "orks"
+    },
+    {
+      "x": -3.22,
+      "z": -51.01,
+      "team": "blue",
+      "faction": "ig"
+    },
+    {
+      "x": 95.3,
+      "z": -86.59,
+      "team": "blue",
+      "faction": "necrons"
+    },
+    {
+      "x": -104,
+      "z": 101,
+      "team": "red",
+      "faction": "chaos"
+    },
+    {
+      "x": 10.77,
+      "z": 57.24,
+      "team": "red",
+      "faction": "space marines"
+    },
+    {
+      "x": 103.23,
+      "z": 93.13,
+      "team": "red",
+      "faction": "dark eldar"
+    }
+  ],
+  "strategicPoints": [
+    {
+      "x": 104,
+      "z": -52,
+      "kind": "point"
+    },
+    {
+      "x": 114,
+      "z": 58,
+      "kind": "point"
+    },
+    {
+      "x": 72,
+      "z": 88,
+      "kind": "point"
+    },
+    {
+      "x": 44,
+      "z": 40,
+      "kind": "point"
+    },
+    {
+      "x": -18,
+      "z": 30,
+      "kind": "point"
+    },
+    {
+      "x": -62,
+      "z": 106,
+      "kind": "point"
+    },
+    {
+      "x": -92,
+      "z": 54,
+      "kind": "point"
+    },
+    {
+      "x": -122,
+      "z": -70,
+      "kind": "point"
+    },
+    {
+      "x": -32,
+      "z": -42,
+      "kind": "point"
+    },
+    {
+      "x": 30,
+      "z": -38,
+      "kind": "point"
+    },
+    {
+      "x": 58,
+      "z": -100,
+      "kind": "point"
+    },
+    {
+      "x": -66,
+      "z": -118,
+      "kind": "point"
+    }
+  ]
+}

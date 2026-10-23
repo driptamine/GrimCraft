@@ -1,0 +1,13 @@
+{
+  "idle": "idle_1",
+  "idle_tracking": "idle_tracking",
+  "moveTracking": "move_track_sprifle",
+  "run": "move_sprifle",
+  "melee": "melee_1",
+  "firing": "idle_fire",
+  "moveFiring": "move_fire_sprifle",
+  "flagPlant1": "flag_plant_1",
+  "flagPlant2": "flag_plant_2",
+  "capture1": "capture_strategic_point_idle",
+  "capture2": "capture_strategic_point_idle_loop"
+}

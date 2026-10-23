@@ -1,0 +1,4 @@
+{
+  "settlement.glb": ["grots.glb", "boyz.glb", "bad_dok.glb", "warboss.glb"],
+  "da_boyz_hut.glb": ["boyz.glb", "boyz_shoota.glb", "stormboyz.glb", "tankbustas.glb", "nobz.glb", "flash_gitz.glb", "big_mek.glb"]
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration Plan: Unit & Building Selection Mechanics</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0f;
+            --text-color: #e0e0e0;
+            --accent-color: #50c8ff;
+            --header-color: #ffffff;
+            --code-bg: #1a1a24;
+            --border-color: rgba(80, 200, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            letter-spacing: 0.1em;
+        }
+
+        h1 { font-size: 1.8rem; text-transform: uppercase; margin-bottom: 2rem; color: var(--accent-color); }
+        h2 { font-size: 1.4rem; margin-top: 2.5rem; }
+        h3 { font-size: 1.1rem; color: var(--accent-color); }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 1rem;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+        }
+
+        code {
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+
+        strong {
+            color: var(--accent-color);
+        }
+
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--accent-color);
+        }
+
+        a:hover {
+            color: #fff;
+            border-bottom-style: solid;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 2rem 0;
+        }
+
+        .container {
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            background: rgba(5, 8, 18, 0.92);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Migration Plan: Unit & Building Selection Mechanics</h1>
+
+        <div style="margin-bottom: 2rem; padding: 1rem; border: 1px solid var(--accent-color); background: rgba(80, 200, 255, 0.05);">
+            <h3 style="margin-top: 0; border: none;">Current Status</h3>
+            <p><strong>Phases 1-5:</strong> <span style="color: #00ff88;">✔ COMPLETE</span>. Selection foundation, visual feedback, prioritized box selection, context-aware interactions, and selection-driven HUD are fully implemented in <code>js/</code>. Fixed persistent team/selection rings on workers and soldiers. Focus has shifted to final Airbnb style guide alignment (Phase 6).</p>
+        </div>
+
+        <p>This document outlines the phases for migrating and refining the selection logic from <code>js.bak/</code> and <code>grimcraft-bak.html</code> into the current <code>js/</code> codebase, following the <a href="https://github.com/airbnb/javascript">Airbnb JavaScript Style Guide</a>.</p>
+
+        <h2>Phase 1: Selection Foundation (<code>input.js</code>)</h2>
+        <ul>
+            <li><strong>Additive Selection</strong>: Refine <code>doClickSelect</code> to handle Shift-click correctly for all entity types.</li>
+            <li><strong>Strategic Point Interaction</strong>: Ensure Strategic Points are correctly picked and integrated into the selection flow (e.g., when a builder is selected).</li>
+            <li><strong>Selection Clearing</strong>: Standardize <code>clearSelection</code> and <code>clearEnemySelection</code> to reset all visual states (rings, bars) across all entity types.</li>
+        </ul>
+
+        <h2>Phase 2: Visual Feedback & Hitboxes (<code>meshes.js</code> & <code>scene.js</code>)</h2>
+        <ul>
+            <li><strong>Dynamic Hitboxes</strong>: Implement the <code>HITBOX_SIZE</code> and <code>_hitboxDebug</code> logic for soldiers to ensure reliable picking.</li>
+            <li><strong>Selection Rings</strong>:
+                <ul>
+                    <li>Standardize <code>selectionDisc</code> (torus) for units.</li>
+                    <li>Ensure <code>makeSquareSelRing</code> is used consistently for buildings and structures.</li>
+                    <li>Implement "Enemy Hover" rings (dimmer red) and "Enemy Target" rings (bright/pulsing).</li>
+                </ul>
+            </li>
+            <li><strong>Targeting Pulse</strong>: Implement the <code>_startTargetPulse</code> logic in <code>input.js</code> or a dedicated system to provide visual confirmation of focused attacks.</li>
+        </ul>
+
+        <h2>Phase 3: Multi-Entity Box Selection (<code>input.js</code>)</h2>
+        <ul>
+            <li><strong>Projection Logic</strong>: Standardize the 3D-to-2D projection helper for consistent screen-space box selection.</li>
+            <li><strong>Filter Prioritization</strong>: Implement logic to prioritize certain types (e.g., units over buildings) when box-selecting mixed groups.</li>
+            <li><strong>Entity Coverage</strong>: Ensure APCs, Jets, and Airfields are properly included in <code>doBoxSelect</code>.</li>
+        </ul>
+
+        <h2>Phase 4: Context-Aware Interactions (<code>input.js</code>)</h2>
+        <ul>
+            <li><strong>Right-Click Orders</strong>:
+                <ul>
+                    <li><strong>Units</strong>: Attack-move vs. Direct-target (soldier vs. squad).</li>
+                    <li><strong>Builders</strong>: Contextual Build/Repair/Capture based on target metadata.</li>
+                    <li><strong>APC/Jets</strong>: Specific transport and flight orders.</li>
+                </ul>
+            </li>
+            <li><strong>Rally Points</strong>: Fully integrate <code>updateRallyMarker</code> and <code>clearRallyMarker</code> for Barracks and Airfields.</li>
+        </ul>
+
+        <h2>Phase 5: Selection-Driven HUD (<code>hud.js</code>)</h2>
+        <ul>
+            <li><strong>Batch HUD Rendering</strong>: Ensure <code>renderSquadHUD</code> and <code>renderBuildingHUD</code> handle multiple selections gracefully (e.g., "3 SQUADS SELECTED").</li>
+            <li><strong>Production Sync</strong>: Display combined production queues and stats for multiple selected barracks/airfields.</li>
+            <li><strong>Action Buttons</strong>: Dynamically generate action grids based on the union of capabilities in a multi-selection.</li>
+        </ul>
+
+        <h2>Phase 6: Code Style & Quality</h2>
+        <ul>
+            <li><strong>Airbnb Refactoring</strong>:
+                <ul>
+                    <li>Use <code>const</code> and <code>let</code> exclusively.</li>
+                    <li>Replace traditional <code>for</code> loops with <code>forEach</code>, <code>map</code>, <code>filter</code>, and <code>reduce</code>.</li>
+                    <li>Use arrow functions for all callbacks and anonymous functions.</li>
+                    <li>Implement proper destructuring for component data.</li>
+                    <li>Ensure consistent trailing commas and semicolon usage.</li>
+                </ul>
+            </li>
+            <li><strong>Type Safety</strong>: Use optional chaining (<code>?.</code>) and nullish coalescing (<code>??</code>) when accessing ECS components.</li>
+        </ul>
+    </div>
+</body>
+</html>

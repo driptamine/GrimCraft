@@ -1,0 +1,90 @@
+{
+  "map": "6p_alvarus",
+  "source": "6p_alvarus.sgb FOLDENTY/DATAENTI starting_position.rgd; local->world via root yaw90+flipH (world x=-lz, z=-lx), verified exact against 18 strategic_point_flag + 4 relic_struct",
+  "positions": [
+    {
+      "slot": 0,
+      "team": "blue",
+      "faction": "orks",
+      "sgbId": 1008,
+      "sgb": {
+        "x": 93.69,
+        "y": 10,
+        "z": 105.69
+      },
+      "x": -105.69,
+      "z": -93.69,
+      "layoutDelta": 13.37
+    },
+    {
+      "slot": 1,
+      "team": "blue",
+      "faction": "ig",
+      "sgbId": 1007,
+      "sgb": {
+        "x": 102.98,
+        "y": 10,
+        "z": -14.76
+      },
+      "x": 14.76,
+      "z": -102.98,
+      "layoutDelta": 21.15
+    },
+    {
+      "slot": 2,
+      "team": "blue",
+      "faction": "necrons",
+      "sgbId": 1006,
+      "sgb": {
+        "x": 101.08,
+        "y": 10,
+        "z": -110.94
+      },
+      "x": 110.94,
+      "z": -101.08,
+      "layoutDelta": 10.12
+    },
+    {
+      "slot": 3,
+      "team": "red",
+      "faction": "chaos",
+      "sgbId": 1009,
+      "sgb": {
+        "x": -111.93,
+        "y": 8,
+        "z": 109.79
+      },
+      "x": -109.79,
+      "z": 111.93,
+      "layoutDelta": 2.46
+    },
+    {
+      "slot": 4,
+      "team": "red",
+      "faction": "space marines",
+      "sgbId": 1010,
+      "sgb": {
+        "x": -114.06,
+        "y": 8,
+        "z": 5.38
+      },
+      "x": -5.38,
+      "z": 114.06,
+      "layoutDelta": 3.99
+    },
+    {
+      "slot": 5,
+      "team": "red",
+      "faction": "eldar",
+      "sgbId": 1011,
+      "sgb": {
+        "x": -110.37,
+        "y": 8.7,
+        "z": -109.47
+      },
+      "x": 109.47,
+      "z": 110.37,
+      "layoutDelta": 6.61
+    }
+  ]
+}

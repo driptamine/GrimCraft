@@ -1,0 +1,71 @@
+{
+  "advanced_warp_generator": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "aspect_portal": {
+    "phases": {
+      "phase_1": "warp_in_1",
+      "phase_2": "warp_in_2"
+    }
+  },
+  "land_mine": {
+    "phases": {}
+  },
+  "listening_post": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD"
+    }
+  },
+  "soul_shrine": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "support_platform": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "BUILD_1"
+    }
+  },
+  "support_portal": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  },
+  "support_portal_ulthwe": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_1"
+    }
+  },
+  "warp_generator": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "warp_in_1",
+      "phase_2": "warp_in_2"
+    }
+  },
+  "webway_assembly": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "warp_in_1",
+      "phase_2": "warp_in_2"
+    }
+  },
+  "webway_gate": {
+    "phases": {
+      "placement": "BUILD_PLACEMENT",
+      "phase_1": "WARP_IN_1",
+      "phase_2": "WARP_IN_2"
+    }
+  }
+}
