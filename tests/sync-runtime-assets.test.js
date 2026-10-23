@@ -151,6 +151,14 @@ describe('sync-runtime-assets', () => {
     assert.ok(fs.existsSync(path.join(tmp, 'out/models/u.glb')));
   });
 
+  it('vite build reads the R2 base from process env for CI', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'vite.config.js'), 'utf8');
+    assert.ok(
+      src.includes('process.env.R2_ENDPOINT_URL || env.R2_ENDPOINT_URL'),
+      'CI secrets (process env) win over the gitignored .env file',
+    );
+  });
+
   it('vite build skips models unless GRIM_SYNC_MODELS=1, maps always sync', () => {
     const src = fs.readFileSync(path.join(ROOT, 'vite.config.js'), 'utf8');
     const plugin = src.slice(src.indexOf("name: 'sync-runtime-assets'"), src.indexOf('define:'));
