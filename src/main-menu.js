@@ -112,6 +112,8 @@ function renderMenuList() {
   list.appendChild(qualityBtn);
 }
 
+export const creditNames = ['Driptamine', 'Alexander Morgun'];
+
 function renderCredits() {
   const list = document.getElementById('main-menu-list');
   if (!list) {
@@ -122,7 +124,7 @@ function renderCredits() {
   title.className = 'main-menu-stub-title';
   title.textContent = 'Credits';
   list.appendChild(title);
-  for (const name of ['Driptamine', 'Alexander Morgun']) {
+  for (const name of creditNames) {
     const line = document.createElement('div');
     line.className = 'main-menu-stub-note';
     line.textContent = name;
