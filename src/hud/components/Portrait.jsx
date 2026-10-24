@@ -5,10 +5,11 @@ import { getViewKind, getAliveGroups, computeSquadData, getPortraitFocusPosition
 import {
   PortraitPanel, PortraitIconDiv, PortraitImg, PortraitName, PortraitHpBar, PortraitHpFill, PortraitHpLabel,
 } from '../primitives.jsx';
+import { assetUrl } from '../../assets.js';
 
 function portraitIconEl(icon) {
   if (icon && icon.includes('/')) {
-    return <PortraitImg src={icon} alt="" />;
+    return <PortraitImg src={assetUrl(icon)} alt="" />;
   }
   return icon || '❓';
 }

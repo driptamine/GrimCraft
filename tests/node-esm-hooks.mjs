@@ -31,14 +31,17 @@ export async function load(url, context, next) {
   }
   if (url.endsWith('/src/assets.js')) {
     // src/assets.js reads import.meta.env (Vite-only). Serve the real source
-    // with just that expression neutralized so modelUrl() is identity here.
+    // with just those expressions neutralized so modelUrl()/assetUrl() are
+    // identity here.
     const source = await readFile(new URL(url), 'utf8');
-    if (!source.includes('import.meta.env.VITE_MODEL_BASE')) {
+    if (!source.includes('import.meta.env.VITE_MODEL_BASE') || !source.includes('import.meta.env.VITE_ASSET_BASE')) {
       throw new Error('node-esm-hooks: src/assets.js drifted, update the shim');
     }
     return {
       format: 'module',
-      source: source.replace('import.meta.env.VITE_MODEL_BASE', 'undefined'),
+      source: source
+        .replace('import.meta.env.VITE_MODEL_BASE', 'undefined')
+        .replace('import.meta.env.VITE_ASSET_BASE', 'undefined'),
       shortCircuit: true,
     };
   }

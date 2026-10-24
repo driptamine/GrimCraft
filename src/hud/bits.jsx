@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActionBtn, AmmoActionBtn, StatCell, TooltipPop } from './primitives.jsx';
+import { assetUrl } from '../assets.js';
 
 /**
  * Renders an icon that is either an emoji glyph or an image path.
@@ -7,7 +8,7 @@ import { ActionBtn, AmmoActionBtn, StatCell, TooltipPop } from './primitives.jsx
 export function Icon({ icon, fallback = '❓' }) {
   const src = icon || fallback;
   if (typeof src === 'string' && src.includes('/')) {
-    return <img src={src} className="action-icon" alt="" style={{ width: 36, height: 36, objectFit: 'contain', marginBottom: 2 }} />;
+    return <img src={assetUrl(src)} className="action-icon" alt="" style={{ width: 36, height: 36, objectFit: 'contain', marginBottom: 2 }} />;
   }
   return <span className="bi">{src}</span>;
 }
@@ -18,7 +19,7 @@ export const POWER_ICON = 'assets/Resource_power.gif';
 export function CostGlyph({ req }) {
   return (
     <img
-      src={req ? REQ_ICON : POWER_ICON}
+      src={assetUrl(req ? REQ_ICON : POWER_ICON)}
       alt={req ? 'req' : 'power'}
       style={{ height: 10, verticalAlign: -1, marginLeft: 2 }}
     />
@@ -181,7 +182,7 @@ export function AmmoButton({
  */
 export function StatRow({ icon, label, value, cls = '' }) {
   const glyph = typeof icon === 'string' && (icon.includes('/') || icon.startsWith('data:'))
-    ? <img src={icon} alt="" style={{ width: 32, height: 32, objectFit: 'contain', display: 'block' }} />
+    ? <img src={assetUrl(icon)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', display: 'block' }} />
     : icon;
   return (
     <StatCell className={cls}>

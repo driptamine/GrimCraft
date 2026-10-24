@@ -8,6 +8,7 @@ import {
   TopBarDiv, TbSection, TbStat, TbReq, TbSep, TbTitle, TerrainSelect, ResetBtn, InspectorBtn,
   ImmortalBtn,
 } from '../primitives.jsx';
+import { assetUrl } from '../../assets.js';
 
 function TeamcolourSelect({ faction, short }) {
   const scheme = getFactionTeamcolourScheme(faction);
@@ -55,9 +56,9 @@ export function TopBar() {
           {backendUi.label}
         </InspectorBtn>
         <TbSep />
-        <TbReq title="REQUISITION — primary resource"><img src="assets/Resource_requisition.gif" alt="req" /> <span className="val">{requisition}/{getRequisitionRate(world)}</span></TbReq>
+        <TbReq title="REQUISITION — primary resource"><img src={assetUrl('assets/Resource_requisition.gif')} alt="req" /> <span className="val">{requisition}/{getRequisitionRate(world)}</span></TbReq>
         <TbSep />
-        <TbStat title="ENERGY — power for research"><img src="assets/Resource_power.gif" alt="energy" /><span className="val">{energy}/{getPowerRate(world)}</span></TbStat>
+        <TbStat title="ENERGY — power for research"><img src={assetUrl('assets/Resource_power.gif')} alt="energy" /><span className="val">{energy}/{getPowerRate(world)}</span></TbStat>
         <TbStat title="BUILDINGS — structures owned">🏠<span className="val">{bldCount}</span></TbStat>
         <TbStat title="SQUADS — infantry squads">⚔<span className="val">{squadCount}</span></TbStat>
         <TbStat title="BUILDERS — construction engineers">🔨<span className="val">{builderCount}</span></TbStat>

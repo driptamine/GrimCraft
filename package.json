@@ -8,6 +8,7 @@
     "build": "NODE_OPTIONS=--max-old-space-size=4096 vite build",
     "sync-assets": "node scripts/sync-runtime-assets.mjs",
     "models:r2:sync": "bash scripts/upload-models-r2.sh",
+    "assets:r2:sync": "bash scripts/upload-assets-r2.sh",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js"
   },

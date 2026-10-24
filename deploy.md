@@ -57,6 +57,9 @@ npm run build
 ```
 
 Production builds use those variables to rewrite model URLs through `VITE_MODEL_BASE`.
+UI images (`assets/icons/`, `assets/command_icons/`, resource glyphs) are not
+bundled by vite, so the same endpoint also serves them via `VITE_ASSET_BASE`
+(`R2_ASSET_BASE` overrides when icons live elsewhere).
 
 Upload the models with the S3-compatible API — the Cloudflare dashboard caps
 manual uploads at 100 files, and `models/` holds ~1400:
@@ -69,6 +72,12 @@ Dry-run first with `npm run models:r2:sync -- --dryrun`. The script needs
 `R2_BUCKET_NAME`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`
 (see `.env.example`); it skips `*.tga`/`*.zip` sidecars, mirroring the local
 sync rules.
+
+Upload the UI assets the same way (`assets/` holds ~1100 files):
+
+```bash
+npm run assets:r2:sync
+```
 
 ### B. Fully self-contained build
 

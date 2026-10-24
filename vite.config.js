@@ -16,6 +16,12 @@ export default defineConfig(({ mode }) => {
     mode === 'production' && r2Endpoint
       ? (r2Path ? `${r2Endpoint}/${r2Path}` : r2Endpoint)
       : '';
+  // UI assets default to the same R2 bucket (under the `assets/` prefix);
+  // R2_ASSET_BASE overrides when icons live elsewhere.
+  const assetBase =
+    mode === 'production'
+      ? (process.env.R2_ASSET_BASE || env.R2_ASSET_BASE || r2Endpoint || '')
+      : (process.env.R2_ASSET_BASE || env.R2_ASSET_BASE || '');
   return {
     plugins: [
       react(),
@@ -41,6 +47,7 @@ export default defineConfig(({ mode }) => {
     ],
     define: {
       'import.meta.env.VITE_MODEL_BASE': JSON.stringify(modelBase),
+      'import.meta.env.VITE_ASSET_BASE': JSON.stringify(assetBase),
     },
     server: {
       port: 3000,
