@@ -96,6 +96,10 @@ describe('r2 download progress', () => {
     assert.ok(mp.includes('probeR2Cache('), 'START BATTLE preflights the cache');
     assert.ok(mp.includes('collectBootR2Urls('), 'preflight knows the expected urls');
     assert.ok(mp.includes('Already downloaded'), 'cached state is shown instead of the bar');
+    assert.ok(mp.includes('ongoing /'), 'bar shows ongoing files with a stable total');
+    assert.ok(mp.includes('_r2ExpectedTotal'), 'all-files number comes from the preflight manifest');
+    assert.ok(mp.includes('min(640px,92vw)'), 'bar is wide');
+    assert.ok(mp.includes('transition:width'), 'fill animates smoothly instead of jumping');
   });
 
   it('lists files in order with the current download numbered', () => {

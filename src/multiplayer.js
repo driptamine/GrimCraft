@@ -771,6 +771,13 @@ let _r2Unsubscribe = null;
 // Peak fill percent this session: the bar is one continuous line and must
 // never jump backwards when a new file registers its total mid-download.
 let _r2Peak = 0;
+// Stable denominator for "done / all": the manifest size known from the
+// preflight, so the "all" number never increments mid-download.
+let _r2ExpectedTotal = 0;
+// Paint throttle: progress events fire dozens of times per second; the DOM
+// updates at most every 150ms (or on percent change) to stop flicker.
+let _r2LastPaint = 0;
+let _r2LastPct = -1;
 // Set when the preflight finds every expected file already in Cache Storage:
 // the download bar stays hidden, only the "already downloaded" note shows.
 let _r2AllCached = false;
@@ -791,7 +798,7 @@ function _ensureR2Bar() {
   bar.id = 'r2-progress';
   bar.style.cssText = [
     'display:none', 'position:fixed', 'left:50%', 'bottom:56px',
-    'transform:translateX(-50%)', 'width:min(420px,86vw)', 'z-index:10001',
+    'transform:translateX(-50%)', 'width:min(640px,92vw)', 'z-index:10001',
     'pointer-events:none', 'font-family:Courier New,monospace',
     'background:rgba(5,8,18,0.88)', 'border:1px solid rgba(80,200,255,0.4)',
     'padding:8px 12px 10px',
@@ -803,7 +810,7 @@ function _ensureR2Bar() {
   track.style.cssText = 'height:10px;background:rgba(80,200,255,0.08);border:1px solid rgba(80,200,255,0.35)';
   const fill = document.createElement('div');
   fill.id = 'r2-progress-fill';
-  fill.style.cssText = 'height:100%;width:0%;background:#50c8ff';
+  fill.style.cssText = 'height:100%;width:0%;background:#50c8ff;transition:width .2s linear';
   track.appendChild(fill);
   const label = document.createElement('div');
   label.id = 'r2-progress-label';
@@ -847,16 +854,29 @@ function _renderR2Bar(snapshot) {
     bar.style.display = 'none';
     return;
   }
+  // Stable "all files" number: the manifest size from the preflight, not the
+  // growing count of registered downloads.
+  const all = _r2ExpectedTotal > 0 ? _r2ExpectedTotal : snapshot.totalFiles;
   bar.style.display = 'block';
   _r2Peak = Math.max(_r2Peak, snapshot.percent);
+  const now = typeof Date !== 'undefined' && Date.now ? Date.now() : 0;
+  const settled = snapshot.complete || snapshot.percent !== _r2LastPct;
+  if (!settled && now - _r2LastPaint < 150) {
+    return;
+  }
+  _r2LastPaint = now;
+  _r2LastPct = snapshot.percent;
   const total = snapshot.totalBytes > 0 ? _formatR2MB(snapshot.totalBytes) : '…';
   if (fill) {
     fill.style.width = `${_r2Peak}%`;
   }
   if (text) {
     const failed = snapshot.failedFiles > 0 ? ` · ⚠ ${snapshot.failedFiles} failed` : '';
-    const current = snapshot.current ? ` · file ${snapshot.current.index}/${snapshot.current.total} ${snapshot.current.name}` : '';
-    text.textContent = `R2 — ${_formatR2MB(snapshot.loadedBytes)}/${total} · ${snapshot.doneFiles}/${snapshot.totalFiles} files${current}${failed}`;
+    const ongoing = snapshot.totalFiles - snapshot.doneFiles;
+    const current = snapshot.current
+      ? ` · file ${snapshot.current.index}/${all} ${snapshot.current.name}`
+      : '';
+    text.textContent = `R2 — ${_formatR2MB(snapshot.loadedBytes)}/${total} · ${ongoing} ongoing / ${all} files${current}${failed}`;
   }
   if (snapshot.complete) {
     setTimeout(() => {
@@ -903,9 +923,11 @@ function _runR2Preflight() {
   }
   probeR2Cache(urls).then((result) => {
     if (!result.checked || result.total === 0) {
+      _r2ExpectedTotal = 0;
       _setR2CacheLine('');
       return;
     }
+    _r2ExpectedTotal = result.total;
     if (result.missing.length === 0) {
       _r2AllCached = true;
       const bar = _ensureR2Bar();
@@ -958,6 +980,9 @@ function _setLoadingUI(loading) {
   if (loading) {
     resetR2Progress();
     _r2Peak = 0;
+    _r2ExpectedTotal = 0;
+    _r2LastPaint = 0;
+    _r2LastPct = -1;
     _r2AllCached = false;
     _ensureR2Bar();
     if (_r2Unsubscribe) {
