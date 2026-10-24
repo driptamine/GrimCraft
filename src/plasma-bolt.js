@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { loadTexture, mkGroup } from './three-helpers.js';
 import { _instantiateFromContainer } from './model-upload.js';
+import { modelUrl } from './assets.js';
 
 export const PLASMA_BOLT_PATH = 'models/ig/projectiles/plasma_bolt.glb';
 export const PLASMA_FX_DIR = 'models/ig/projectiles/plasma-fx';
@@ -217,9 +218,11 @@ export function plasmaFinalFxTextures() {
     return null;
   }
   if (!_finalFx.beam) {
-    _finalFx.beam = loadTexture(`${PLASMA_FX_DIR}/plasma_beam_1.dds`);
-    _finalFx.flash = loadTexture(`${PLASMA_FX_DIR}/plasma_flash_1.dds`);
-    _finalFx.muzzle = [1, 2, 3].map((i) => loadTexture(`${PLASMA_FX_DIR}/plasma_muzzle_${i}.dds`));
+    // Route through modelUrl: in production these live on R2, and the bar
+    // tracks them like every other download.
+    _finalFx.beam = loadTexture(modelUrl(`${PLASMA_FX_DIR}/plasma_beam_1.dds`));
+    _finalFx.flash = loadTexture(modelUrl(`${PLASMA_FX_DIR}/plasma_flash_1.dds`));
+    _finalFx.muzzle = [1, 2, 3].map((i) => loadTexture(modelUrl(`${PLASMA_FX_DIR}/plasma_muzzle_${i}.dds`)));
   }
   return _finalFx;
 }

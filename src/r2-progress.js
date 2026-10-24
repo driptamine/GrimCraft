@@ -68,8 +68,8 @@ export function r2ProgressSnapshot() {
   let doneFiles = 0;
   let failedFiles = 0;
   let unknownTotals = 0;
-  const totalFiles = _files.size;
-  for (const file of _files.values()) {
+  const files = [];
+  for (const [url, file] of _files) {
     loadedBytes += file.loaded;
     if (file.total != null) {
       totalBytes += file.total;
@@ -83,10 +83,13 @@ export function r2ProgressSnapshot() {
     if (file.failed) {
       failedFiles += 1;
     }
+    files.push({ url, name: _baseName(url), loaded: file.loaded, total: file.total, done: file.done, failed: file.failed });
   }
+  const totalFiles = files.length;
   const percent = totalBytes > 0
     ? Math.min(100, Math.round((knownBytes / totalBytes) * 100))
     : (totalFiles > 0 && doneFiles === totalFiles ? 100 : 0);
+  const activeIndex = files.findIndex((file) => !file.done);
   return {
     loadedBytes,
     totalBytes,
@@ -96,5 +99,52 @@ export function r2ProgressSnapshot() {
     failedFiles,
     percent,
     complete: totalFiles > 0 && doneFiles === totalFiles,
+    files,
+    current: activeIndex === -1
+      ? null
+      : { index: activeIndex + 1, total: totalFiles, name: files[activeIndex].name, url: files[activeIndex].url },
   };
+}
+
+function _baseName(url) {
+  try {
+    return decodeURIComponent(String(url).split('?')[0].split('/').pop() || String(url));
+  } catch (_) {
+    return String(url);
+  }
+}
+
+// Preflight: which of the expected R2 URLs are already in Cache Storage
+// (downloaded on an earlier visit) and which still need the network. Lets
+// the START BATTLE UI show "already downloaded" and skip the download bar
+// entirely when nothing is missing. Never throws; without a Cache API
+// (node, old browsers) reports { checked: false }.
+export async function probeR2Cache(urls) {
+  const list = [...new Set((urls || []).map((url) => String(url || '')).filter(Boolean))];
+  if (typeof caches === 'undefined' || !caches || typeof caches.match !== 'function') {
+    return { checked: false, total: list.length, cached: 0, missing: list, cacheName: null };
+  }
+  let cacheName = null;
+  try {
+    const keys = await caches.keys();
+    cacheName = keys.find((key) => key.indexOf('grimcraft-models') === 0) || null;
+  } catch (_) {
+    return { checked: false, total: list.length, cached: 0, missing: list, cacheName: null };
+  }
+  let cached = 0;
+  const missing = [];
+  for (const url of list) {
+    try {
+      // Same lookup the service worker uses: any cache holding the URL counts.
+      const hit = await caches.match(url);
+      if (hit) {
+        cached += 1;
+      } else {
+        missing.push(url);
+      }
+    } catch (_) {
+      missing.push(url);
+    }
+  }
+  return { checked: true, total: list.length, cached, missing, cacheName };
 }

@@ -92,7 +92,59 @@ describe('r2 download progress', () => {
     assert.ok(mp.includes('subscribeR2Progress(_renderR2Bar)'), 'loading UI subscribes to bytes');
     assert.ok(mp.includes("getElementById('r2-progress')"), 'standalone R2 overlay exists');
     assert.ok(mp.includes('R2 DOWNLOAD'), 'overlay is titled');
-    assert.ok(mp.includes('files${failed}'), 'bar renders files and failures');
+    assert.ok(mp.includes("getElementById('r2-progress-path')"), 'overlay shows the cache path');
+    assert.ok(mp.includes('probeR2Cache('), 'START BATTLE preflights the cache');
+    assert.ok(mp.includes('collectBootR2Urls('), 'preflight knows the expected urls');
+    assert.ok(mp.includes('Already downloaded'), 'cached state is shown instead of the bar');
+  });
+
+  it('lists files in order with the current download numbered', () => {
+    resetR2Progress();
+    reportR2Progress('https://r2/b.glb', { loaded: 10, total: 100 });
+    reportR2Progress('https://r2/a.glb', { loaded: 100, total: 100, done: true });
+    const snap = r2ProgressSnapshot();
+    assert.deepEqual(snap.files.map((f) => f.name), ['b.glb', 'a.glb']);
+    assert.deepEqual(snap.current, { index: 1, total: 2, name: 'b.glb', url: 'https://r2/b.glb' });
+    reportR2Progress('https://r2/b.glb', { loaded: 100, total: 100, done: true });
+    assert.equal(r2ProgressSnapshot().current, null);
+  });
+
+  it('probes Cache Storage for already-downloaded urls', async () => {
+    const origCaches = globalThis.caches;
+    globalThis.caches = {
+      keys: async () => ['grimcraft-models-v1', 'grimcraft-app-v1'],
+      match: async (url) => (String(url).includes('cached') ? { ok: true } : null),
+    };
+    try {
+      const { probeR2Cache } = await import('../src/r2-progress.js');
+      const result = await probeR2Cache(['https://r2/cached-a.glb', 'https://r2/missing-b.glb']);
+      assert.equal(result.checked, true);
+      assert.equal(result.cached, 1);
+      assert.deepEqual(result.missing, ['https://r2/missing-b.glb']);
+      assert.equal(result.cacheName, 'grimcraft-models-v1');
+      assert.equal((await probeR2Cache([])).total, 0);
+    } finally {
+      if (origCaches === undefined) {
+        delete globalThis.caches;
+      } else {
+        globalThis.caches = origCaches;
+      }
+    }
+  });
+
+  it('reports unchecked without a Cache API', async () => {
+    const origCaches = globalThis.caches;
+    try {
+      delete globalThis.caches;
+      const { probeR2Cache } = await import('../src/r2-progress.js');
+      const result = await probeR2Cache(['https://r2/a.glb']);
+      assert.equal(result.checked, false);
+      assert.deepEqual(result.missing, ['https://r2/a.glb']);
+    } finally {
+      if (origCaches !== undefined) {
+        globalThis.caches = origCaches;
+      }
+    }
   });
 
   it('ignores empty urls and resets everything', () => {

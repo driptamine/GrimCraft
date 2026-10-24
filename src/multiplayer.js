@@ -18,7 +18,12 @@ import { issueRightClick, pickMesh, raycastGround } from './input.js';
 import { disposeObj } from './three-helpers.js';
 import { listBuiltinMaps, selectMap, previewState, entryLabel, skirmishMapCards, defaultSkirmishMap } from './maps-menu.js';
 import { LOBBIES, capacityLabel, isFull, hasPlayers, createLobby } from './lobbies.js';
-import { resetR2Progress, subscribeR2Progress } from './r2-progress.js';
+import { resetR2Progress, subscribeR2Progress, probeR2Cache } from './r2-progress.js';
+import { collectBootR2Urls } from './r2-manifest.js';
+import { ARENA_POSITION_FACTIONS } from './factions.js';
+import { SP_MODEL_PATHS } from './meshes/points.js';
+import { PLASMA_BOLT_PATH, PLASMA_FX_DIR } from './plasma-bolt.js';
+import { LASGUN_MODEL_PATH } from './camera-fps.js';
 
 export let SERVER_URL = 'https://127.0.0.1:4433/grimcraft';
 export let SERVER_CERT_HASH = '4c0409537cdf2905891d85c70369531614f138c923008c092ff72e31bc46fc25';
@@ -760,10 +765,17 @@ function _setConnectOverlay(visible) {
 }
 
 let _r2Unsubscribe = null;
+// Peak fill percent this session: the bar is one continuous line and must
+// never jump backwards when a new file registers its total mid-download.
+let _r2Peak = 0;
+// Set when the preflight finds every expected file already in Cache Storage:
+// the download bar stays hidden, only the "already downloaded" note shows.
+let _r2AllCached = false;
 
 // Standalone R2 download bar: a fixed overlay independent of the LOADING
-// panel, so R2 megabytes stay visible even when the boot bar flips between
-// model-count labels. Created lazily on first START BATTLE.
+// panel — one continuous line for the whole download queue, with per-file
+// numbering (file N of M) instead of one flashing bar per file. Created
+// lazily on first START BATTLE.
 function _ensureR2Bar() {
   if (typeof document === 'undefined' || !document.getElementById) {
     return null;
@@ -793,9 +805,13 @@ function _ensureR2Bar() {
   const label = document.createElement('div');
   label.id = 'r2-progress-label';
   label.style.cssText = 'margin-top:6px;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,0.75);min-height:13px';
+  const cacheLine = document.createElement('div');
+  cacheLine.id = 'r2-progress-path';
+  cacheLine.style.cssText = 'margin-top:2px;font-size:8px;letter-spacing:.08em;color:rgba(80,200,255,0.6);min-height:11px';
   bar.appendChild(title);
   bar.appendChild(track);
   bar.appendChild(label);
+  bar.appendChild(cacheLine);
   document.body.appendChild(bar);
   return bar;
 }
@@ -804,7 +820,20 @@ function _formatR2MB(bytes) {
   return `${(Math.max(0, bytes) / 1048576).toFixed(1)} MB`;
 }
 
+function _setR2CacheLine(text) {
+  if (typeof document === 'undefined' || !document.getElementById) {
+    return;
+  }
+  const line = document.getElementById('r2-progress-path');
+  if (line) {
+    line.textContent = text;
+  }
+}
+
 function _renderR2Bar(snapshot) {
+  if (_r2AllCached) {
+    return;
+  }
   const bar = _ensureR2Bar();
   if (!bar) {
     return;
@@ -816,24 +845,89 @@ function _renderR2Bar(snapshot) {
     return;
   }
   bar.style.display = 'block';
+  _r2Peak = Math.max(_r2Peak, snapshot.percent);
   const total = snapshot.totalBytes > 0 ? _formatR2MB(snapshot.totalBytes) : '…';
   if (fill) {
-    fill.style.width = `${snapshot.percent}%`;
+    fill.style.width = `${_r2Peak}%`;
   }
   if (text) {
     const failed = snapshot.failedFiles > 0 ? ` · ⚠ ${snapshot.failedFiles} failed` : '';
-    text.textContent = `${_formatR2MB(snapshot.loadedBytes)}/${total} · ${snapshot.doneFiles}/${snapshot.totalFiles} files${failed}`;
+    const current = snapshot.current ? ` · file ${snapshot.current.index}/${snapshot.current.total} ${snapshot.current.name}` : '';
+    text.textContent = `R2 — ${_formatR2MB(snapshot.loadedBytes)}/${total} · ${snapshot.doneFiles}/${snapshot.totalFiles} files${current}${failed}`;
   }
   if (snapshot.complete) {
     setTimeout(() => {
       const el = typeof document !== 'undefined' && document.getElementById
         ? document.getElementById('r2-progress')
         : null;
-      if (el && snapshot.complete) {
+      if (el && snapshot.complete && !_r2AllCached) {
         el.style.display = 'none';
       }
     }, 1500);
   }
+}
+
+// Where the R2 bytes live on this device, for the "already downloaded" note.
+function _r2CacheLabel(cacheName) {
+  return `Cache Storage › ${cacheName || 'browser cache'}`;
+}
+
+function _runR2Preflight() {
+  if (typeof document === 'undefined' || !document.getElementById) {
+    return;
+  }
+  const text = document.getElementById('r2-progress-label');
+  if (text) {
+    text.textContent = 'Checking downloaded files…';
+  }
+  _setR2CacheLine('');
+  let urls = [];
+  try {
+    urls = collectBootR2Urls(ARENA_POSITION_FACTIONS, [
+      SP_MODEL_PATHS.point,
+      SP_MODEL_PATHS.relic,
+      SP_MODEL_PATHS.objective,
+      PLASMA_BOLT_PATH,
+      `${PLASMA_FX_DIR}/plasma_beam_1.dds`,
+      `${PLASMA_FX_DIR}/plasma_flash_1.dds`,
+      `${PLASMA_FX_DIR}/plasma_muzzle_1.dds`,
+      `${PLASMA_FX_DIR}/plasma_muzzle_2.dds`,
+      `${PLASMA_FX_DIR}/plasma_muzzle_3.dds`,
+      LASGUN_MODEL_PATH,
+    ]);
+  } catch (_) {
+    urls = [];
+  }
+  probeR2Cache(urls).then((result) => {
+    if (!result.checked || result.total === 0) {
+      _setR2CacheLine('');
+      return;
+    }
+    if (result.missing.length === 0) {
+      _r2AllCached = true;
+      const bar = _ensureR2Bar();
+      if (bar) {
+        bar.style.display = 'block';
+      }
+      const label = document.getElementById('r2-progress-label');
+      if (label) {
+        label.textContent = `✔ Already downloaded — no download needed`;
+      }
+      _setR2CacheLine(`${_r2CacheLabel(result.cacheName)} · ${result.cached}/${result.total} files on this device`);
+      setTimeout(() => {
+        if (_r2AllCached) {
+          const el = document.getElementById('r2-progress');
+          if (el) {
+            el.style.display = 'none';
+          }
+        }
+      }, 2200);
+      return;
+    }
+    _setR2CacheLine(`${_r2CacheLabel(result.cacheName)} · ✔ ${result.cached}/${result.total} already here`);
+  }).catch(() => {
+    _setR2CacheLine('');
+  });
 }
 
 function _setLoadingUI(loading) {
@@ -847,17 +941,21 @@ function _setLoadingUI(loading) {
   }
   if (loading) {
     resetR2Progress();
+    _r2Peak = 0;
+    _r2AllCached = false;
     _ensureR2Bar();
     if (_r2Unsubscribe) {
       _r2Unsubscribe();
     }
     _r2Unsubscribe = subscribeR2Progress(_renderR2Bar);
     _updateLoadBar({ loaded: 0, total: 0, label: '' });
+    _runR2Preflight();
   } else {
     if (_r2Unsubscribe) {
       _r2Unsubscribe();
       _r2Unsubscribe = null;
     }
+    _r2AllCached = false;
     const bar = typeof document !== 'undefined' && document.getElementById
       ? document.getElementById('r2-progress')
       : null;
