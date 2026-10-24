@@ -50,6 +50,10 @@ export function hideMainMenu() {
 
 function _onItemClick(item) {
   const screen = screenFor(item.id);
+  if (item.id === 'credits') {
+    renderCredits();
+    return;
+  }
   if (screen === 'stub') {
     renderStub(item.label);
     return;
@@ -106,6 +110,30 @@ function renderMenuList() {
     });
   });
   list.appendChild(qualityBtn);
+}
+
+function renderCredits() {
+  const list = document.getElementById('main-menu-list');
+  if (!list) {
+    return;
+  }
+  list.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'main-menu-stub-title';
+  title.textContent = 'Credits';
+  list.appendChild(title);
+  for (const name of ['Driptamine', 'Alexander Morgun']) {
+    const line = document.createElement('div');
+    line.className = 'main-menu-stub-note';
+    line.textContent = name;
+    list.appendChild(line);
+  }
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'main-menu-btn';
+  back.textContent = '‹ BACK';
+  back.addEventListener('click', renderMenuList);
+  list.appendChild(back);
 }
 
 function renderStub(label) {
