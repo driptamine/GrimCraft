@@ -24,6 +24,7 @@ import { ARENA_POSITION_FACTIONS } from './factions.js';
 import { SP_MODEL_PATHS } from './meshes/points.js';
 import { PLASMA_BOLT_PATH, PLASMA_FX_DIR } from './plasma-bolt.js';
 import { LASGUN_MODEL_PATH } from './camera-fps.js';
+import { createBootTimer, formatBootTime } from './boot-timer.js';
 
 export let SERVER_URL = 'https://127.0.0.1:4433/grimcraft';
 export let SERVER_CERT_HASH = '4c0409537cdf2905891d85c70369531614f138c923008c092ff72e31bc46fc25';
@@ -444,6 +445,7 @@ export function _injectConnectUI() {
     '<div class="webTransport-load-title">LOADING</div>',
     '<div class="webTransport-load-track"><div id="webTransport-load-fill" class="webTransport-load-fill"></div></div>',
     '<div id="webTransport-load-label" class="webTransport-load-label"></div>',
+    '<div id="webTransport-load-timer" class="webTransport-load-timer">⏱ 0.0s</div>',
     '</div>',
     '</div>',
   ].join('');
@@ -467,6 +469,7 @@ export function _injectConnectUI() {
     '.webTransport-load-track { height:10px; background:rgba(80,200,255,0.08); border:1px solid rgba(80,200,255,0.35); }',
     '.webTransport-load-fill { height:100%; width:0%; background:#50c8ff; transition:width .15s; }',
     '.webTransport-load-label { margin-top:6px; font-size:9px; letter-spacing:.1em; color:rgba(255,255,255,0.55); min-height:13px; }',
+    '.webTransport-load-timer { margin-top:4px; font-size:10px; letter-spacing:.15em; color:#ffc850; min-height:14px; }',
     '.webTransport-panel.webTransport-panel-skirmish { max-width:900px; }',
     '.webTransport-map-label { font-size:9px; letter-spacing:.2em; color:#50c8ff; opacity:.7; margin:2px 0 8px; }',
     '.webTransport-map-body { display:flex; gap:10px; align-items:flex-start; margin-bottom:14px; }',
@@ -930,6 +933,19 @@ function _runR2Preflight() {
   });
 }
 
+let _bootTimer = null;
+let _bootTimerInterval = null;
+
+function _tickBootTimer() {
+  if (typeof document === 'undefined' || !document.getElementById) {
+    return;
+  }
+  const el = document.getElementById('webTransport-load-timer');
+  if (el && _bootTimer) {
+    el.textContent = `⏱ ${formatBootTime(_bootTimer.elapsedMs())}`;
+  }
+}
+
 function _setLoadingUI(loading) {
   const form = document.getElementById('webTransport-connect-form');
   const wrap = document.getElementById('webTransport-load-wrap');
@@ -950,7 +966,31 @@ function _setLoadingUI(loading) {
     _r2Unsubscribe = subscribeR2Progress(_renderR2Bar);
     _updateLoadBar({ loaded: 0, total: 0, label: '' });
     _runR2Preflight();
+    _bootTimer = createBootTimer();
+    _bootTimer.start();
+    _tickBootTimer();
+    if (typeof setInterval !== 'undefined') {
+      if (_bootTimerInterval) {
+        clearInterval(_bootTimerInterval);
+      }
+      _bootTimerInterval = setInterval(_tickBootTimer, 100);
+    }
   } else {
+    if (_bootTimerInterval) {
+      clearInterval(_bootTimerInterval);
+      _bootTimerInterval = null;
+    }
+    if (_bootTimer) {
+      const totalMs = _bootTimer.stop();
+      _bootTimer = null;
+      if (typeof window !== 'undefined') {
+        window._lastBootMs = totalMs;
+      }
+      if (typeof console !== 'undefined' && console.log) {
+        console.log(`[BOOT] game loaded in ${formatBootTime(totalMs)}`);
+      }
+      _updateNetHUD();
+    }
     if (_r2Unsubscribe) {
       _r2Unsubscribe();
       _r2Unsubscribe = null;
@@ -990,7 +1030,9 @@ function _updateNetHUD() {
     disconnected: '⚡ OFFLINE',
   };
   element.style.color = colors[_netStatus] || '#888';
-  element.textContent = labels[_netStatus] || '⚡ OFFLINE';
+  const lastBootMs = typeof window !== 'undefined' ? window._lastBootMs : null;
+  const bootSuffix = typeof lastBootMs === 'number' ? ` · boot ${formatBootTime(lastBootMs)}` : '';
+  element.textContent = (labels[_netStatus] || '⚡ OFFLINE') + bootSuffix;
 }
 
 export async function webTransportConnect() {
