@@ -22,6 +22,25 @@ function ensureContext() {
 
 // Wet crunch for a las-beam hit: a short filtered-noise snap (flesh) over a
 // fast pitch-dropping thump (impact). ~0.2s, quiet enough to spam per click.
+// The noise buffer is generated once and reused: allocating + filling it per
+// shot caused GC churn and FPS dips during rapid fire.
+let _noiseCache = { rate: 0, buffer: null };
+
+function _noiseBuffer(ctx) {
+  if (_noiseCache.buffer && _noiseCache.rate === ctx.sampleRate) {
+    return _noiseCache.buffer;
+  }
+  const noiseLen = Math.floor(ctx.sampleRate * 0.16);
+  const noiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) {
+    const decay = 1 - i / noiseLen;
+    data[i] = (Math.random() * 2 - 1) * decay * decay;
+  }
+  _noiseCache = { rate: ctx.sampleRate, buffer: noiseBuffer };
+  return noiseBuffer;
+}
+
 export function playHitCrunch(volume = 0.5) {
   const ctx = ensureContext();
   if (!ctx) return false;
@@ -30,13 +49,7 @@ export function playHitCrunch(volume = 0.5) {
   master.gain.setValueAtTime(Math.max(0, Math.min(1, volume)), now);
   master.connect(ctx.destination);
 
-  const noiseLen = Math.floor(ctx.sampleRate * 0.16);
-  const noiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-  const data = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < noiseLen; i++) {
-    const decay = 1 - i / noiseLen;
-    data[i] = (Math.random() * 2 - 1) * decay * decay;
-  }
+  const noiseBuffer = _noiseBuffer(ctx);
   const noise = ctx.createBufferSource();
   noise.buffer = noiseBuffer;
   const crunchFilter = ctx.createBiquadFilter();
