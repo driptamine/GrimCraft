@@ -8,6 +8,7 @@ import {
   ReinforceBtnPanel, ReinforceBtnRow, ReinforceBtnLabel, SergeantSlot, AmmoPanel,
 } from '../primitives.jsx';
 import { assetUrl } from '../../assets.js';
+import { R2Img } from '../bits.jsx';
 
 function SergeantSlotView({ data }) {
   const sgtCost = COSTS.reinforce;
@@ -51,7 +52,7 @@ function SergeantSlotView({ data }) {
         style={{ cursor: canAddSgt ? 'pointer' : 'default' }}
         onClick={canAddSgt ? addSergeant : undefined}
       >
-        {data.sgtQueued ? icon : <img src={assetUrl('assets/icons/Imperial Guard/Units/Basic/guard_sargeant_icon.png')} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} />}
+        {data.sgtQueued ? icon : <R2Img src={assetUrl('assets/icons/Imperial Guard/Units/Basic/guard_sargeant_icon.png')} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }} />}
         <span className="sgt-label">SGT</span>
         {data.sgtSoldier ? <div className="sgt-bar" style={{ width: barWidth, background: barColor }} /> : <div className="sgt-bar" style={{ width: barWidth }} />}
       </SergeantSlot>

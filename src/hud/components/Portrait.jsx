@@ -3,13 +3,14 @@ import { world, camera, selBuilder, selBuildings, selListeningPost, hoveredEnemy
 import { FACTIONS, getStructureConfig } from '../../factions.js';
 import { getViewKind, getAliveGroups, computeSquadData, getPortraitFocusPosition, entityFaction, workerDisplayName } from '../data.js';
 import {
-  PortraitPanel, PortraitIconDiv, PortraitImg, PortraitName, PortraitHpBar, PortraitHpFill, PortraitHpLabel,
+  PortraitPanel, PortraitIconDiv, PortraitName, PortraitHpBar, PortraitHpFill, PortraitHpLabel,
 } from '../primitives.jsx';
 import { assetUrl } from '../../assets.js';
+import { R2Img } from '../bits.jsx';
 
 function portraitIconEl(icon) {
   if (icon && icon.includes('/')) {
-    return <PortraitImg src={assetUrl(icon)} alt="" />;
+    return <R2Img src={assetUrl(icon)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
   }
   return icon || '❓';
 }
