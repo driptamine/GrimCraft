@@ -399,6 +399,13 @@ describe('first-person camera', () => {
       assert.ok(cam.position.z < 0, `camera behind, z ${cam.position.z}`);
       assert.ok(cam.position.y > 1.5, `camera above, y ${cam.position.y}`);
       assert.equal(hasViewmodel(cam), false, 'third person shows the real soldier');
+      // GTA-style aim: the whole head sits below the screen-center ray, so
+      // the crosshair clears the soldier instead of lying on his torso.
+      cam.updateMatrixWorld(true);
+      const headTop = new THREE.Vector3(0, 2.0, 0);
+      cam.worldToLocal(headTop);
+      assert.ok(headTop.y < 0, `crosshair above the head, local y ${headTop.y}`);
+      assert.ok(headTop.y > -3, `crosshair still near the action, local y ${headTop.y}`);
       scene.setSelSquads([]);
       assert.equal(updateThirdPersonCamera(), false, 'no soldier drops out');
       assert.equal(getCameraMode(), 'orbit');

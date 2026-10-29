@@ -709,6 +709,9 @@ export function updateFirstPersonCamera() {
 export const THIRD_DIST = 6.5;
 export const THIRD_HEIGHT = 1.5;
 export const THIRD_LOOK_AHEAD = 8;
+// GTA-style aim: the screen-center crosshair must clear the soldier, so the
+// look target sits above his head instead of at it. FPS mode is untouched.
+export const THIRD_AIM_LIFT = 3.0;
 
 const _thirdHead = new THREE.Vector3();
 const _thirdLook = new THREE.Vector3();
@@ -738,7 +741,7 @@ export function updateThirdPersonCamera() {
   );
   _thirdLook.set(
     _thirdHead.x + vx * THIRD_LOOK_AHEAD,
-    _thirdHead.y + vy * THIRD_LOOK_AHEAD,
+    _thirdHead.y + vy * THIRD_LOOK_AHEAD + THIRD_AIM_LIFT,
     _thirdHead.z + vz * THIRD_LOOK_AHEAD,
   );
   camera.lookAt(_thirdLook);
