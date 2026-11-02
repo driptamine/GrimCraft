@@ -206,7 +206,7 @@ async function applyMapDecalAutoPair(path: string, _url: string): Promise<void> 
       import('./sgb-decals.js'),
       import('./sgb-upload.js'),
     ]);
-    const sampleHeight = (window as unknown as Record<string, unknown>).__sgbSampleHeight || (() => 0);
+    const sampleHeight = ((window as unknown as Record<string, unknown>).__sgbSampleHeight || (() => 0)) as (x: number, z: number) => number;
     buildSgbDecalsFromLayout(sgbModule._sgbRoot, layout, sampleHeight);
   } catch (err) {
     console.error('layout decals error:', err);

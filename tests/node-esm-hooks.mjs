@@ -81,7 +81,9 @@ export async function load(url, context, next) {
   if ((url.includes('/src/') || url.includes('/tests/')) && (url.endsWith('.ts') || url.endsWith('.tsx'))) {
     // Migrated TypeScript sources: strip types with the repo's own
     // TypeScript so plain `node --test` keeps running them mid-migration.
-    const source = await readFile(new URL(url), 'utf8');
+    // Same Vite-ism stub as the .js branch below: import.meta.glob is
+    // statically replaced at build time, so fall back to an empty map.
+    const source = (await readFile(new URL(url), 'utf8')).replaceAll('import.meta.glob', '(import.meta.glob || (() => ({})))');
     const out = ts.transpileModule(source, {
       compilerOptions: {
         module: ts.ModuleKind.ESNext,

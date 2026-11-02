@@ -4,7 +4,38 @@ import { createChunkReader, isChunky } from './sgb-reader.js';
 import { mkGroup, mkEmptyMesh } from './three-helpers.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-export function createSgbParser(scene = null) {
+export interface SgbDecal {
+  id: number;
+  decalIdx: number;
+  x: number;
+  z: number;
+  size: number;
+  angle: number;
+}
+
+export interface SgbMapData {
+  numPlayers: number;
+  mapSize: number;
+  modName: string;
+  mapName: string;
+  scenarioName: string;
+  detailTextures?: { index: number; path: string }[];
+  tileTextureRepeat?: number;
+  decalLinks?: { id: number; path: string }[];
+  decals?: SgbDecal[];
+}
+
+export interface SgbParser {
+  readonly numTilesX: number;
+  readonly numTilesZ: number;
+  readonly cellSize: number;
+  readonly tileSize: number;
+  parse(buffer: Uint8Array | ArrayBuffer): SgbMapData;
+  createThreeMap(parent?: THREE.Object3D | null): THREE.Group;
+  sampleHeight(worldX: number, worldZ: number): number;
+}
+
+export function createSgbParser(scene: THREE.Object3D | null = null): SgbParser {
   const rootScene = scene;
   let numTilesX = 0;
   let numTilesZ = 0;
@@ -13,12 +44,12 @@ export function createSgbParser(scene = null) {
   let centerCellIdxZ = 0;
   let tileSize = 0;
 
-  const tiles = [];
-  const decals = [];
-  const detailTexturePaths = new Map();
-  const decalLinks = new Map();
+  const tiles: { mesh: THREE.Mesh; tileX: number; tileZ: number }[] = [];
+  const decals: SgbDecal[] = [];
+  const detailTexturePaths = new Map<number, string>();
+  const decalLinks = new Map<number, string>();
 
-  let heightData = null;
+  let heightData: Uint8Array | null = null;
   let heightScale = 0;
   let heightSizeX = 0;
   let heightSizeZ = 0;
@@ -27,7 +58,7 @@ export function createSgbParser(scene = null) {
   let numTileCells = 0;
   let tileTextureRepeat = 1;
 
-  function parse(buffer) {
+  function parse(buffer: Uint8Array | ArrayBuffer): SgbMapData {
     const reader = createChunkReader(buffer);
 
     if (!isChunky(buffer)) {
@@ -41,7 +72,7 @@ export function createSgbParser(scene = null) {
     reader.readHeader("FOLDSCEN");
     reader.readHeader("DATAWMHD");
 
-    const mapData = {
+    const mapData: SgbMapData = {
       numPlayers: reader.readU32(),
       mapSize: reader.readU32(),
       modName: reader.readString(),
@@ -68,7 +99,7 @@ export function createSgbParser(scene = null) {
     return mapData;
   }
 
-  function loadTerrain(reader) {
+  function loadTerrain(reader: ReturnType<typeof createChunkReader>): void {
     reader.readHeader("FOLDTERR");
     reader.readHeader("FOLDTFAC");
     reader.readHeader("DATAVDAT");
@@ -139,11 +170,11 @@ export function createSgbParser(scene = null) {
       detailTexturePaths.set(index, path);
     }
 
-    let chunk = reader.readHeader("DATAEFFC");
-    reader.skip(chunk.size);
+    const chunk = reader.readHeader("DATAEFFC");
+    reader.skip(chunk!.size);
 
-    chunk = reader.readHeader("DATAHRZN");
-    reader.skip(chunk.size);
+    const chunkHrzn = reader.readHeader("DATAHRZN");
+    reader.skip(chunkHrzn!.size);
 
     reader.readHeader("FOLDDECL");
     reader.readHeader("DATASMAP");
@@ -203,7 +234,14 @@ export function createSgbParser(scene = null) {
     numCellsZ,
     numTileCells,
     heightScale
-  }) {
+  }: {
+    heightData: Uint8Array;
+    heightSizeX: number;
+    numCellsX: number;
+    numCellsZ: number;
+    numTileCells: number;
+    heightScale: number;
+  }): void {
     const vertexCount =
       (numTileCells + 1) * (numTileCells + 1);
 
@@ -238,7 +276,7 @@ export function createSgbParser(scene = null) {
       }
     }
 
-    const indices = [];
+    const indices: number[] = [];
 
     let cellIndex = 0;
 
@@ -368,7 +406,7 @@ export function createSgbParser(scene = null) {
     }
   }
 
-  function createThreeMap(parent = null) {
+  function createThreeMap(parent: THREE.Object3D | null = null): THREE.Group {
     const root =
       mkGroup("SGB_Map");
 
@@ -400,20 +438,22 @@ export function createSgbParser(scene = null) {
     // Names keep the SGB_Tile prefix so ground picking still matches.
     const BLOCK = 4;
     const sharedMat = tiles.length ? tiles[0].mesh.material : null;
-    const blocks = new Map();
+    const blocks = new Map<string, THREE.BufferGeometry[]>();
     for (const tile of tiles) {
       const key = `${Math.floor(tile.tileX / BLOCK)}:${Math.floor(tile.tileZ / BLOCK)}`;
       tile.mesh.geometry.translate(tile.mesh.position.x, 0, tile.mesh.position.z);
-      if (!blocks.has(key)) {
-        blocks.set(key, []);
+      const list = blocks.get(key);
+      if (list) {
+        list.push(tile.mesh.geometry);
+      } else {
+        blocks.set(key, [tile.mesh.geometry]);
       }
-      blocks.get(key).push(tile.mesh.geometry);
     }
     for (const [key, geos] of blocks) {
       const merged = mergeGeometries(geos, false);
       const mesh = mkEmptyMesh(`SGB_Tile_b${key.replace(':', '_')}`);
       mesh.geometry = merged;
-      mesh.material = sharedMat;
+      mesh.material = sharedMat as THREE.Material;
       root.add(mesh);
     }
 
@@ -431,8 +471,9 @@ export function createSgbParser(scene = null) {
     return root;
   }
 
-  function sampleHeight(worldX, worldZ) {
-    if (!heightData) {
+  function sampleHeight(worldX: number, worldZ: number): number {
+    const hdata = heightData;
+    if (!hdata) {
       return 0;
     }
     const centerOffsetX = cellSize * centerCellIdxX - cellSize / 2;
@@ -445,7 +486,7 @@ export function createSgbParser(scene = null) {
     const z1 = Math.min(numCellsZ, z0 + 1);
     const tx = gx - x0;
     const tz = gz - z0;
-    const h = (x, z) => heightData[z * heightSizeX + x] * heightScale;
+    const h = (x: number, z: number): number => hdata[z * heightSizeX + x] * heightScale;
     return (
       h(x0, z0) * (1 - tx) * (1 - tz) +
       h(x1, z0) * tx * (1 - tz) +

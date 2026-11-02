@@ -26,7 +26,7 @@ describe('decals tab master toggle', () => {
   });
 
   it('label sync covers every master switch, not just the first', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     const body = src.slice(
       src.indexOf('function setDecalButtonLabel'),
       src.indexOf('export function areSgbDecalsVisible'),
@@ -36,7 +36,7 @@ describe('decals tab master toggle', () => {
   });
 
   it('showing a group lifts the master switch so it appears on scene', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     const body = src.slice(
       src.indexOf('export function setDecalGroupVisible'),
       src.indexOf('export function toggleDecalGroup'),
@@ -58,7 +58,7 @@ describe('decals tab hover toggle', () => {
   });
 
   it('hover outline creation is gated by the flag, toggle clears + relabels', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     assert.match(src, /let _decalHoverEnabled = false;/);
     const handler = src.slice(
       src.indexOf("canvas.addEventListener('pointermove'"),
@@ -80,7 +80,7 @@ describe('decals tab hover toggle', () => {
   });
 
   it('outline factory is gated so select red is suppressed too', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     const factory = src.slice(
       src.indexOf('function _makeOutline'),
       src.indexOf('function _disposeOutline'),
@@ -89,7 +89,7 @@ describe('decals tab hover toggle', () => {
   });
 
   it('toggle off drops select visual + pill, toggle on restores select visual', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     const toggle = src.slice(
       src.indexOf('export function toggleDecalHover'),
       src.indexOf('export function toggleSgbDecals'),

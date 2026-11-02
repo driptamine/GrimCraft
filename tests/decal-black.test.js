@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 describe('decal black fix', () => {
   it('uses glob-resolved URLs so vite build emits textures (not 404)', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     assert.match(src, /DECAL_GLOB.*import\.meta\.glob/);
     assert.match(src, /DECAL_GLOB\[key\]/);
   });
   it('unlit material not black, no tint, alpha-blend layering', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     // three.js spelling of the same contract: unlit white base, double-sided,
     // alpha-blended over the texture alpha, layered via polygon offset.
     assert.match(src, /MeshBasicMaterial/);
@@ -35,13 +35,13 @@ describe('decal black fix', () => {
     assert.ok(marks.length >= 2, 'tga/dds path + png path both mark sRGB');
   });
   it('glob covers every map decals dir, no chaos-only filter', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     assert.match(src, /\/maps\/\*\*\/decals\/\*\*/);
     assert.ok(!src.includes('__NONE__'), 'chaos-only filter would hide every map except alvarus');
     assert.ok(!src.includes('DECAL_FILTER'), 'filter const removed with the filter');
   });
   it('unresolved textures are skipped, never built as 404 planes', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     assert.match(src, /return null; \/\/ unresolved/);
     assert.match(src, /fileUrlForDecalPath\(path\) !== null/);
     assert.match(src, /\.filter\(\(d\) => d\.url !== null\)/);

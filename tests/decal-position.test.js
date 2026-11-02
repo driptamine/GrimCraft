@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('decal x/y/z sliders', () => {
   it('sgb-decals exposes position API for selected decal', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     assert.match(src, /export function getSelectedDecal\(\)/);
     assert.match(src, /export function getSelectedDecalPosition\(\)/);
     assert.match(src, /export function setSelectedDecalPosition\(/);

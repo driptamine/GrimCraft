@@ -1,6 +1,35 @@
 export const CHUNKY_HEADER_SIZE = 24;
 
-export function createChunkReader(data) {
+export interface ChunkHeader {
+  typeid: string;
+  version: number;
+  size: number;
+  name: string;
+}
+
+export interface ChunkReader {
+  readonly position: number;
+  readonly size: number;
+  hasData(): boolean;
+  ensure(n: number): void;
+  available(required: number): number;
+  skip(n: number): void;
+  skipChunky(): void;
+  readU8(): number;
+  readI8(): number;
+  readU16(): number;
+  readI16(): number;
+  readU32(): number;
+  readI32(): number;
+  readFloat(): number;
+  readData(size: number): Uint8Array;
+  readString(): string;
+  readStringUTF16(): string;
+  readFixedAscii(length: number): string;
+  readHeader(expected?: string): ChunkHeader | null;
+}
+
+export function createChunkReader(data: Uint8Array | ArrayBuffer): ChunkReader {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   const view = new DataView(
     bytes.buffer,
@@ -9,7 +38,7 @@ export function createChunkReader(data) {
   );
   let offset = 0;
 
-  function ensure(n) {
+  function ensure(n: number): void {
     if (offset + n > bytes.byteLength) {
       throw new RangeError(
         `Unexpected EOF at ${offset}; requested ${n} bytes, size=${bytes.byteLength}`
@@ -17,11 +46,11 @@ export function createChunkReader(data) {
     }
   }
 
-  function available(required) {
+  function available(required: number): number {
     return Math.min(required, bytes.byteLength - offset);
   }
 
-  function skip(n) {
+  function skip(n: number): void {
     offset += available(n);
   }
 
@@ -95,7 +124,7 @@ export function createChunkReader(data) {
       return v;
     },
 
-    readData(size) {
+    readData(size: number) {
       const n = available(size);
       const result = bytes.slice(offset, offset + n);
       offset += n;
@@ -114,7 +143,7 @@ export function createChunkReader(data) {
       return new TextDecoder("utf-16le").decode(this.readData(length * 2));
     },
 
-    readFixedAscii(length) {
+    readFixedAscii(length: number) {
       return new TextDecoder("ascii")
         .decode(this.readData(length))
         .replace(/\0+$/, "");
@@ -142,7 +171,7 @@ export function createChunkReader(data) {
   };
 }
 
-export function isChunky(data) {
+export function isChunky(data: Uint8Array | ArrayBuffer): boolean {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   if (bytes.length < 32) return false;
 

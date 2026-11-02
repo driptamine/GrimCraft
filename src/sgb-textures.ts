@@ -1,8 +1,30 @@
-export function getSgbTextures() {
+interface SgbTexDetail {
+  index: number;
+  path: string;
+}
+
+interface SgbDecalLink {
+  id: number;
+  path: string;
+}
+
+interface SgbDecalInstance {
+  decalIdx: number;
+}
+
+export interface SgbTexData {
+  mapName: string;
+  scenarioName: string;
+  detailTextures?: SgbTexDetail[];
+  decalLinks?: SgbDecalLink[];
+  decals?: SgbDecalInstance[];
+}
+
+export function getSgbTextures(): SgbTexData | null {
   return window.__sgbTexData || null;
 }
 
-function escapeHtml(text) {
+function escapeHtml(text: string): string {
   return String(text)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -10,7 +32,7 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
-export function renderTextureList() {
+export function renderTextureList(): void {
   const el = document.getElementById('terrain-texture-list');
   if (!el) {
     return;
@@ -20,7 +42,7 @@ export function renderTextureList() {
     el.innerHTML = '<div class="maps-empty">LOAD A MAP FIRST</div>';
     return;
   }
-  const rows = [];
+  const rows: string[] = [];
   rows.push(
     '<div class="terrain-tex-row terrain-tex-title">' +
     escapeHtml(data.mapName) + ' · ' + escapeHtml(data.scenarioName) +
@@ -34,7 +56,7 @@ export function renderTextureList() {
   }
   if (data.decalLinks && data.decalLinks.length) {
     rows.push('<div class="terrain-section-label">DECALS (' + (data.decals || []).length + ' INSTANCES)</div>');
-    const countById = new Map();
+    const countById = new Map<number, number>();
     (data.decals || []).forEach((d) => {
       countById.set(d.decalIdx, (countById.get(d.decalIdx) || 0) + 1);
     });
@@ -57,7 +79,7 @@ export function renderTextureList() {
   el.innerHTML = rows.join('');
 }
 
-export function clearTextureList() {
+export function clearTextureList(): void {
   const el = document.getElementById('terrain-texture-list');
   if (el) {
     el.innerHTML = '';

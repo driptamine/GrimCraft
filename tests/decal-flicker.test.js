@@ -26,7 +26,7 @@ describe('decal flicker fix', () => {
   });
 
   it('both builders assign the fixed negative draw sequence', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     const sgb = src.slice(src.indexOf('export function buildSgbDecals('), src.indexOf('export function buildSgbDecalsFromLayout('));
     const layout = src.slice(src.indexOf('export function buildSgbDecalsFromLayout('));
     assert.match(sgb, /plane\.renderOrder = -100000 \+ decalLayer\(path\) \* 10000 \+ i;/);
@@ -34,7 +34,7 @@ describe('decal flicker fix', () => {
   });
 
   it('decal material skips depth writes but keeps the depth test', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     const factory = src.slice(src.indexOf('function _createDecalMaterial'), src.indexOf('export function clearSgbDecals'));
     assert.ok(factory.includes('mat.depthWrite = false;'), 'overlaps blend, never occlude');
     assert.ok(!factory.includes('mat.depthTest = false'), 'terrain/units still occlude decals');

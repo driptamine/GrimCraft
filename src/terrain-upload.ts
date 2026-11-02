@@ -2,37 +2,45 @@ import * as THREE from 'three';
 import { scene } from './scene.js';
 import { mkGroup, disposeObj, childMeshes, loadTexture } from './three-helpers.js';
 import { loadGltf, instantiateGltf } from './gltf-models.js';
+import type { GltfContainer } from './gltf-models.js';
+import type { AnyGroup } from './meshes/types.js';
 
-export let _terrainTexture = null;
-export let _terrainLayers = [];
-export let _terrainLayerRoot = null;
-export let _propContainer = null;
-export let _propInstances = [];
+interface TerrainLayer {
+  name: string;
+  texture: THREE.Texture;
+  visible: boolean;
+}
+
+export let _terrainTexture: THREE.Texture | null = null;
+export let _terrainLayers: TerrainLayer[] = [];
+export let _terrainLayerRoot: THREE.Group | null = null;
+export let _propContainer: GltfContainer | null = null;
+export let _propInstances: THREE.Object3D[] = [];
 export let _propScale = 1.0;
-export let _terrainMeshRoot = null;
+export let _terrainMeshRoot: AnyGroup | null = null;
 export let _terrainMeshScale = 1.0;
 export let _terrainMeshY = 0.0;
 
-export function toggleTerrainPanel() {
+export function toggleTerrainPanel(): void {
   const panel = document.getElementById('terrain-upload-panel');
   if (panel) {
     panel.classList.toggle('open');
   }
 }
 
-export function handleTerrainTexDrop(e) {
+export function handleTerrainTexDrop(e: DragEvent): void {
   e.preventDefault();
   const dropZone = document.getElementById('terrain-tex-dz');
   if (dropZone) {
     dropZone.classList.remove('dragover');
   }
-  const file = e.dataTransfer.files[0];
+  const file = e.dataTransfer!.files[0];
   if (file) {
     loadTerrainTexture(file);
   }
 }
 
-export function loadTerrainTexture(file) {
+export function loadTerrainTexture(file: File): void {
   if (!file) {
     return;
   }
@@ -48,15 +56,16 @@ export function loadTerrainTexture(file) {
   }
   _terrainTexture = loadTexture(url, {
     onLoad: () => {
+      const tex = _terrainTexture as THREE.Texture;
       const groundMaterial = scene._ground?.material;
       if (groundMaterial) {
-        const tileX = parseInt(document.getElementById('tex-tile-x').value) || 8;
-        const tileY = parseInt(document.getElementById('tex-tile-y').value) || 8;
-        _terrainTexture.repeat.set(tileX, tileY);
-        _terrainTexture.wrapS = THREE.RepeatWrapping;
-        _terrainTexture.wrapT = THREE.RepeatWrapping;
+        const tileX = parseInt((document.getElementById('tex-tile-x') as HTMLInputElement).value) || 8;
+        const tileY = parseInt((document.getElementById('tex-tile-y') as HTMLInputElement).value) || 8;
+        tex.repeat.set(tileX, tileY);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
         groundMaterial.map = null;
-        groundMaterial.emissiveMap = _terrainTexture;
+        groundMaterial.emissiveMap = tex;
         groundMaterial.needsUpdate = true;
         groundMaterial.emissive = new THREE.Color(1, 1, 1);
       }
@@ -72,27 +81,29 @@ export function loadTerrainTexture(file) {
  * The decal rasters may be legacy formats (.tga/.dds) which the
  * file-drop twin rejects, so load straight from URL instead.
  */
-export function updateTexTiling() {
-  const tileX = parseInt(document.getElementById('tex-tile-x')?.value) || 8;
-  const tileY = parseInt(document.getElementById('tex-tile-y')?.value) || 8;
+export function updateTexTiling(): void {
+  const tileXEl = document.getElementById('tex-tile-x') as HTMLInputElement | null;
+  const tileYEl = document.getElementById('tex-tile-y') as HTMLInputElement | null;
+  const tileX = parseInt(tileXEl?.value as string) || 8;
+  const tileY = parseInt(tileYEl?.value as string) || 8;
   const labelX = document.getElementById('tex-tile-x-val');
   if (labelX) {
-    labelX.textContent = tileX;
+    labelX.textContent = String(tileX);
   }
   const labelY = document.getElementById('tex-tile-y-val');
   if (labelY) {
-    labelY.textContent = tileY;
+    labelY.textContent = String(tileY);
   }
   if (_terrainTexture) {
     _terrainTexture.repeat.set(tileX, tileY);
   }
 }
 
-export async function loadTerrainTextureUrl(url, nameHint) {
+export async function loadTerrainTextureUrl(url: string, nameHint?: string): Promise<void> {
   if (!url) {
     return;
   }
-  const name = nameHint || url.split('/').pop();
+  const name = nameHint || url.split('/').pop() || url;
   setTerrainTexStatus('LAYERING… ' + name.slice(0, 24), 'loading');
   const layerTexture = loadTexture(url, {
     onLoad: () => {
@@ -107,11 +118,11 @@ export async function loadTerrainTextureUrl(url, nameHint) {
         if (!m.material) {
           m.material = new THREE.MeshStandardMaterial();
         }
-        m.material.map = layerTexture;
-        m.material.color = new THREE.Color(1, 1, 1);
-        m.material.emissiveMap = null;
-        m.material.emissive = new THREE.Color(0, 0, 0);
-        m.material.needsUpdate = true;
+        const mat = m.material as THREE.MeshStandardMaterial;
+        mat.map = layerTexture;
+        mat.color = new THREE.Color(1, 1, 1);
+        mat.emissiveMap = null;
+        mat.needsUpdate = true;
         painted++;
       });
       _terrainLayers.push({ name, texture: layerTexture, visible: true });
@@ -122,16 +133,16 @@ export async function loadTerrainTextureUrl(url, nameHint) {
   });
 }
 
-function paintTargets() {
-  let host = null;
+function paintTargets(): THREE.Mesh[] {
+  let host: THREE.Object3D | null | undefined = null;
   try {
-    const sgbModule = window.__sgbTexModule;
+    const sgbModule = (window as unknown as { __sgbTexModule?: { _sgbRoot?: THREE.Object3D | null } | null }).__sgbTexModule;
     host = sgbModule ? sgbModule._sgbRoot : null;
   } catch (e) {
     host = null;
   }
   if (!host) {
-    let targets = [];
+    let targets: THREE.Mesh[] = [];
     try {
       targets = childMeshes(_sgbRootFromModule);
     } catch (e) {
@@ -150,16 +161,16 @@ function paintTargets() {
   return scene._ground ? [scene._ground] : [];
 }
 
-let _sgbRootFromModule = null;
+let _sgbRootFromModule: THREE.Group | null = null;
 let _sgbTilesX = 0;
 let _sgbTilesZ = 0;
-export function linkSgbRoot(root, tilesX, tilesZ) {
+export function linkSgbRoot(root: THREE.Group | null, tilesX: number, tilesZ: number): void {
   _sgbRootFromModule = root;
   _sgbTilesX = tilesX || 0;
   _sgbTilesZ = tilesZ || 0;
 }
 
-function _dropYOnTerrain(x, z) {
+function _dropYOnTerrain(x: number, z: number): number {
   const root = _sgbRootFromModule || _terrainMeshRoot;
   if (!root) {
     return 0;
@@ -178,7 +189,7 @@ function _dropYOnTerrain(x, z) {
   return hits.length ? hits[0].point.y : 0;
 }
 
-export function toggleTerrainLayer(index) {
+export function toggleTerrainLayer(index: number): void {
   const layer = _terrainLayers[index];
   if (!layer) {
     return;
@@ -188,18 +199,19 @@ export function toggleTerrainLayer(index) {
     if (!m.material) {
       return;
     }
+    const mat = m.material as THREE.MeshStandardMaterial;
     if (layer.visible) {
-      m.material.map = layer.texture;
-      m.material.needsUpdate = true;
-      m.material.color = new THREE.Color(1, 1, 1);
-      m.material.emissiveMap = null;
-      m.material.needsUpdate = true;
-      m.material.emissive = new THREE.Color(0, 0, 0);
+      mat.map = layer.texture;
+      mat.needsUpdate = true;
+      mat.color = new THREE.Color(1, 1, 1);
+      mat.emissiveMap = null;
+      mat.needsUpdate = true;
+      mat.emissive = new THREE.Color(0, 0, 0);
 
     } else {
-      m.material.map = null;
-      m.material.needsUpdate = true;
-      m.material.color = new THREE.Color(0.35, 0.35, 0.35);
+      mat.map = null;
+      mat.needsUpdate = true;
+      mat.color = new THREE.Color(0.35, 0.35, 0.35);
     }
   });
   renderTerrainLayerList();
@@ -209,7 +221,7 @@ export function toggleTerrainLayer(index) {
   );
 }
 
-export function removeTerrainLayer(index) {
+export function removeTerrainLayer(index: number): void {
   const layer = _terrainLayers[index];
   if (!layer) {
     return;
@@ -222,21 +234,22 @@ export function removeTerrainLayer(index) {
     if (!m.material) {
       return;
     }
+    const mat = m.material as THREE.MeshStandardMaterial;
     const topLayer = _terrainLayers
       .filter((l) => l.visible)
       .pop();
     if (topLayer) {
-      m.material.map = topLayer.texture;
-      m.material.needsUpdate = true;
-      m.material.color = new THREE.Color(1, 1, 1);
-      m.material.emissiveMap = null;
-      m.material.needsUpdate = true;
-      m.material.emissive = new THREE.Color(0, 0, 0);
+      mat.map = topLayer.texture;
+      mat.needsUpdate = true;
+      mat.color = new THREE.Color(1, 1, 1);
+      mat.emissiveMap = null;
+      mat.needsUpdate = true;
+      mat.emissive = new THREE.Color(0, 0, 0);
 
     } else {
-      m.material.map = null;
-      m.material.needsUpdate = true;
-      m.material.color = new THREE.Color(0.35, 0.35, 0.35);
+      mat.map = null;
+      mat.needsUpdate = true;
+      mat.color = new THREE.Color(0.35, 0.35, 0.35);
     }
   });
   renderTerrainLayerList();
@@ -245,7 +258,7 @@ export function removeTerrainLayer(index) {
 
 let _terrainLayerAngle = 270;
 
-function applyTerrainLayerAngle() {
+function applyTerrainLayerAngle(): void {
   const rad = (Math.PI * _terrainLayerAngle) / 180;
   _terrainLayers.forEach((layer) => {
     if (layer.texture) {
@@ -259,12 +272,12 @@ function applyTerrainLayerAngle() {
   }
 }
 
-export function rotateTerrainLayers() {
+export function rotateTerrainLayers(): void {
   _terrainLayerAngle = (_terrainLayerAngle + 90) % 360;
   applyTerrainLayerAngle();
 }
 
-function renderTerrainLayerList() {
+function renderTerrainLayerList(): void {
   const list = document.getElementById('terrain-layers-list');
   if (!list) {
     return;
@@ -310,7 +323,7 @@ function renderTerrainLayerList() {
   });
 }
 
-function setTerrainTexStatus(msg, className = '') {
+function setTerrainTexStatus(msg: string, className = ''): void {
   const element = document.getElementById('terrain-tex-status');
   if (!element) {
     return;
@@ -319,16 +332,16 @@ function setTerrainTexStatus(msg, className = '') {
   element.className = 'terrain-status' + (className ? ' ' + className : '');
 }
 
-export function handleTerrainMeshDrop(e) {
+export function handleTerrainMeshDrop(e: DragEvent): void {
   e.preventDefault();
   const dropZone = document.getElementById('terrain-mesh-dz');
   if (dropZone) {
     dropZone.classList.remove('dragover');
   }
-  handleTerrainMeshFiles(e.dataTransfer.files);
+  handleTerrainMeshFiles(e.dataTransfer!.files);
 }
 
-export function handleTerrainMeshFiles(files) {
+export function handleTerrainMeshFiles(files: FileList | File[] | null): void {
   if (!files || !files.length) {
     return;
   }
@@ -344,14 +357,14 @@ export function handleTerrainMeshFiles(files) {
   }
   setTerrainMeshStatus('LOADING…', 'loading');
   import('./sgb-upload.js').then((module) => module.clearSgbMap(true));
-  const fileMap = {};
+  const fileMap: Record<string, string> = {};
   Array.from(files).forEach((file) => { fileMap[file.name] = URL.createObjectURL(file); });
   const mainUrl = fileMap[mainFile.name];
   clearTerrainMesh(true);
   loadGltf(mainUrl, mainFile.name.match(/\.(gltf|glb)$/i)?.[0] || '.glb').then((container) => {
     const inst = instantiateGltf(container);
     inst.animationGroups.forEach((ag) => ag.stop());
-    const parent = mkGroup('_terrainMeshRoot');
+    const parent = mkGroup('_terrainMeshRoot') as AnyGroup;
     inst.rootNodes.forEach((rn) => { parent.add(rn); });
     parent.scale.setScalar(_terrainMeshScale);
     parent.position.y = _terrainMeshY;
@@ -373,36 +386,36 @@ export function handleTerrainMeshFiles(files) {
     _terrainMeshRoot = parent;
     setTerrainMeshStatus('✓ ' + mainFile.name.slice(0, 28), 'ok');
     Object.values(fileMap).forEach((url) => URL.revokeObjectURL(url));
-    const inp = document.getElementById('terrain-mesh-input');
+    const inp = document.getElementById('terrain-mesh-input') as HTMLInputElement | null;
     if (inp) {
       inp.value = '';
     }
   }).catch((err) => {
     setTerrainMeshStatus(
-      'LOAD ERROR: ' + (err.message || err).slice(0, 30), 'err',
+      'LOAD ERROR: ' + (err instanceof Error ? err.message : String(err)).slice(0, 30), 'err',
     );
     Object.values(fileMap).forEach((url) => URL.revokeObjectURL(url));
   });
 }
 
-export function updateTerrainMeshScale(sliderVal) {
-  _terrainMeshScale = Math.pow(10, parseFloat(sliderVal) / 100);
-  document.getElementById('terrain-mesh-scale-val').textContent = _terrainMeshScale.toFixed(2);
+export function updateTerrainMeshScale(sliderVal: string | number): void {
+  _terrainMeshScale = Math.pow(10, parseFloat(String(sliderVal)) / 100);
+  document.getElementById('terrain-mesh-scale-val')!.textContent = _terrainMeshScale.toFixed(2);
   if (_terrainMeshRoot) {
     _terrainMeshRoot.scale.setScalar(_terrainMeshScale);
   }
 }
 
-export function updateTerrainMeshY(sliderVal) {
-  _terrainMeshY = parseFloat(sliderVal);
-  document.getElementById('terrain-mesh-y-val').textContent = _terrainMeshY.toFixed(1);
+export function updateTerrainMeshY(sliderVal: string | number): void {
+  _terrainMeshY = parseFloat(String(sliderVal));
+  document.getElementById('terrain-mesh-y-val')!.textContent = _terrainMeshY.toFixed(1);
   if (_terrainMeshRoot) {
     _terrainMeshRoot.position.y = _terrainMeshY;
   }
   import('./sgb-upload.js').then((module) => module.updateTerrainMapY(sliderVal));
 }
 
-export function clearTerrainMesh(silent) {
+export function clearTerrainMesh(silent?: boolean): void {
   import('./sgb-upload.js').then((module) => module.clearSgbMap(true));
   if (_terrainMeshRoot) {
     if (_terrainMeshRoot._sourceContainer) {
@@ -424,7 +437,7 @@ export function clearTerrainMesh(silent) {
   }
 }
 
-function setTerrainMeshStatus(msg, className) {
+function setTerrainMeshStatus(msg: string, className = ''): void {
   const element = document.getElementById('terrain-mesh-status');
   if (!element) {
     return;
@@ -433,16 +446,16 @@ function setTerrainMeshStatus(msg, className) {
   element.className = 'terrain-status' + (className ? ' ' + className : '');
 }
 
-export function handleTerrainPropDrop(e) {
+export function handleTerrainPropDrop(e: DragEvent): void {
   e.preventDefault();
   const dropZone = document.getElementById('terrain-prop-dz');
   if (dropZone) {
     dropZone.classList.remove('dragover');
   }
-  handleTerrainPropFiles(e.dataTransfer.files);
+  handleTerrainPropFiles(e.dataTransfer!.files);
 }
 
-export function handleTerrainPropFiles(files) {
+export function handleTerrainPropFiles(files: FileList | File[] | null): void {
   if (!files || !files.length) {
     return;
   }
@@ -452,7 +465,7 @@ export function handleTerrainPropFiles(files) {
     return;
   }
   setPropStatus('LOADING…', 'loading');
-  const fileMap = {};
+  const fileMap: Record<string, string> = {};
   Array.from(files).forEach((file) => { fileMap[file.name] = URL.createObjectURL(file); });
   const mainUrl = fileMap[mainFile.name];
   if (_propContainer) {
@@ -465,17 +478,17 @@ export function handleTerrainPropFiles(files) {
     setPropStatus('✓ ' + mainFile.name.slice(0, 26), 'ok');
     rescatterProps();
   }).catch((err) => {
-    setPropStatus('LOAD ERROR: ' + (err.message || err).slice(0, 30), 'err');
+    setPropStatus('LOAD ERROR: ' + (err instanceof Error ? err.message : String(err)).slice(0, 30), 'err');
   });
 }
 
-export function updatePropScale(sliderVal) {
-  _propScale = Math.pow(10, parseFloat(sliderVal) / 100);
-  document.getElementById('prop-scale-val').textContent = _propScale.toFixed(2);
+export function updatePropScale(sliderVal: string | number): void {
+  _propScale = Math.pow(10, parseFloat(String(sliderVal)) / 100);
+  document.getElementById('prop-scale-val')!.textContent = _propScale.toFixed(2);
   _propInstances.forEach((root) => root.scale.setScalar(_propScale));
 }
 
-export function clearPropInstances() {
+export function clearPropInstances(): void {
   _propInstances.forEach((root) => {
     childMeshes(root).forEach((m) => disposeObj(m));
     disposeObj(root);
@@ -487,28 +500,28 @@ export function clearPropInstances() {
   }
 }
 
-export function rescatterProps() {
+export function rescatterProps(): void {
   if (!_propContainer) {
     return;
   }
   clearPropInstances();
-  const count = parseInt(document.getElementById('prop-count').value) || 20;
-  const avoid = parseInt(document.getElementById('prop-avoid').value) || 18;
+  const count = parseInt((document.getElementById('prop-count') as HTMLInputElement).value) || 20;
+  const avoid = parseInt((document.getElementById('prop-avoid') as HTMLInputElement).value) || 18;
   const HALF = 57;
   for (let i = 0; i < count; i++) {
-    let x;
-    let z;
+    let x: number;
+    let z: number;
     let attempt = 0;
     do {
       x = (Math.random() * 2 - 1) * HALF;
       z = (Math.random() * 2 - 1) * HALF;
       attempt++;
-    } while (Math.abs(x) < avoid && Math.abs(z) < avoid && attempt < 30);
+    } while (Math.abs(x as number) < avoid && Math.abs(z as number) < avoid && attempt < 30);
     const inst = instantiateGltf(_propContainer);
     inst.animationGroups.forEach((ag) => ag.stop());
     inst.rootNodes.forEach((rn) => {
-      const y = _dropYOnTerrain(x, z);
-      rn.position.set(x, y, z);
+      const y = _dropYOnTerrain(x as number, z as number);
+      rn.position.set(x as number, y, z as number);
       rn.rotation.y = Math.random() * Math.PI * 2;
       rn.scale.setScalar(_propScale);
       childMeshes(rn).forEach((m) => { m.isPickable = false; });
@@ -529,7 +542,7 @@ export function rescatterProps() {
   }
 }
 
-function setPropStatus(msg, className = '') {
+function setPropStatus(msg: string, className = ''): void {
   const element = document.getElementById('terrain-prop-status');
   if (!element) {
     return;
@@ -538,7 +551,7 @@ function setPropStatus(msg, className = '') {
   element.className = 'terrain-status' + (className ? ' ' + className : '');
 }
 
-export function clearAllTerrain() {
+export function clearAllTerrain(): void {
   clearTerrainMesh();
   if (_terrainTexture) {
     _terrainTexture.dispose();
@@ -554,12 +567,13 @@ export function clearAllTerrain() {
     if (!m.material) {
       return;
     }
-    m.material.map = null;
-    m.material.needsUpdate = true;
-    m.material.color = new THREE.Color(0.35, 0.35, 0.35);
-    m.material.emissiveMap = null;
-    m.material.needsUpdate = true;
-    m.material.emissive = new THREE.Color(0, 0, 0);
+    const mat = m.material as THREE.MeshStandardMaterial;
+    mat.map = null;
+    mat.needsUpdate = true;
+    mat.color = new THREE.Color(0.35, 0.35, 0.35);
+    mat.emissiveMap = null;
+    mat.needsUpdate = true;
+    mat.emissive = new THREE.Color(0, 0, 0);
 
   });
   const groundMaterial = scene._ground?.material;
@@ -580,7 +594,7 @@ export function clearAllTerrain() {
   setPropStatus('NO PROPS LOADED');
 }
 
-export function setBrightness(val) {
+export function setBrightness(val: number): void {
   if (!scene) {
     return;
   }

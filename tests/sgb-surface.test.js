@@ -60,7 +60,7 @@ describe('sgb surface snap', () => {
   });
 
   it('sgb load stashes the terrain root, clear drops it', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-upload.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-upload.ts'), 'utf8');
     assert.ok(src.includes('window.__sgbTerrainRoot = root;'), 'stashed on load');
     assert.ok(src.includes('window.__sgbTerrainRoot = null;'), 'cleared with the map');
   });

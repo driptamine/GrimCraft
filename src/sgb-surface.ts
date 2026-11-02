@@ -14,7 +14,12 @@ export const POINT_SNAP_HALF = 3.2;
 // Resting lift: clears the +0.08 decal sheets without a visible float.
 export const POINT_SNAP_LIFT = 0.15;
 
-const _tap = { x: 0, z: 0 };
+interface SurfaceTap {
+  x: number;
+  z: number;
+}
+
+const _tap: SurfaceTap = { x: 0, z: 0 };
 
 // World Y for a model base at world (x, z): max rendered surface height
 // over the center + 4 footprint corners, plus the resting lift.
@@ -41,13 +46,26 @@ export {
 
 // Feet height at world (x, z): center-tap surface + rootY. 0 without terrain
 // (flat maps keep the exact old behavior).
-export function sgbGroundY(toLocal, rootY, sampleHeight, x, z) {
+export function sgbGroundY(
+  toLocal: (tx: number, tz: number, out: SurfaceTap) => SurfaceTap,
+  rootY: number,
+  sampleHeight: unknown,
+  x: number,
+  z: number,
+): number {
   if (typeof sampleHeight !== 'function') return 0;
+  const sampler = sampleHeight as (lx: number, lz: number) => number;
   const local = toLocal(x, z, _tap);
-  return sampleHeight(local.x, local.z) + rootY;
+  return sampler(local.x, local.z) + rootY;
 }
 
-export function sgbSurfaceSnapY(toLocal, rootY, sampleHeight, x, z) {
+export function sgbSurfaceSnapY(
+  toLocal: (tx: number, tz: number, out: SurfaceTap) => SurfaceTap,
+  rootY: number,
+  sampleHeight: (lx: number, lz: number) => number,
+  x: number,
+  z: number,
+): number {
   const taps = [
     [x, z],
     [x - POINT_SNAP_HALF, z - POINT_SNAP_HALF],

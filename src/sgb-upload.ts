@@ -4,9 +4,25 @@ import { scene, camera, addCameraChangeObserver, PLAYER } from './scene.js';
 import { disposeObj, childMeshes } from './three-helpers.js';
 import { applySgbRootTransform } from './sgb-mirror.js';
 import { factionBasePosition } from './map-layout.js';
+import type { SgbMapData } from './sgb-parser.js';
 
-export let _sgbRoot = null;
-export let _sgbMapData = null;
+declare global {
+  interface Window {
+    __sgbPassGrid?: unknown;
+    __sgbSampleHeight?: ((x: number, z: number) => number) | null;
+    __sgbTerrainRoot?: THREE.Object3D | null;
+    __sgbTexData?: {
+      mapName: string;
+      scenarioName: string;
+      detailTextures: { index: number; path: string }[];
+      decalLinks: { id: number; path: string }[];
+      decals: { decalIdx: number }[];
+    } | null;
+  }
+}
+
+export let _sgbRoot: THREE.Group | null = null;
+export let _sgbMapData: SgbMapData | null = null;
 export let _sgbNumTilesX = 0;
 export let _sgbNumTilesZ = 0;
 export let _sgbCellSize = 0;
@@ -14,7 +30,7 @@ export let _sgbTileSize = 0;
 export let _sgbRotate = 90;
 // Mirror the map left<->right on screen (rows stay, each row reverses).
 export let _sgbFlipH = true;
-let _sgbTexture = null;
+let _sgbTexture: THREE.Texture | null = null;
 let _sgbYBase = 0;
 let _sgbYDelta = 0;
 let _passGridToken = 0;
@@ -22,7 +38,7 @@ let _passGridToken = 0;
 // Passability paint (<map>_path.json, same folder/naming as the .sgb) for
 // ground movement: window.__sgbPassGrid or null when the map has none (slope
 // avoidance only). The token drops stale resolves on quick map switches.
-async function loadPassGridForMap(mapPath) {
+async function loadPassGridForMap(mapPath: string): Promise<void> {
   const token = ++_passGridToken;
   window.__sgbPassGrid = null;
   const url = String(mapPath || '').replace(/\.sgb$/i, '') + '_path.json';
@@ -56,15 +72,15 @@ async function loadPassGridForMap(mapPath) {
   }
 }
 
-export function updateTerrainMapY(sliderVal) {
-  _sgbYDelta = parseFloat(sliderVal) || 0;
+export function updateTerrainMapY(sliderVal: string | number): void {
+  _sgbYDelta = parseFloat(String(sliderVal)) || 0;
   const root = _activeRoot();
   if (root) {
     root.position.y = _sgbYBase + _sgbYDelta;
   }
 }
 
-function updateOrientStatus() {
+function updateOrientStatus(): void {
   const el = document.getElementById('terrain-map-orient');
   if (!el) {
     return;
@@ -73,12 +89,12 @@ function updateOrientStatus() {
   el.textContent = 'CAMERA ' + camDeg + '° · MAP ' + (Math.round(_sgbRotate) % 360) + '°';
 }
 
-function _activeRoot() {
+function _activeRoot(): THREE.Group | null {
   return _sgbRoot || (scene && scene.getObjectByName('SGB_Map')) || null;
 }
 
-export function updateTerrainMapRotate(degVal) {
-  const degrees = parseFloat(degVal) || 0;
+export function updateTerrainMapRotate(degVal: string | number): void {
+  const degrees = parseFloat(String(degVal)) || 0;
   _sgbRotate = degrees;
   const el = document.getElementById('terrain-map-rotate-val');
   if (el) {
@@ -91,7 +107,7 @@ export function updateTerrainMapRotate(degVal) {
   updateOrientStatus();
 }
 
-function setSgbStatus(msg, className = '') {
+function setSgbStatus(msg: string, className = ''): void {
   const element = document.getElementById('terrain-mesh-status');
   if (!element) {
     return;
@@ -100,7 +116,7 @@ function setSgbStatus(msg, className = '') {
   element.className = 'terrain-status' + (className ? ' ' + className : '');
 }
 
-export async function loadSgbFile(file) {
+export async function loadSgbFile(file: File): Promise<void> {
   if (!file) {
     return;
   }
@@ -112,7 +128,7 @@ export async function loadSgbFile(file) {
   await loadSgbBuffer(buffer, file.name, file.name);
 }
 
-export async function loadSgbUrl(url, label, mapPath = '') {
+export async function loadSgbUrl(url: string, label: string, mapPath = ''): Promise<void> {
   setSgbStatus('LOADING ' + (label || url).slice(0, 24) + '…', 'loading');
   try {
     const res = await fetch(url);
@@ -123,11 +139,11 @@ export async function loadSgbUrl(url, label, mapPath = '') {
     await loadSgbBuffer(buffer, label || url, mapPath || url);
   } catch (err) {
     console.error(err);
-    setSgbStatus('SGB ERROR: ' + (err.message || err).slice(0, 30), 'err');
+    setSgbStatus('SGB ERROR: ' + (err instanceof Error ? err.message : String(err)).slice(0, 30), 'err');
   }
 }
 
-async function loadSgbBuffer(buffer, label = 'map', mapPath = '') {
+async function loadSgbBuffer(buffer: ArrayBuffer, label = 'map', mapPath = ''): Promise<void> {
   setSgbStatus('LOADING ' + (label || 'map').slice(0, 24) + '…', 'loading');
   try {
     clearSgbMap(true);
@@ -192,7 +208,7 @@ async function loadSgbBuffer(buffer, label = 'map', mapPath = '') {
     );
   } catch (err) {
     console.error(err);
-    setSgbStatus('SGB ERROR: ' + (err.message || err).slice(0, 30), 'err');
+    setSgbStatus('SGB ERROR: ' + (err instanceof Error ? err.message : String(err)).slice(0, 30), 'err');
   }
 }
 
@@ -201,27 +217,27 @@ async function loadSgbBuffer(buffer, label = 'map', mapPath = '') {
 const CAMERA_ALPHA_ALVARUS = (7 * Math.PI) / 4;
 const CAMERA_ALPHA_NEW_MAPS = Math.PI;
 
-// Camera distance per map: alvarus uses the tuned fixed radius, every other
+// Camera distance per map: alvarus uses the fixed tuned radius, every other
 // map keeps the bounding-box fit passed in.
 const CAMERA_RADIUS_ALVARUS = 55;
 
-export function cameraAlphaForMap(mapPath) {
+export function cameraAlphaForMap(mapPath: string): number {
   return /alvarus/i.test(String(mapPath || '')) ? CAMERA_ALPHA_ALVARUS : CAMERA_ALPHA_NEW_MAPS;
 }
 
-export function cameraRadiusForMap(mapPath, fitRadius) {
+export function cameraRadiusForMap(mapPath: string, fitRadius: number): number {
   return /alvarus/i.test(String(mapPath || '')) ? CAMERA_RADIUS_ALVARUS : fitRadius;
 }
 
 // Far plane per map size: big maps sit the camera past the default far plane,
 // which would clip the whole map. Never shrinks an already-large far.
-export function cameraFarForRadius(currentFar, radius) {
+export function cameraFarForRadius(currentFar: number, radius: number): number {
   return Math.max(currentFar || 0, radius * 1.2);
 }
 
 // Default camera target: the player's IG base when the layout has one,
 // else the terrain bbox center. Pure (testable) — fitCameraToMap applies it.
-export function cameraTargetForMap(mapId, center) {
+export function cameraTargetForMap(mapId: string, center: THREE.Vector3): { x: number; y: number; z: number } {
   const igBase = factionBasePosition(mapId, PLAYER, 'ig');
   if (igBase) {
     return { x: igBase.x, y: 0, z: igBase.z };
@@ -229,7 +245,7 @@ export function cameraTargetForMap(mapId, center) {
   return { x: center.x, y: center.y, z: center.z };
 }
 
-function fitCameraToMap(root, mapId = '') {
+function fitCameraToMap(root: THREE.Group, mapId = ''): void {
   if (!camera) {
     return;
   }
@@ -263,7 +279,7 @@ function fitCameraToMap(root, mapId = '') {
   }
 }
 
-export function clearSgbMap(silent) {
+export function clearSgbMap(silent: boolean): void {
   const root = _activeRoot();
   if (root) {
     childMeshes(root).forEach((mesh) => disposeObj(mesh));

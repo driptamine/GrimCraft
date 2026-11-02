@@ -6,10 +6,12 @@
 // flips left<->right on screen while rows (world Z) and heights (world Y)
 // stay put. Faction positions are world-space entities outside this root,
 // so they are untouched.
-export function applySgbRootTransform(root, rotateDeg, flipH) {
+import type * as THREE from 'three';
+
+export function applySgbRootTransform(root: THREE.Object3D | null | undefined, rotateDeg: string | number, flipH: unknown): void {
   if (!root) {
     return;
   }
-  root.rotation.y = ((parseFloat(rotateDeg) || 0) * Math.PI) / 180;
+  root.rotation.y = ((parseFloat(rotateDeg as string) || 0) * Math.PI) / 180;
   root.scale.set(1, 1, flipH ? -1 : 1);
 }

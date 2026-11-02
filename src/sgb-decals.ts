@@ -2,36 +2,56 @@ import * as THREE from 'three';
 
 import { scene, canvas, pickAt } from './scene.js';
 import { mkPlane, mkLines, mkGroup, disposeObj, loadTexture } from './three-helpers.js';
+import type { MaybeMesh } from './three-helpers.js';
 import { decalBaseSize, decalFlatRotation, drapeDecalLocalZ, decalStoreDirs, decalLayer } from './decal-size.js';
+import type { SgbDecal, SgbMapData } from './sgb-parser.js';
 
-const DECAL_GLOB = import.meta.glob('/maps/**/decals/**/*.{png,jpg,jpeg,webp,tga,dds}', {
+const DECAL_GLOB: Record<string, string> = import.meta.glob('/maps/**/decals/**/*.{png,jpg,jpeg,webp,tga,dds}', {
   as: 'url',
   eager: true,
 });
 
-let _decalRoot = null;
-let _decalMeshes = [];
-let _decalTextureCache = new Map();
+interface DecalGroupEntry {
+  path: string;
+  url: string;
+  count: number;
+}
+
+interface DecalGroup extends DecalGroupEntry {
+  instances: {
+    index: number;
+    mesh: THREE.Mesh;
+    x: number;
+    z: number;
+    sizeRaw: number;
+    angle: number;
+    baseSize: number;
+  }[];
+}
+
+let _decalRoot: THREE.Group | null = null;
+let _decalMeshes: THREE.Mesh[] = [];
+let _decalTextureCache = new Map<string, THREE.Texture>();
 let _decalScale = 6;
 // Shown by default: the map's ground detail is part of the look.
 let _decalVisible = true;
-let _hiddenGroups = new Set();
+let _hiddenGroups = new Set<string>();
 
 const DECAL_MAX_HANG = 4;
 // Drape tessellation for layout-driven sheets (17×17 verts each).
 const DECAL_DRAPE_SEGMENTS = 16;
 
-let _hoverDecal = null;
-let _hoverOutline = null;
+let _hoverDecal: THREE.Mesh | null = null;
+let _hoverOutline: THREE.Object3D | null = null;
 let _decalHoverEnabled = false;
-let _selectedDecal = null;
-let _selectedOutline = null;
+let _selectedDecal: THREE.Mesh | null = null;
+let _selectedOutline: THREE.Object3D | null = null;
 let _decalPointerReady = false;
 
 const OUTLINE_HOVER = new THREE.Color(1, 0.9, 0.2);
 const OUTLINE_SELECT = new THREE.Color(1, 0.3, 0.3);
 
-function _makeOutline(mesh, color) {
+function _makeOutline(mesh: THREE.Mesh, color: THREE.Color): THREE.Object3D | null {
   // Hover mode OFF suppresses every decal outline (hover yellow + select
   // red). Callers store the null; _disposeOutline tolerates it.
   if (!_decalHoverEnabled) return null;
@@ -49,25 +69,25 @@ function _makeOutline(mesh, color) {
   return lines;
 }
 
-function _disposeOutline(outline) {
+function _disposeOutline(outline: THREE.Object3D | null): void {
   if (outline && !(outline.userData.disposed === true)) {
     disposeObj(outline);
   }
 }
 
-function _clearHover() {
+function _clearHover(): void {
   _disposeOutline(_hoverOutline);
   _hoverOutline = null;
   _hoverDecal = null;
 }
 
-function _clearSelected() {
+function _clearSelected(): void {
   _disposeOutline(_selectedOutline);
   _selectedOutline = null;
   _selectedDecal = null;
 }
 
-function _selectedLabel() {
+function _selectedLabel(): string {
   if (!_selectedDecal) {
     return '';
   }
@@ -77,7 +97,7 @@ function _selectedLabel() {
   return 'SELECTED: ' + name + ' · ' + size + '×' + size;
 }
 
-function _notifySelection() {
+function _notifySelection(): void {
   window.dispatchEvent(
     new CustomEvent('decal-selected', {
       detail: {
@@ -88,17 +108,17 @@ function _notifySelection() {
   );
 }
 
-export function getSelectedDecalPath() {
+export function getSelectedDecalPath(): string {
   return _selectedDecal?.userData?.decalPath || '';
 }
 
-export function getSelectedDecalIndex() {
+export function getSelectedDecalIndex(): number {
   if (!_selectedDecal) return -1;
   return _decalMeshes.indexOf(_selectedDecal);
 }
 
-export function getPlacedDecalList() {
-  const byPath = new Map();
+export function getPlacedDecalList(): DecalGroupEntry[] {
+  const byPath = new Map<string, DecalGroupEntry>();
   _decalMeshes.forEach((mesh) => {
     const path = mesh.userData?.decalPath || '';
     if (!path) {
@@ -115,8 +135,8 @@ export function getPlacedDecalList() {
   return Array.from(byPath.values()).sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export function getDecalGroups() {
-  const byPath = new Map();
+export function getDecalGroups(): DecalGroup[] {
+  const byPath = new Map<string, DecalGroup>();
   _decalMeshes.forEach((mesh, idx) => {
     const path = mesh.userData?.decalPath || '';
     if (!path) return;
@@ -139,7 +159,7 @@ export function getDecalGroups() {
   return Array.from(byPath.values()).sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export function selectDecalByPath(path) {
+export function selectDecalByPath(path: string): void {
   const decal = _decalMeshes.find((mesh) => mesh.userData?.decalPath === path) || null;
   if (!decal) {
     return;
@@ -152,7 +172,7 @@ export function selectDecalByPath(path) {
   _notifySelection();
 }
 
-export function selectDecalAt(index) {
+export function selectDecalAt(index: number): void {
   const decal = _decalMeshes[index] || null;
   if (!decal) return;
   _clearSelected();
@@ -163,7 +183,7 @@ export function selectDecalAt(index) {
   _notifySelection();
 }
 
-export function selectDecal(mesh) {
+export function selectDecal(mesh: THREE.Mesh): void {
   if (!mesh || !_decalMeshes.includes(mesh)) return;
   _clearSelected();
   _selectedDecal = mesh;
@@ -173,16 +193,16 @@ export function selectDecal(mesh) {
   _notifySelection();
 }
 
-export function getSelectedDecal() {
+export function getSelectedDecal(): THREE.Mesh | null {
   return _selectedDecal;
 }
 
-export function getSelectedDecalPosition() {
+export function getSelectedDecalPosition(): { x: number; y: number; z: number } | null {
   if (!_selectedDecal) return null;
   return { x: _selectedDecal.position.x, y: _selectedDecal.position.y, z: _selectedDecal.position.z };
 }
 
-export function setSelectedDecalPosition({ x, y, z }) {
+export function setSelectedDecalPosition({ x, y, z }: { x?: number; y?: number; z?: number }): boolean {
   if (!_selectedDecal) return false;
   if (typeof x === 'number' && Number.isFinite(x)) {
     _selectedDecal.position.x = x;
@@ -211,31 +231,32 @@ export function setSelectedDecalPosition({ x, y, z }) {
   return true;
 }
 
-function _decalForPicked(picked) {
+function _decalForPicked(picked: THREE.Object3D | null): THREE.Mesh | null {
   if (!picked) {
     return null;
   }
-  if (_decalMeshes.includes(picked)) {
-    return picked;
+  if (_decalMeshes.includes(picked as THREE.Mesh)) {
+    return picked as THREE.Mesh;
   }
   const owner = String(picked.name || '').startsWith('decal-outline-')
     ? picked.parent
     : null;
-  if (owner && _decalMeshes.includes(owner)) {
-    return owner;
+  if (owner && _decalMeshes.includes(owner as THREE.Mesh)) {
+    return owner as THREE.Mesh;
   }
   return null;
 }
 
-function setupDecalPointerActions() {
+function setupDecalPointerActions(): void {
   if (_decalPointerReady) {
     return;
   }
   _decalPointerReady = true;
-  const pickDecal = (event) => {
-    const hit = pickAt(event.clientX, event.clientY, (mesh) => _decalMeshes.includes(mesh));
+  const pickDecal = (event: PointerEvent): THREE.Mesh | null => {
+    const hit = pickAt(event.clientX, event.clientY, (mesh: THREE.Mesh) => _decalMeshes.includes(mesh));
     return _decalForPicked(hit.pickedMesh || null);
   };
+  if (canvas) {
   canvas.addEventListener('pointermove', (event) => {
     if (!_decalHoverEnabled) {
       if (_hoverDecal) _clearHover();
@@ -271,15 +292,16 @@ function setupDecalPointerActions() {
     setSgbDecalStatus(_selectedLabel(), 'ok');
     _notifySelection();
   });
+  }
 }
 
 // Re-attach canvas listeners after a render-backend swap replaces the canvas.
-export function rebindDecalPointerActions() {
+export function rebindDecalPointerActions(): void {
   _decalPointerReady = false;
   setupDecalPointerActions();
 }
 
-function setSgbDecalStatus(msg, className = '') {
+function setSgbDecalStatus(msg: string, className = ''): void {
   const element = document.getElementById('terrain-decal-status');
   if (!element) {
     return;
@@ -288,12 +310,12 @@ function setSgbDecalStatus(msg, className = '') {
   element.className = 'terrain-status' + (className ? ' ' + className : '');
 }
 
-function fileUrlForDecalPath(path) {
+function fileUrlForDecalPath(path: string): string | null {
   const rel = String(path || '')
     .replace(/^art\/decals\//, '')
     .replace(/\.(tga|dds|png|jpe?g|webp)$/i, '');
   if (!rel) return null;
-  const mapKey = (typeof window !== 'undefined' && window._currentMapKey) || '';
+  const mapKey = (typeof window !== 'undefined' && (window as unknown as { _currentMapKey?: unknown })._currentMapKey) || '';
   for (const dir of decalStoreDirs(mapKey)) {
     for (const ext of ['.png', '.tga', '.dds', '.jpg', '.webp']) {
       const key = dir + rel + ext;
@@ -303,7 +325,7 @@ function fileUrlForDecalPath(path) {
   return null; // unresolved: caller skips (no black 404 planes)
 }
 
-function _createDecalMaterial(url, idx) {
+function _createDecalMaterial(url: string, idx: number): THREE.Material {
   const mat = new THREE.MeshBasicMaterial();
   // Do not tint the texture — unlit white base; transparent alpha-blend just
   // like the old ALPHABLEND path so semi-transparent PNG pixels survive.
@@ -332,7 +354,7 @@ function _createDecalMaterial(url, idx) {
   return mat;
 }
 
-export function clearSgbDecals() {
+export function clearSgbDecals(): void {
   _clearHover();
   _clearSelected();
   (_decalMeshes || []).forEach((mesh) => {
@@ -342,7 +364,7 @@ export function clearSgbDecals() {
   });
   _decalMeshes = [];
   _hiddenGroups.clear();
-  _decalTextureCache.forEach((t) => disposeObj(t));
+  _decalTextureCache.forEach((t) => disposeObj(t as unknown as MaybeMesh));
   _decalTextureCache = new Map();
   if (_decalRoot && !(_decalRoot.userData.disposed === true)) {
     disposeObj(_decalRoot);
@@ -350,11 +372,11 @@ export function clearSgbDecals() {
   _decalRoot = null;
 }
 
-export function isDecalGroupVisible(path) {
+export function isDecalGroupVisible(path: string): boolean {
   return !_hiddenGroups.has(path);
 }
 
-export function setDecalGroupVisible(path, visible) {
+export function setDecalGroupVisible(path: string, visible: boolean): void {
   if (!path) return;
   if (visible) _hiddenGroups.delete(path);
   else _hiddenGroups.add(path);
@@ -373,7 +395,7 @@ export function setDecalGroupVisible(path, visible) {
   );
 }
 
-export function toggleDecalGroup(path) {
+export function toggleDecalGroup(path: string): boolean {
   const next = !isDecalGroupVisible(path);
   setDecalGroupVisible(path, next);
   return next;
@@ -383,9 +405,9 @@ export function toggleDecalGroup(path) {
 // Called at build time and after every scale-slider resize (XZ stretch
 // would otherwise detach the sheet from the relief). Recomputes the
 // bounding sphere so frustum culling and picking stay correct.
-function _drapeDecalPlane(plane) {
+function _drapeDecalPlane(plane: THREE.Mesh): void {
   const drape = plane.userData?.drape;
-  const posAttr = plane.geometry?.attributes?.position;
+  const posAttr = plane.geometry?.attributes?.position as THREE.BufferAttribute | undefined;
   if (!drape || !posAttr) {
     return;
   }
@@ -402,11 +424,11 @@ function _drapeDecalPlane(plane) {
   plane.geometry.computeBoundingSphere();
 }
 
-export function updateSgbDecalScale(value) {
-  _decalScale = parseFloat(value) || 300;
+export function updateSgbDecalScale(value: string | number): void {
+  _decalScale = parseFloat(String(value)) || 300;
   const el = document.getElementById('terrain-decal-scale-val');
   if (el) {
-    el.textContent = Math.round(_decalScale);
+    el.textContent = String(Math.round(_decalScale));
   }
   _decalMeshes.forEach((mesh) => {
     mesh.scale.setScalar(1);
@@ -419,28 +441,28 @@ export function updateSgbDecalScale(value) {
   setSgbDecalStatus('DECAL SCALE ' + Math.round(_decalScale), '');
 }
 
-function setDecalButtonLabel() {
+function setDecalButtonLabel(): void {
   // every master switch (terrain panel + decals tab) stays in sync
   document.querySelectorAll('[data-decal-toggle]').forEach((button) => {
     button.textContent = _decalVisible ? '👁 DECALS: HIDE' : '👁 DECALS: SHOW';
   });
 }
 
-export function areSgbDecalsVisible() {
+export function areSgbDecalsVisible(): boolean {
   return _decalVisible;
 }
 
-export function isDecalHoverEnabled() {
+export function isDecalHoverEnabled(): boolean {
   return _decalHoverEnabled;
 }
 
-function setDecalHoverLabel() {
+function setDecalHoverLabel(): void {
   document.querySelectorAll('[data-decal-hover]').forEach((button) => {
     button.textContent = _decalHoverEnabled ? '◈ HOVER: ON' : '◈ HOVER: OFF';
   });
 }
 
-export function toggleDecalHover() {
+export function toggleDecalHover(): boolean {
   _decalHoverEnabled = !_decalHoverEnabled;
   if (!_decalHoverEnabled) {
     _clearHover();
@@ -457,7 +479,7 @@ export function toggleDecalHover() {
   return _decalHoverEnabled;
 }
 
-export function toggleSgbDecals() {
+export function toggleSgbDecals(): void {
   _decalVisible = !_decalVisible;
   if (_decalRoot && !(_decalRoot.userData.disposed === true)) {
     _decalRoot.visible = _decalVisible;
@@ -480,10 +502,10 @@ export function toggleSgbDecals() {
   setDecalButtonLabel();
 }
 
-export function buildSgbDecals(root, mapData, sampleHeight) {
+export function buildSgbDecals(root: THREE.Group | null, mapData: SgbMapData | null, sampleHeight: (x: number, z: number) => number): void {
   clearSgbDecals();
-  const linkById = new Map(
-    (mapData?.decalLinks || []).map((link) => [link.id, link.path]),
+  const linkById = new Map<number, string>(
+    (mapData?.decalLinks || []).map((link): [number, string] => [link.id, link.path]),
   );
   const records = mapData?.decals || [];
   // Build every record whose texture resolves; skip the rest (missing
@@ -503,11 +525,11 @@ export function buildSgbDecals(root, mapData, sampleHeight) {
   root.add(_decalRoot);
   _decalRoot.visible = _decalVisible;
 
-  const materialByPath = new Map();
+  const materialByPath = new Map<string, THREE.Material>();
 
   decals.forEach((decal, i) => {
     const path = linkById.get(decal.decalIdx) || '';
-    const url = fileUrlForDecalPath(path);
+    const url = fileUrlForDecalPath(path) as string;
     let material = materialByPath.get(url);
     if (!material) {
       material = _createDecalMaterial(url, i);
@@ -532,7 +554,7 @@ export function buildSgbDecals(root, mapData, sampleHeight) {
       }
     }
     const plane = mkPlane('SGB_Decal_' + i, side, side, true);
-    _decalRoot.add(plane);
+    _decalRoot!.add(plane);
     plane.material = material;
     // Fixed draw sequence (negative: before all other transparents): kills
     // the per-frame resort flicker between overlapping sheets.
@@ -548,9 +570,10 @@ export function buildSgbDecals(root, mapData, sampleHeight) {
     _decalMeshes.push(plane);
   });
 
-  const byType = new Map();
+  const byType = new Map<string, number>();
   _decalMeshes.forEach((mesh) => {
-    byType.set(mesh.material?.name, (byType.get(mesh.material?.name) || 0) + 1);
+    const matName = (mesh.material as THREE.Material | null)?.name ?? '';
+    byType.set(matName, (byType.get(matName) || 0) + 1);
   });
   setSgbDecalStatus(
     '✓ ' + _decalMeshes.length + ' SGB DECALS PLACED · SCALE ' + Math.round(_decalScale),
@@ -567,14 +590,18 @@ export function buildSgbDecals(root, mapData, sampleHeight) {
  * per-map ground sheet (terrain.ground_texture). Scale follows the same
  * _decalScale slider; at the default 6 a size_raw of 0.05 ≈ 25 world units.
  */
-export function buildSgbDecalsFromLayout(root, layout, sampleHeight) {
+export function buildSgbDecalsFromLayout(
+  root: THREE.Group | null,
+  layout: { decals?: { ref: string; x: number; z: number; size_raw: number; rotation_rad: number }[] } | null,
+  sampleHeight: (x: number, z: number) => number,
+): void {
   clearSgbDecals();
   const entries = layout?.decals || [];
   const decals = entries.map((d) => {
     const path = d.ref || '';
     return {
       path,
-      url: fileUrlForDecalPath(path),
+      url: fileUrlForDecalPath(path) as string,
       x: d.x,
       z: d.z,
       sizeRaw: d.size_raw,
@@ -592,7 +619,7 @@ export function buildSgbDecalsFromLayout(root, layout, sampleHeight) {
   root.add(_decalRoot);
   _decalRoot.visible = _decalVisible;
 
-  const materialByUrl = new Map();
+  const materialByUrl = new Map<string, THREE.Material>();
 
   decals.forEach((decal, i) => {
     let material = materialByUrl.get(decal.url);
@@ -610,7 +637,7 @@ export function buildSgbDecalsFromLayout(root, layout, sampleHeight) {
     // edges — chaos taint hung +7 above ground).
     plane.geometry.dispose();
     plane.geometry = new THREE.PlaneGeometry(side, side, DECAL_DRAPE_SEGMENTS, DECAL_DRAPE_SEGMENTS);
-    _decalRoot.add(plane);
+    _decalRoot!.add(plane);
     plane.material = material;
     // Fixed draw sequence (negative: before all other transparents): kills
     // the per-frame resort flicker between overlapping sheets.
@@ -623,17 +650,19 @@ export function buildSgbDecalsFromLayout(root, layout, sampleHeight) {
 
     plane.scale.x = size / side;
     plane.scale.y = size / side;
-    plane.userData.drape = sampleHeight ? {
+    const drapeSampler: ((x: number, z: number) => number) | null = sampleHeight;
+    plane.userData.drape = drapeSampler ? {
       yaw: rot.z, centerX: decal.x, centerZ: decal.z,
-      centerH: y - 0.08, sampleHeight,
+      centerH: y - 0.08, sampleHeight: drapeSampler,
     } : null;
     _drapeDecalPlane(plane);
     _decalMeshes.push(plane);
   });
 
-  const byType = new Map();
+  const byType = new Map<string, number>();
   _decalMeshes.forEach((mesh) => {
-    byType.set(mesh.material?.name, (byType.get(mesh.material?.name) || 0) + 1);
+    const matName = (mesh.material as THREE.Material | null)?.name ?? '';
+    byType.set(matName, (byType.get(matName) || 0) + 1);
   });
   setSgbDecalStatus(
     '✓ ' + _decalMeshes.length + ' LAYOUT DECALS PLACED · SCALE ' + Math.round(_decalScale),

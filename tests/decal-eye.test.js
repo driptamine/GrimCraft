@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 describe('decal-group eye toggle', () => {
   it('sgb-decals exposes group visibility API', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
     assert.match(src, /export function isDecalGroupVisible/);
     assert.match(src, /export function setDecalGroupVisible/);
     assert.match(src, /export function toggleDecalGroup/);
