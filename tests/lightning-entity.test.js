@@ -12,7 +12,7 @@ headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
 const { World } = await import('../src/core/ecs.js');
 const { createLightningEntity, createSquadEntity, getSoldierMuzzlePos } = await import('../src/entities/entities.js');
-const { NecronLightning } = await import('../src/necron-lightning.js');
+const { NecronLightning } = await import('../src/fx/necron-lightning.js');
 const { systemBeam } = await import('../src/core/systems.js');
 
 function makeStubWorld() {

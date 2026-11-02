@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import {
   setDefaultScene, mkBox, mkTorus, mkLineSystem, mkGroup, childMeshes,
   descendants, disposeObj, ghostHitboxMaterial, matchHiddenNodeName,
-} from '../src/three-helpers.js';
-import { AnimGroup, instantiateGltf, mixerThrottleStep, updateMixers } from '../src/gltf-models.js';
+} from '../src/render/three-helpers.js';
+import { AnimGroup, instantiateGltf, mixerThrottleStep, updateMixers } from '../src/render/gltf-models.js';
 
 describe('three.js migration plumbing', () => {
   it('factories attach named meshes to the default scene', () => {

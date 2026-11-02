@@ -6,14 +6,14 @@ import {
   playerFaction,
   resolveFactionKey,
 } from '../factions.js';
-import { instantiateGltf, type AnimGroup, type GltfContainer } from '../gltf-models.js';
-import { getMat } from '../mat-cache.js';
-import { useProceduralModels } from '../model-source.js';
-import { _assetContainer, _cloneCustomModel } from '../model-upload.js';
-import { addNecronAura } from '../necron-aura.js';
-import { attachGaussConduit } from '../necron-conduit.js';
-import { applyPlasmaGlow } from '../plasma-glow.js';
-import { addPlasmaPistolGlow } from '../plasma-pistol-glow.js';
+import { instantiateGltf, type AnimGroup, type GltfContainer } from '../render/gltf-models.js';
+import { getMat } from '../render/mat-cache.js';
+import { useProceduralModels } from '../render/model-source.js';
+import { _assetContainer, _cloneCustomModel } from '../render/model-upload.js';
+import { addNecronAura } from '../fx/necron-aura.js';
+import { attachGaussConduit } from '../fx/necron-conduit.js';
+import { applyPlasmaGlow } from '../fx/plasma-glow.js';
+import { addPlasmaPistolGlow } from '../fx/plasma-pistol-glow.js';
 import {
   HITBOX_SIZE,
   PLAYER,
@@ -36,7 +36,7 @@ import {
   mkSharedMesh,
   mkSphere,
   mkTorus,
-} from '../three-helpers.js';
+} from '../render/three-helpers.js';
 import type { AnyGroup, MetaPayload } from './types.js';
 
 

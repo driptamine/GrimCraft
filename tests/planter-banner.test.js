@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
-import { findNodesByName } from '../src/three-helpers.js';
+import { findNodesByName } from '../src/render/three-helpers.js';
 
 function glbNodeNames(url) {
   const buf = readFileSync(url);

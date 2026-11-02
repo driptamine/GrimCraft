@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { useProceduralModels } from '../model-source.js';
-import { _instantiateFromContainer } from '../model-upload.js';
+import { useProceduralModels } from '../render/model-source.js';
+import { _instantiateFromContainer } from '../render/model-upload.js';
 import { PLAYER, scene } from '../core/scene.js';
 import {
   findNodesByName,
@@ -8,10 +8,10 @@ import {
   mkCylinder,
   mkGroup,
   mkSphere,
-} from '../three-helpers.js';
+} from '../render/three-helpers.js';
 import { _factionBucket } from './common.js';
 import type { AnyGroup, MetaPayload } from './types.js';
-import type { GltfContainer } from '../gltf-models.js';
+import type { GltfContainer } from '../render/gltf-models.js';
 
 
 export const SP_MODEL_PATHS = {
@@ -328,8 +328,8 @@ export async function _loadPointContainer(kind: string): Promise<GltfContainer |
   }
   try {
     const [{ loadGltf }, { modelUrl }] = await Promise.all([
-      import('../gltf-models.js'),
-      import('../assets.js'),
+      import('../render/gltf-models.js'),
+      import('../render/assets.js'),
     ]);
     const container = await loadGltf(modelUrl(SP_MODEL_PATHS[kind as keyof typeof SP_MODEL_PATHS]));
     if (container) {

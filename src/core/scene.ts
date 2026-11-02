@@ -3,17 +3,17 @@ import { bump } from '../hud/store.js';
 import {
   BACKEND_WEBGL, BACKEND_WEBGPU, isWebGPUSupported, readStoredBackend,
   writeStoredBackend, resolveBootBackend,
-} from '../render-backend.js';
+} from '../render/render-backend.js';
 import {
   setDefaultScene, mkBox, mkCylinder, mkSphere, mkGround, mkLineSystem, disposeObj,
   ghostHitboxMaterial, classifyGPU, pixelRatioForTier, isQualityLevel,
   resolveQualityTier, nextQualityTier, qualityShadowsEnabled,
   qualityAntialiasEnabled, QUALITY_STORAGE_KEY,
-} from '../three-helpers.js';
-import { macroLinePositions, microLinePositions } from '../grid-helper.js';
-import { boundsFor } from '../map-layout.js';
-import { MIN_ZOOM_RADIUS, MAX_ZOOM_RADIUS, DEFAULT_CAMERA_RADIUS } from '../camera-zoom.js';
-import { updateFirstPersonCamera, updateThirdPersonCamera } from '../camera-fps.js';
+} from '../render/three-helpers.js';
+import { macroLinePositions, microLinePositions } from '../render/grid-helper.js';
+import { boundsFor } from '../maps/map-layout.js';
+import { MIN_ZOOM_RADIUS, MAX_ZOOM_RADIUS, DEFAULT_CAMERA_RADIUS } from '../render/camera-zoom.js';
+import { updateFirstPersonCamera, updateThirdPersonCamera } from '../render/camera-fps.js';
 
 declare global {
   interface Window {

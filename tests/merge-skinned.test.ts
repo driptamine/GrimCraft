@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { mergeSkinnedContainer, SOLDIER_SWITCHED_NODES } from '../src/merge-skinned.js';
+import { mergeSkinnedContainer, SOLDIER_SWITCHED_NODES } from '../src/render/merge-skinned.js';
 
 function skinAttr(geo: THREE.BufferGeometry, joint: number) {
   const n = geo.getAttribute('position').count;

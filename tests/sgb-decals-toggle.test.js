@@ -4,7 +4,7 @@ import { register } from 'node:module';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] };
-const { areSgbDecalsVisible, toggleSgbDecals } = await import('../src/sgb-decals.ts');
+const { areSgbDecalsVisible, toggleSgbDecals } = await import('../src/maps/sgb-decals.ts');
 
 describe('sgb decals master toggle', () => {
   it('starts shown, toggle flips it back and forth', () => {

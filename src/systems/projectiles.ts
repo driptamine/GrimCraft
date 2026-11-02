@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { updatePlasmaBoltCrackle } from '../plasma-bolt.js';
+import { updatePlasmaBoltCrackle } from '../fx/plasma-bolt.js';
 import {
   PLAYER,
   addBeforeRender,
@@ -9,7 +9,7 @@ import {
   removeBeforeRender,
   world,
 } from '../core/scene.js';
-import { childMeshes, disposeObj, mkBox, mkDisc } from '../three-helpers.js';
+import { childMeshes, disposeObj, mkBox, mkDisc } from '../render/three-helpers.js';
 import { _bulletDestroy, _soldierTakeDamage, spawnParticles } from './combat.js';
 import { _groundAt, _snapTerrainBegin } from './terrain.js';
 

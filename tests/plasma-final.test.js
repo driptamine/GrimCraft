@@ -11,7 +11,7 @@ globalThis.window = {};
 globalThis.document = { getElementById: () => null };
 const systems = await import('../src/core/systems.js');
 const entities = await import('../src/entities/entities.js');
-const plasmaBolt = await import('../src/plasma-bolt.js');
+const plasmaBolt = await import('../src/fx/plasma-bolt.js');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readSrc = (p) => fs.readFileSync(path.join(root, p), 'utf8');

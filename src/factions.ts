@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { modelUrl } from './assets.js';
-import { loadGltf, type GltfContainer } from './gltf-models.js';
-import { loadTeamcolour, teamcolorHex } from './teamcolour.js';
-import { mergeStaticContainer } from './merge-static.js';
-import { mergeSkinnedContainer } from './merge-skinned.js';
+import { modelUrl } from './render/assets.js';
+import { loadGltf, type GltfContainer } from './render/gltf-models.js';
+import { loadTeamcolour, teamcolorHex } from './ui/teamcolour.js';
+import { mergeStaticContainer } from './render/merge-static.js';
+import { mergeSkinnedContainer } from './render/merge-skinned.js';
 import { bump } from './hud/store.js';
 import type { FactionConfig, FactionKey } from './factions/types.js';
 

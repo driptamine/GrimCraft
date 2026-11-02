@@ -65,7 +65,7 @@ export async function load(url, context, next) {
       shortCircuit: true,
     };
   }
-  if (url.endsWith('/src/assets.js') || url.endsWith('/src/assets.ts')) {
+  if (url.endsWith('/src/render/assets.js') || url.endsWith('/src/render/assets.ts')) {
     // src/assets reads import.meta.env (Vite-only). Serve the real source
     // with just those expressions neutralized so modelUrl()/assetUrl() are
     // identity here. The .ts source still carries type annotations, so run

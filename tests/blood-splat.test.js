@@ -11,7 +11,7 @@ const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
 const { particles } = await import('../src/core/scene.js');
-const { isGuardsmanMesh, spawnBloodSplat } = await import('../src/blood/blood-splat.js');
+const { isGuardsmanMesh, spawnBloodSplat } = await import('../src/fx/blood/blood-splat.js');
 const { _soldierTakeDamage } = await import('../src/systems/combat.js');
 const { World } = await import('../src/core/ecs.js');
 

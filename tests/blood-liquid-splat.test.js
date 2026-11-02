@@ -11,7 +11,7 @@ const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
 const { particles } = await import('../src/core/scene.js');
-const { spawnBloodLiquid } = await import('../src/blood/blood-liquid-splat.js');
+const { spawnBloodLiquid } = await import('../src/fx/blood/blood-liquid-splat.js');
 
 describe('liquid blood', () => {
   it('sprays mist plus gore, nothing else', () => {

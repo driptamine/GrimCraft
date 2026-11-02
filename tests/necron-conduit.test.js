@@ -10,7 +10,7 @@ const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
-const { attachGaussConduit, updateNecronConduits } = await import('../src/necron-conduit.js');
+const { attachGaussConduit, updateNecronConduits } = await import('../src/fx/necron-conduit.js');
 const { makeSoldierMesh } = await import('../src/meshes.js');
 const { factionContainers } = await import('../src/factions.js');
 

@@ -4,7 +4,7 @@ import {
   classifyGPU, pixelRatioForTier, isQualityLevel, resolveQualityTier,
   nextQualityTier, qualityShadowsEnabled, qualityAntialiasEnabled,
   createDynamicResolution,
-} from '../src/three-helpers.js';
+} from '../src/render/three-helpers.js';
 
 describe('gpu quality tier', () => {
   it('classifies Intel integrated GPUs as low tier', () => {

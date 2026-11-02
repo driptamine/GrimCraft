@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { createChunkReader, isChunky } from './sgb-reader.js';
 import { createRshParser } from './rsh.js';
 import { createRtxParser } from './rtx.js';
-import { mkEmptyMesh, loadTexture } from '../three-helpers.js';
+import { mkEmptyMesh, loadTexture } from '../render/three-helpers.js';
 
 export const NUM_BONE_SLOTS = 4;
 

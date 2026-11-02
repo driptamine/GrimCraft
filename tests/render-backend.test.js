@@ -8,7 +8,7 @@ import {
   resolveBootBackend,
   nextBackend,
   backendButtonState,
-} from '../src/render-backend.js';
+} from '../src/render/render-backend.js';
 
 function memStorage(initial = {}) {
   const map = new Map(Object.entries(initial));

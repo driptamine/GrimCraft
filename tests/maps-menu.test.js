@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { displayName, playersFor, previewFor, listBuiltinMaps, entryLabel, previewState, skirmishMapCards, defaultSkirmishMap } from '../src/maps-menu.js';
+import { displayName, playersFor, previewFor, listBuiltinMaps, entryLabel, previewState, skirmishMapCards, defaultSkirmishMap } from '../src/ui/maps-menu.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -81,7 +81,7 @@ describe('map selection menu', () => {
   });
 
   it('skirmish grid defaults the selection to alvarus', () => {
-    const src = fs.readFileSync(path.join(root, 'src/multiplayer.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/net/multiplayer.ts'), 'utf8');
     const grid = src.slice(src.indexOf('function _buildMapGrid'), src.indexOf('function _setConnectOverlay'));
     assert.ok(grid.includes('defaultSkirmishMap(cards)'), 'grid consults the default');
     assert.ok(grid.includes('_selectedMap = { path: def.path, url: def.url, name: def.name };'), 'default becomes the selection');
@@ -99,7 +99,7 @@ describe('map selection menu', () => {
 
 describe('alvarus ground sheet', () => {
   it('uses the DDS-derived PNG, and the file is a real 256x256 PNG', () => {
-    const src = fs.readFileSync(path.join(root, 'src/maps-menu.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/ui/maps-menu.ts'), 'utf8');
     assert.match(src, /loadTerrainTextureUrl\('\/maps\/6p_alvarus\/decals\/terrain\/chaos_taint_02_dds\.png', '6P ALVARUS'\)/);
     const buf = fs.readFileSync(path.join(root, 'maps/6p_alvarus/decals/terrain/chaos_taint_02_dds.png'));
     assert.equal(buf.subarray(1, 4).toString(), 'PNG');

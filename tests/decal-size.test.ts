@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as THREE from 'three';
-import { ALVARUS_DECAL_STORE, decalBaseSize, decalFlatRotation, decalStoreDirs, drapeDecalLocalZ, isChaosDecal } from '../src/decal-size.js';
+import { ALVARUS_DECAL_STORE, decalBaseSize, decalFlatRotation, decalStoreDirs, drapeDecalLocalZ, isChaosDecal } from '../src/maps/decal-size.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -63,7 +63,7 @@ describe('sgb decal sizes', () => {
   });
 
   it('sgb path uses the helper, layout path keeps its own formula', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-decals.ts'), 'utf8');
     assert.match(src, /import \{ decalBaseSize, decalFlatRotation, drapeDecalLocalZ, decalStoreDirs, decalLayer \} from '\.\/decal-size\.js';/);
     assert.match(src, /const baseSize = decalBaseSize\(path, decal\.size\);/);
     // layout-driven builder untouched: same inline calibration, no chaos branch
@@ -100,7 +100,7 @@ describe('sgb decal orientation', () => {
   });
 
   it('both builders use the flat helper, no Y-yaw left', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-decals.ts'), 'utf8');
     assert.equal((src.match(/decalFlatRotation\(decal\.angle\)/g) || []).length, 2);
     assert.doesNotMatch(src, /rotation\.y = decal\.angle/);
   });
@@ -143,7 +143,7 @@ describe('sgb decal drape', () => {
   });
 
   it('layout builder drapes sheets onto the relief', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-decals.ts'), 'utf8');
     assert.match(src, /new THREE\.PlaneGeometry\(side, side, DECAL_DRAPE_SEGMENTS, DECAL_DRAPE_SEGMENTS\)/);
     assert.match(src, /_drapeDecalPlane\(plane\)/);
     assert.match(src, /userData\.drape/);
@@ -173,7 +173,7 @@ describe('sgb decal stores', () => {
 
 describe('sgb decal default scale', () => {
   it('defaults to 6 in code and slider (12 rendered oversized on scene)', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-decals.ts'), 'utf8');
     assert.match(src, /let _decalScale = 6;/);
     const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     assert.match(html, /id="terrain-decal-scale"[^>]*value="6"/);

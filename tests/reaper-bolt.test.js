@@ -20,7 +20,7 @@ const {
   updateReaperBoltFx,
   REAPER_CORE_NAME,
   REAPER_SHELL_NAME,
-} = await import('../src/reaper-bolt.js');
+} = await import('../src/fx/reaper-bolt.js');
 
 function collectByName(root) {
   const found = {};

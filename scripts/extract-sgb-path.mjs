@@ -14,8 +14,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as THREE from 'three';
-import { createChunkReader } from '../src/sgb-reader.js';
-import { applySgbRootTransform } from '../src/sgb-mirror.js';
+import { createChunkReader } from '../src/maps/sgb-reader.js';
+import { applySgbRootTransform } from '../src/maps/sgb-mirror.js';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const srcPath = join(rootDir, 'maps', '6p_alvarus', '6p_alvarus.sgb');

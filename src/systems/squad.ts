@@ -16,7 +16,7 @@ import {
 import { FACTIONS } from '../factions.js';
 import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
-import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../plasma-bolt.js';
+import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../fx/plasma-bolt.js';
 import {
   FLY_CLIMB,
   FLY_CRUISE_ALT,
@@ -54,8 +54,8 @@ import {
   shouldHoldForCapture,
   shouldTickCapture,
 } from '../entities/soldier-aim.js';
-import { childMeshes, disposeObj, findNodesByName } from '../three-helpers.js';
-import { getRideInfo, yieldSlotBehind } from '../camera-fps.js';
+import { childMeshes, disposeObj, findNodesByName } from '../render/three-helpers.js';
+import { getRideInfo, yieldSlotBehind } from '../render/camera-fps.js';
 import { findClosestEnemySoldier } from './combat.js';
 import { _strategicPointUpdateOwner } from './points.js';
 import { _avoidDir, _groundAt, _snapTerrainBegin, _steerSquadFacing } from './terrain.js';

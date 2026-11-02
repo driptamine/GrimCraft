@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
-const layout = await import('../src/map-layout.js');
+const layout = await import('../src/maps/map-layout.js');
 const { FACTIONS } = await import('../src/factions.js');
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));

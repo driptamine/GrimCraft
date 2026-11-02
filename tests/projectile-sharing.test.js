@@ -15,7 +15,7 @@ const {
   makeBulletMesh, makeLaserBulletMesh, makePlasmaBulletMesh, makeGrenadeMesh,
 } = await import('../src/meshes.js');
 const { spawnParticles } = await import('../src/core/systems.js');
-const { disposeObj } = await import('../src/three-helpers.js');
+const { disposeObj } = await import('../src/render/three-helpers.js');
 
 // High-rate throwaways (shots, hit particles) share one BufferGeometry per
 // type instead of allocating + uploading a fresh one per instance.

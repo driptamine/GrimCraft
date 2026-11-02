@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createSgbParser } from '../src/sgb-parser.js';
+import { createSgbParser } from '../src/maps/sgb-parser.js';
 import { applyPathEdits } from '../pathfinding/astar-integrated.js';
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');

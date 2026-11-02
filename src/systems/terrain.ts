@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { sgbGroundY, sgbSurfaceSnapY } from '../sgb-surface.js';
+import { sgbGroundY, sgbSurfaceSnapY } from '../maps/sgb-surface.js';
 import { HILL_RELEASE_DIST, sgbAvoidUphill } from '../../pathfinding/avoid.js';
 
 export const _snapV = new THREE.Vector3();

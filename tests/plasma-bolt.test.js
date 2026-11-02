@@ -21,8 +21,8 @@ const {
   BOLT_CORE_NAME,
   BOLT_SHELL_NAME,
   BOLT_HALO_NAME,
-} = await import('../src/plasma-bolt.js');
-const { disposeObj } = await import('../src/three-helpers.js');
+} = await import('../src/fx/plasma-bolt.js');
+const { disposeObj } = await import('../src/render/three-helpers.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
 

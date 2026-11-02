@@ -1,13 +1,13 @@
 import * as THREE from 'three';
-import { DEFAULT_CAMERA_ALPHA, DEFAULT_CAMERA_BETA, DEFAULT_CAMERA_RADIUS, applyZoom } from '../camera-zoom.js';
+import { DEFAULT_CAMERA_ALPHA, DEFAULT_CAMERA_BETA, DEFAULT_CAMERA_RADIUS, applyZoom } from '../render/camera-zoom.js';
 import {
   cursorCss,
   getModalCursor,
   preloadCursors,
   resolveCursor,
   withinHoverRadius,
-} from '../cursors.js';
-import { preloadTaskbarIcons } from '../taskbar-icons.js';
+} from '../ui/cursors.js';
+import { preloadTaskbarIcons } from '../ui/taskbar-icons.js';
 import { updateHUD } from '../core/hud.js';
 import { buildMenuOpen, setBuildMenuOpen } from '../hud/store.js';
 import {
@@ -24,9 +24,9 @@ import {
   set_hoverEnemySquad,
   world,
 } from '../core/scene.js';
-import { isDecalHoverEnabled } from '../sgb-decals.js';
+import { isDecalHoverEnabled } from '../maps/sgb-decals.js';
 import { _apcEjectPassengers } from '../core/systems.js';
-import { disposeObj } from '../three-helpers.js';
+import { disposeObj } from '../render/three-helpers.js';
 import { cancelBuild, setGhostPending } from './build-ghost.js';
 import { initTouchControls } from './touch-controls.js';
 import {
@@ -34,7 +34,7 @@ import {
   setAltDown, setAltOrbitLast, setIsAltOrbiting, setIsOrbiting, setIsSelecting, setLastHoverPickT, setMouseEntered, setMouseX, setMouseY, setRangeCirclesVisible, setRightDown, setRightDragStartPos, setRightLastPos, setSelEnd, setSelStart,
 } from './camera.js';
 import { _boardSquadOntoApc, _flyArmed, _pendingBuilderCommand, _tryBuilderCommandClick, cancelFlyTargeting, clearBuilderCommand, issueFpsShot, issueRightClick, placeBuild, placeListeningPost, setBuilderCommand } from './orders.js';
-import { copyGunPose, fpsAimPoint, fpsLook, initGunPosePanel, isGunEditMode, isShooterMode, setCameraMode, toggleCameraFps, toggleGunEditMode } from '../camera-fps.js';
+import { copyGunPose, fpsAimPoint, fpsLook, initGunPosePanel, isGunEditMode, isShooterMode, setCameraMode, toggleCameraFps, toggleGunEditMode } from '../render/camera-fps.js';
 import { clearSelection, doBoxSelect, doClickSelect, pickMesh, raycastGround } from './selection.js';
 
 

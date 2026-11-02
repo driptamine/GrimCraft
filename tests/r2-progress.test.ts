@@ -9,7 +9,7 @@ import {
   subscribeR2Progress,
   reportR2Progress,
   r2ProgressSnapshot,
-} from '../src/r2-progress.js';
+} from '../src/net/r2-progress.js';
 
 describe('r2 download progress', () => {
   it('aggregates bytes and percent across urls', () => {
@@ -82,12 +82,12 @@ describe('r2 download progress', () => {
   it('r2 bar is wired into the START BATTLE loading flow', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
-    const gltf = read('src/gltf-models.ts');
+    const gltf = read('src/render/gltf-models.ts');
     assert.ok(gltf.includes("from './r2-progress.js'"), 'loadGltf reports bytes');
     assert.ok(gltf.includes('loadAsync(url, onByteProgress)'), 'loader passes progress events');
-    const helpers = read('src/three-helpers.ts');
+    const helpers = read('src/render/three-helpers.ts');
     assert.ok(helpers.includes('reportR2Progress(url,'), 'textures report completion');
-    const mp = read('src/multiplayer.ts');
+    const mp = read('src/net/multiplayer.ts');
     assert.ok(mp.includes('resetR2Progress()'), 'START BATTLE resets the bar');
     assert.ok(mp.includes('subscribeR2Progress(_renderR2Bar)'), 'loading UI subscribes to bytes');
     assert.ok(mp.includes("getElementById('r2-progress')"), 'standalone R2 overlay exists');
@@ -121,7 +121,7 @@ describe('r2 download progress', () => {
       match: async (url: unknown) => (String(url).includes('cached') ? { ok: true } : null),
     };
     try {
-      const { probeR2Cache } = await import('../src/r2-progress.js');
+      const { probeR2Cache } = await import('../src/net/r2-progress.js');
       const result = await probeR2Cache(['https://r2/cached-a.glb', 'https://r2/missing-b.glb']);
       assert.equal(result.checked, true);
       assert.equal(result.cached, 1);
@@ -142,7 +142,7 @@ describe('r2 download progress', () => {
     const origCaches = g.caches;
     try {
       delete g.caches;
-      const { probeR2Cache } = await import('../src/r2-progress.js');
+      const { probeR2Cache } = await import('../src/net/r2-progress.js');
       const result = await probeR2Cache(['https://r2/a.glb']);
       assert.equal(result.checked, false);
       assert.deepEqual(result.missing, ['https://r2/a.glb']);

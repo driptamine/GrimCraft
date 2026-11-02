@@ -12,35 +12,35 @@ import {
   createFreshCanvas, adoptCanvasElement, setRendererInstance, setBackendState,
   qualityTier,
 } from './scene.js';
-import { updateMixers } from '../gltf-models.js';
-import { updateNecronConduits } from '../necron-conduit.js';
-import { updatePlasmaGlow } from '../plasma-glow.js';
-import { updatePlasmaPistolGlow } from '../plasma-pistol-glow.js';
-import { preloadPlasmaBoltModel, preloadPlasmaFinalFx, updatePlasmaBoltFx } from '../plasma-bolt.js';
-import { updateBlasterBoltFx } from '../blaster-bolt.js';
-import { updateReaperBoltFx } from '../reaper-bolt.js';
-import { updateNecronAura } from '../necron-aura.js';
+import { updateMixers } from '../render/gltf-models.js';
+import { updateNecronConduits } from '../fx/necron-conduit.js';
+import { updatePlasmaGlow } from '../fx/plasma-glow.js';
+import { updatePlasmaPistolGlow } from '../fx/plasma-pistol-glow.js';
+import { preloadPlasmaBoltModel, preloadPlasmaFinalFx, updatePlasmaBoltFx } from '../fx/plasma-bolt.js';
+import { updateBlasterBoltFx } from '../fx/blaster-bolt.js';
+import { updateReaperBoltFx } from '../fx/reaper-bolt.js';
+import { updateNecronAura } from '../fx/necron-aura.js';
 import { loadFactionModels, factionContainers, ARENA_POSITION_FACTIONS } from '../factions.js';
-import { useProceduralModels } from '../model-source.js';
+import { useProceduralModels } from '../render/model-source.js';
 import { preloadStrategicPointModel, preloadRelicModel, preloadObjectiveModel } from '../meshes.js';
-import { startPositionsFor, strategicPointsFor, factionsFor, startingGuardsmenSpawns, startingNecronSpawns, startingTauSpawns, startingOrkSpawns, startingEldarSpawns, startingMarineSpawns, startingDarkEldarSpawns, factionBasePosition } from '../map-layout.js';
+import { startPositionsFor, strategicPointsFor, factionsFor, startingGuardsmenSpawns, startingNecronSpawns, startingTauSpawns, startingOrkSpawns, startingEldarSpawns, startingMarineSpawns, startingDarkEldarSpawns, factionBasePosition } from '../maps/map-layout.js';
 import {
   updateHUD, updateTopBar, updateMinimap, updateCaptureProgressBars,
 } from './hud.js';
 import { tickFps, getFps, hudDue } from '../hud/store.js';
-import { createDynamicResolution, pixelRatioForTier } from '../three-helpers.js';
-import { toggleNodesPanel, initNodesPanelAutoRefresh } from '../nodes-panel.js';
-import { preloadLasgunViewmodel, tickFirstPerson, toggleCameraFps } from '../camera-fps.js';
+import { createDynamicResolution, pixelRatioForTier } from '../render/three-helpers.js';
+import { toggleNodesPanel, initNodesPanelAutoRefresh } from '../ui/nodes-panel.js';
+import { preloadLasgunViewmodel, tickFirstPerson, toggleCameraFps } from '../render/camera-fps.js';
 import {
   toggleEntitiesPanel, entitiesFilter, entitiesRefresh, initEntitiesPanelAutoRefresh,
-} from '../entities-panel.js';
+} from '../ui/entities-panel.js';
 import {
   initInput, setupPointerEvents, tickCamera, cancelBuild, _rangeCirclesVisible, _showRangeCircles,
   clearAirfieldRallyMarker, clearRallyMarker, keys,
 } from './input.js';
 import { syncTouchControls } from '../input/touch-controls.js';
-import { rebindDecalPointerActions } from '../sgb-decals.js';
-import { nextBackend } from '../render-backend.js';
+import { rebindDecalPointerActions } from '../maps/sgb-decals.js';
+import { nextBackend } from '../render/render-backend.js';
 import {
   createSoldierEntity, createSquadEntity, createBuilderEntity,
   createBuildingEntity, createStructureEntity, createStrategicPointEntity,
@@ -48,7 +48,7 @@ import {
 import {
   _initSystems, systemAI, systemWinCheck, disposeMeshComponent,
 } from './systems.js';
-import { disposeObj, childMeshes } from '../three-helpers.js';
+import { disposeObj, childMeshes } from '../render/three-helpers.js';
 
 declare global {
   interface Window {
@@ -421,10 +421,10 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   window.startBuild = (value: any) => import('./input.js').then((module) => module.startBuild(value));
 
-  window.filterNodes = (value: any) => import('../nodes-panel.js').then((module) => module.filterNodes(value));
-  window.nodesShowAll = () => import('../nodes-panel.js').then((module) => module.nodesShowAll());
-  window.nodesHideAll = () => import('../nodes-panel.js').then((module) => module.nodesHideAll());
-  window.nodesRefresh = () => import('../nodes-panel.js').then((module) => module.nodesRefresh());
+  window.filterNodes = (value: any) => import('../ui/nodes-panel.js').then((module) => module.filterNodes(value));
+  window.nodesShowAll = () => import('../ui/nodes-panel.js').then((module) => module.nodesShowAll());
+  window.nodesHideAll = () => import('../ui/nodes-panel.js').then((module) => module.nodesHideAll());
+  window.nodesRefresh = () => import('../ui/nodes-panel.js').then((module) => module.nodesRefresh());
 
   window.toggleEntitiesPanel = toggleEntitiesPanel;
   window.entitiesFilter = entitiesFilter;
@@ -435,48 +435,48 @@ window.addEventListener('DOMContentLoaded', () => {
   window.toggleFactionTeamcolour = (faction: any) => import('../factions.js').then((module) => module.toggleFactionTeamcolourScheme(faction));
   // Lazy chunks 404 when the page predates the last `npm run build` (vite
   // wipes dist). A failed open must say so instead of silently doing nothing.
-  window.toggleDecalsPanel = () => import('../decals-panel.js').then(
+  window.toggleDecalsPanel = () => import('../ui/decals-panel.js').then(
     (module) => module.toggleDecalsPanel(),
     (err) => console.error('[decals] panel chunk failed to load — hard-refresh the page:', err),
   );
-  window.togglePathfindingPanel = () => import('../pathfinding-panel.js').then(
+  window.togglePathfindingPanel = () => import('../ui/pathfinding-panel.js').then(
     (module) => module.togglePathfindingPanel(),
     (err) => console.error('[pathfinding] panel chunk failed to load — hard-refresh the page:', err),
   );
-  window.toggleCameraPanel = () => import('../camera-panel.js').then((module) => module.toggleCameraPanel());
-  window.updateCameraParam = (which, value) => import('../camera-panel.js').then((module) => module.updateCameraParam(which, value));
-  window.resetCameraPanel = () => import('../camera-panel.js').then((module) => module.resetCameraPanel());
-  window.switchFaction = () => import('../switch-faction.js').then((module) => module.switchFaction());
+  window.toggleCameraPanel = () => import('../ui/camera-panel.js').then((module) => module.toggleCameraPanel());
+  window.updateCameraParam = (which, value) => import('../ui/camera-panel.js').then((module) => module.updateCameraParam(which, value));
+  window.resetCameraPanel = () => import('../ui/camera-panel.js').then((module) => module.resetCameraPanel());
+  window.switchFaction = () => import('../ui/switch-faction.js').then((module) => module.switchFaction());
 
-  window.toggleTerrainPanel = () => import('../terrain-upload.js').then((module) => module.toggleTerrainPanel());
-  window.handleTerrainMeshDrop = (e) => import('../terrain-upload.js').then((module) => module.handleTerrainMeshDrop(e));
-  window.handleTerrainMeshFiles = (files) => import('../terrain-upload.js').then((module) => module.handleTerrainMeshFiles(files));
-  window.updateTerrainMeshScale = (value) => import('../terrain-upload.js').then((module) => module.updateTerrainMeshScale(value));
-  window.updateTerrainMeshY = (value) => import('../terrain-upload.js').then((module) => module.updateTerrainMeshY(value));
-  window.updateTerrainMapRotate = (value) => import('../sgb-upload.js').then((module) => module.updateTerrainMapRotate(value));
-  window.updateSgbDecalScale = (value) => import('../sgb-decals.js').then((module) => module.updateSgbDecalScale(value));
-  window.toggleSgbDecals = () => import('../sgb-decals.js').then((module) => module.toggleSgbDecals());
-  window.toggleDecalHover = () => import('../sgb-decals.js').then((module) => module.toggleDecalHover());
+  window.toggleTerrainPanel = () => import('../maps/terrain-upload.js').then((module) => module.toggleTerrainPanel());
+  window.handleTerrainMeshDrop = (e) => import('../maps/terrain-upload.js').then((module) => module.handleTerrainMeshDrop(e));
+  window.handleTerrainMeshFiles = (files) => import('../maps/terrain-upload.js').then((module) => module.handleTerrainMeshFiles(files));
+  window.updateTerrainMeshScale = (value) => import('../maps/terrain-upload.js').then((module) => module.updateTerrainMeshScale(value));
+  window.updateTerrainMeshY = (value) => import('../maps/terrain-upload.js').then((module) => module.updateTerrainMeshY(value));
+  window.updateTerrainMapRotate = (value) => import('../maps/sgb-upload.js').then((module) => module.updateTerrainMapRotate(value));
+  window.updateSgbDecalScale = (value) => import('../maps/sgb-decals.js').then((module) => module.updateSgbDecalScale(value));
+  window.toggleSgbDecals = () => import('../maps/sgb-decals.js').then((module) => module.toggleSgbDecals());
+  window.toggleDecalHover = () => import('../maps/sgb-decals.js').then((module) => module.toggleDecalHover());
   // Shared toggle (also used by the TAB hotkey): the static import above
   // keeps this synchronous in the click gesture, otherwise the browser
   // rejects the pointer-lock request.
   window.toggleCameraFps = () => toggleCameraFps();
-  window.setCameraMode = (mode) => import('../camera-fps.js').then((module) => module.setCameraMode(mode));
-  window.getCameraMode = () => import('../camera-fps.js').then((module) => module.getCameraMode());
-  window.clearTerrainMesh = () => import('../terrain-upload.js').then((module) => module.clearTerrainMesh());
-  window.handleTerrainTexDrop = (e) => import('../terrain-upload.js').then((module) => module.handleTerrainTexDrop(e));
-  window.loadTerrainTexture = (files) => import('../terrain-upload.js').then((module) => module.loadTerrainTexture(files));
-  window.updateTexTiling = () => import('../terrain-upload.js').then((module) => module.updateTexTiling());
-  window.rotateTerrainLayers = () => import('../terrain-upload.js').then((module) => module.rotateTerrainLayers());
-  window.handleTerrainPropDrop = (e) => import('../terrain-upload.js').then((module) => module.handleTerrainPropDrop(e));
-  window.handleTerrainPropFiles = (files) => import('../terrain-upload.js').then((module) => module.handleTerrainPropFiles(files));
-  window.updatePropScale = (value) => import('../terrain-upload.js').then((module) => module.updatePropScale(value));
-  window.rescatterProps = () => import('../terrain-upload.js').then((module) => module.rescatterProps());
-  window.clearAllTerrain = () => import('../terrain-upload.js').then((module) => module.clearAllTerrain());
-  window.setBrightness = (value) => import('../terrain-upload.js').then((module) => module.setBrightness(value));
+  window.setCameraMode = (mode) => import('../render/camera-fps.js').then((module) => module.setCameraMode(mode));
+  window.getCameraMode = () => import('../render/camera-fps.js').then((module) => module.getCameraMode());
+  window.clearTerrainMesh = () => import('../maps/terrain-upload.js').then((module) => module.clearTerrainMesh());
+  window.handleTerrainTexDrop = (e) => import('../maps/terrain-upload.js').then((module) => module.handleTerrainTexDrop(e));
+  window.loadTerrainTexture = (files) => import('../maps/terrain-upload.js').then((module) => module.loadTerrainTexture(files));
+  window.updateTexTiling = () => import('../maps/terrain-upload.js').then((module) => module.updateTexTiling());
+  window.rotateTerrainLayers = () => import('../maps/terrain-upload.js').then((module) => module.rotateTerrainLayers());
+  window.handleTerrainPropDrop = (e) => import('../maps/terrain-upload.js').then((module) => module.handleTerrainPropDrop(e));
+  window.handleTerrainPropFiles = (files) => import('../maps/terrain-upload.js').then((module) => module.handleTerrainPropFiles(files));
+  window.updatePropScale = (value) => import('../maps/terrain-upload.js').then((module) => module.updatePropScale(value));
+  window.rescatterProps = () => import('../maps/terrain-upload.js').then((module) => module.rescatterProps());
+  window.clearAllTerrain = () => import('../maps/terrain-upload.js').then((module) => module.clearAllTerrain());
+  window.setBrightness = (value) => import('../maps/terrain-upload.js').then((module) => module.setBrightness(value));
 
-  import('../maps-menu.js').then((module) => module.buildMapsMenu());
-  import('../decals-menu.js').then(
+  import('../ui/maps-menu.js').then((module) => module.buildMapsMenu());
+  import('../ui/decals-menu.js').then(
     (module) => module.buildDecalsMenu(),
     (err) => {
       console.error('[decals] menu chunk failed to load — hard-refresh the page:', err);
@@ -486,22 +486,22 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     },
   );
-  window.filterDecals = (value) => import('../decals-menu.js').then((module) => module.filterDecals(value));
+  window.filterDecals = (value) => import('../ui/decals-menu.js').then((module) => module.filterDecals(value));
 
-  window.toggleModelPanel = () => import('../model-upload.js').then((module) => module.toggleModelPanel());
-  window.handleModelDrop = (e) => import('../model-upload.js').then((module) => module.handleModelDrop(e));
-  window.handleModelFiles = (files) => import('../model-upload.js').then((module) => module.handleModelFiles(files));
-  window.updateModelScaleFromNum = (value) => import('../model-upload.js').then((module) => module.updateModelScaleFromNum(value));
-  window.updateModelScaleFromSlider = (value) => import('../model-upload.js').then((module) => module.updateModelScaleFromSlider(value));
-  window.updateModelOffset = (axis, value) => import('../model-upload.js').then((module) => module.updateModelOffset(axis, value));
-  window.updateModelRotation = (axis, value) => import('../model-upload.js').then((module) => module.updateModelRotation(axis, value));
-  window.clearCustomModel = () => import('../model-upload.js').then((module) => module.clearCustomModel());
+  window.toggleModelPanel = () => import('../render/model-upload.js').then((module) => module.toggleModelPanel());
+  window.handleModelDrop = (e) => import('../render/model-upload.js').then((module) => module.handleModelDrop(e));
+  window.handleModelFiles = (files) => import('../render/model-upload.js').then((module) => module.handleModelFiles(files));
+  window.updateModelScaleFromNum = (value) => import('../render/model-upload.js').then((module) => module.updateModelScaleFromNum(value));
+  window.updateModelScaleFromSlider = (value) => import('../render/model-upload.js').then((module) => module.updateModelScaleFromSlider(value));
+  window.updateModelOffset = (axis, value) => import('../render/model-upload.js').then((module) => module.updateModelOffset(axis, value));
+  window.updateModelRotation = (axis, value) => import('../render/model-upload.js').then((module) => module.updateModelRotation(axis, value));
+  window.clearCustomModel = () => import('../render/model-upload.js').then((module) => module.clearCustomModel());
   window.toggleInspector = () => {
     console.warn('[grimcraft] scene inspector was removed with the three.js migration; use the Nodes panel instead.');
   };
-  window.toggleSliderSection = (name) => import('../model-upload.js').then((module) => module.toggleSliderSection(name));
-  window.assignAnimFromList = (idx, slot) => import('../model-upload.js').then((module) => module.assignAnimFromList(idx, slot));
+  window.toggleSliderSection = (name) => import('../render/model-upload.js').then((module) => module.toggleSliderSection(name));
+  window.assignAnimFromList = (idx, slot) => import('../render/model-upload.js').then((module) => module.assignAnimFromList(idx, slot));
   // Add other UI bindings as needed...
 
-  import('../main-menu.js').then((module) => module.injectMainMenu());
+  import('../ui/main-menu.js').then((module) => module.injectMainMenu());
 });

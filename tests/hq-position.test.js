@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createChunkReader } from '../src/sgb-reader.js';
+import { createChunkReader } from '../src/maps/sgb-reader.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

@@ -97,7 +97,7 @@ describe('bloodthirster training pipeline', () => {
     const headless = new THREE.Scene();
     headless._registerShadows = () => {};
     sceneMod.__setSceneCameraForTests(headless, { target: new THREE.Vector3() });
-    const { setModelSource, MODEL_SOURCE_PROCEDURAL, MODEL_SOURCE_GLB } = await import('../src/model-source.js');
+    const { setModelSource, MODEL_SOURCE_PROCEDURAL, MODEL_SOURCE_GLB } = await import('../src/render/model-source.js');
     const { World } = await import('../src/core/ecs.js');
     const { systemBuilding } = await import('../src/core/systems.js');
     const { makeHpBar } = await import('../src/meshes.js');

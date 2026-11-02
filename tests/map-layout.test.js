@@ -7,7 +7,7 @@ globalThis.document = { getElementById: () => null };
 const {
   layoutFor, startPositionsFor, strategicPointsFor, factionsFor, boundsFor, startingGuardsmenSpawns, startingNecronSpawns, startingTauSpawns,
   startingOrkSpawns, startingEldarSpawns, startingMarineSpawns, startingDarkEldarSpawns, factionBasePosition,
-} = await import('../src/map-layout.js');
+} = await import('../src/maps/map-layout.js');
 const { POSITION_FACTIONS, ARENA_POSITION_FACTIONS } = await import('../src/factions.js');
 
 describe('map layout', () => {

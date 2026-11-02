@@ -8,8 +8,8 @@ import {
   selSquads,
   world,
 } from '../core/scene.js';
-import { disposeObj, mkTorus } from '../three-helpers.js';
-import { getCameraMode } from '../camera-fps.js';
+import { disposeObj, mkTorus } from '../render/three-helpers.js';
+import { getCameraMode } from '../render/camera-fps.js';
 
 
 // Hover ring around strategic points + relics (world units). Tweak freely:

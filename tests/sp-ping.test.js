@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { spPingFrame } from '../src/three-helpers.js';
+import { spPingFrame } from '../src/render/three-helpers.js';
 
 describe('sp ping frame', () => {
   it('starts small and opaque', () => {

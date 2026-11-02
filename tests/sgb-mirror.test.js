@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { applySgbRootTransform } from '../src/sgb-mirror.js';
+import { applySgbRootTransform } from '../src/maps/sgb-mirror.js';
 
 function worldOf(root, x, y, z) {
   root.updateMatrixWorld(true);

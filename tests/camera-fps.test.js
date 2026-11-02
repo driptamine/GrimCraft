@@ -10,7 +10,7 @@ await import('../src/core/scene.js');
 const scene = await import('../src/core/scene.js');
 const selection = await import('../src/input/selection.js');
 const { World } = await import('../src/core/ecs.js');
-const { alphaForFacing, attachViewmodel, copyGunPose, detachViewmodel, fpsAimPoint, fpsLook, fpsShotTarget, getCameraMode, getRideInfo, getViewmodelMuzzleWorldPos, gunPoseSnapshot, hasViewmodel, initGunPosePanel, isGunEditMode, isShooterMode, readGunPosePanel, resolveFpsTarget, setCameraMode, staticizeViewmodelTemplate, syncGunPosePanel, tickFirstPerson, toggleCameraFps, toggleGunEditMode, updateFirstPersonCamera, updateThirdPersonCamera, yieldSlotBehind, _setGunPoseForTests, _setLasgunTemplateForTests } = await import('../src/camera-fps.js');
+const { alphaForFacing, attachViewmodel, copyGunPose, detachViewmodel, fpsAimPoint, fpsLook, fpsShotTarget, getCameraMode, getRideInfo, getViewmodelMuzzleWorldPos, gunPoseSnapshot, hasViewmodel, initGunPosePanel, isGunEditMode, isShooterMode, readGunPosePanel, resolveFpsTarget, setCameraMode, staticizeViewmodelTemplate, syncGunPosePanel, tickFirstPerson, toggleCameraFps, toggleGunEditMode, updateFirstPersonCamera, updateThirdPersonCamera, yieldSlotBehind, _setGunPoseForTests, _setLasgunTemplateForTests } = await import('../src/render/camera-fps.js');
 
 function fakeWorld() {
   const store = new Map();

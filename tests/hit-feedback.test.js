@@ -7,7 +7,7 @@ globalThis.window = {};
 globalThis.document = { getElementById: () => null };
 
 const { flashHitmarker } = await import('../src/input/markers.js');
-const { playHitCrunch } = await import('../src/audio.js');
+const { playHitCrunch } = await import('../src/fx/audio.js');
 
 describe('hit feedback', () => {
   it('flashes the hitmarker X and hides it again', async () => {

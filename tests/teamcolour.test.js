@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseTeamcolour, teamcolorHex, loadTeamcolour } from '../src/teamcolour.js';
+import { parseTeamcolour, teamcolorHex, loadTeamcolour } from '../src/ui/teamcolour.js';
 import * as THREE from 'three';
 import { register } from 'node:module';
 

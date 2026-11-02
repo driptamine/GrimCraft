@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 
-const { assetUrl } = await import('../src/assets.js');
-const { r2ImageUrl, _resetR2ImageCacheForTests } = await import('../src/r2-image.js');
+const { assetUrl } = await import('../src/render/assets.js');
+const { r2ImageUrl, _resetR2ImageCacheForTests } = await import('../src/net/r2-image.js');
 
 describe('asset url', () => {
   it('leaves emoji, absolute and remote urls untouched', () => {

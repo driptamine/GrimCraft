@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('decal x/y/z sliders', () => {
   it('sgb-decals exposes position API for selected decal', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-decals.ts'), 'utf8');
     assert.match(src, /export function getSelectedDecal\(\)/);
     assert.match(src, /export function getSelectedDecalPosition\(\)/);
     assert.match(src, /export function setSelectedDecalPosition\(/);
@@ -23,7 +23,7 @@ describe('decal x/y/z sliders', () => {
     assert.match(html, /id="decal-pos-x"/);
     assert.match(html, /id="decal-pos-y"/);
     assert.match(html, /id="decal-pos-z"/);
-    const panelSrc = fs.readFileSync(path.join(root, 'src/decals-panel.ts'), 'utf8');
+    const panelSrc = fs.readFileSync(path.join(root, 'src/ui/decals-panel.ts'), 'utf8');
     assert.match(panelSrc, /syncPosControls/);
     assert.match(panelSrc, /ensureSliders/);
     assert.match(panelSrc, /setSelectedDecalPosition/);

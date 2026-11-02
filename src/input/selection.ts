@@ -25,7 +25,7 @@ import {
   mkBox,
   mkCylinder,
   mkLineSystem,
-} from '../three-helpers.js';
+} from '../render/three-helpers.js';
 import { selEnd, selStart } from './camera.js';
 
 

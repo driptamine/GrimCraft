@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as THREE from 'three';
-import { createSgbParser } from '../src/sgb-parser.js';
-import { setDefaultScene } from '../src/three-helpers.js';
+import { createSgbParser } from '../src/maps/sgb-parser.js';
+import { setDefaultScene } from '../src/render/three-helpers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

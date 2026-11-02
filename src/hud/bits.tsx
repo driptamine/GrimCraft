@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActionBtn, AmmoActionBtn, StatCell, TooltipPop } from './primitives.jsx';
-import { assetUrl } from '../assets.js';
-import { r2ImageUrl } from '../r2-image.js';
+import { assetUrl } from '../render/assets.js';
+import { r2ImageUrl } from '../net/r2-image.js';
 
 /**
  * <img> whose bytes go through fetch() instead of a raw image request, so

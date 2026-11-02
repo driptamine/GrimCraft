@@ -6,7 +6,7 @@ import { getViewKind, getAliveGroups, computeSquadData, getPortraitFocusPosition
 import {
   PortraitPanel, PortraitIconDiv, PortraitName, PortraitHpBar, PortraitHpFill, PortraitHpLabel,
 } from '../primitives.jsx';
-import { assetUrl } from '../../assets.js';
+import { assetUrl } from '../../render/assets.js';
 import { R2Img } from '../bits.jsx';
 
 function portraitIconEl(icon: any): any {

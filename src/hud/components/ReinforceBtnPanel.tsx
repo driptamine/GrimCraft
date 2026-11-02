@@ -2,13 +2,13 @@ import type { JSX } from 'react';
 import { world, requisition, setRequisition, SQUAD_MAX, COSTS } from '../../core/scene.js';
 import { updateHUD } from '../../core/hud.js';
 import { applySquadWeaponVisuals } from '../../entities/entities.js';
-import { netSetProjectileType } from '../../multiplayer.js';
+import { netSetProjectileType } from '../../net/multiplayer.js';
 import { computeSquadData } from '../data.js';
 import { CompactReinforceButton, AmmoButton, Tooltip } from '../bits.jsx';
 import {
   ReinforceBtnPanel, ReinforceBtnRow, ReinforceBtnLabel, SergeantSlot, AmmoPanel,
 } from '../primitives.jsx';
-import { assetUrl } from '../../assets.js';
+import { assetUrl } from '../../render/assets.js';
 import { R2Img } from '../bits.jsx';
 
 function SergeantSlotView({ data }: any): JSX.Element {

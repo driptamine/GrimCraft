@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { CURSOR_FILES, cursorAssetUrl, parseTga, resolveCursor, withinHoverRadius } from '../src/cursors.js';
+import { CURSOR_FILES, cursorAssetUrl, parseTga, resolveCursor, withinHoverRadius } from '../src/ui/cursors.js';
 
 function makeTga(width, height, topDown, rowsTopFirst) {
   const header = Buffer.alloc(18);

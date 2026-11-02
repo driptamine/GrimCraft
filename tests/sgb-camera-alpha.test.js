@@ -4,7 +4,7 @@ import { register } from 'node:module';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null, querySelector: () => null };
-const { cameraAlphaForMap, cameraRadiusForMap, cameraFarForRadius, cameraTargetForMap } = await import('../src/sgb-upload.js');
+const { cameraAlphaForMap, cameraRadiusForMap, cameraFarForRadius, cameraTargetForMap } = await import('../src/maps/sgb-upload.js');
 
 describe('sgb camera yaw per map', () => {
   it('keeps alvarus on the tuned 315° alpha', () => {

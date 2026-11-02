@@ -10,7 +10,7 @@ const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
-const { applyPlasmaGlow, updatePlasmaGlow } = await import('../src/plasma-glow.js');
+const { applyPlasmaGlow, updatePlasmaGlow } = await import('../src/fx/plasma-glow.js');
 const { makeSoldierMesh } = await import('../src/meshes.js');
 const { factionContainers } = await import('../src/factions.js');
 

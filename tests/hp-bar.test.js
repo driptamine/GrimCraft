@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { register } from 'node:module';
 import * as THREE from 'three';
-import { setDefaultScene } from '../src/three-helpers.js';
+import { setDefaultScene } from '../src/render/three-helpers.js';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };

@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseTga } from '../src/cursors.js';
-import { TASKBAR_ICON_FILES, taskbarAssetUrl, taskbarIconUrl } from '../src/taskbar-icons.js';
+import { parseTga } from '../src/ui/cursors.js';
+import { TASKBAR_ICON_FILES, taskbarAssetUrl, taskbarIconUrl } from '../src/ui/taskbar-icons.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readSrc = (p) => fs.readFileSync(path.join(root, p), 'utf8');

@@ -6,7 +6,7 @@ import {
   HILL_RELEASE_DIST,
   sgbAvoidUphill,
   sgbGroundY,
-} from '../src/sgb-surface.js';
+} from '../src/maps/sgb-surface.js';
 
 // Literal passability grid builder: covers [originX, originX+size*cell).
 function makePassGrid(originX, originZ, cell, size, blockedAt) {

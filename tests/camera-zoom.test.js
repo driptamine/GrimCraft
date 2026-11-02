@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyZoom, MIN_ZOOM_RADIUS, MAX_ZOOM_RADIUS, DEFAULT_CAMERA_RADIUS, DEFAULT_CAMERA_ALPHA, DEFAULT_CAMERA_BETA } from '../src/camera-zoom.js';
+import { applyZoom, MIN_ZOOM_RADIUS, MAX_ZOOM_RADIUS, DEFAULT_CAMERA_RADIUS, DEFAULT_CAMERA_ALPHA, DEFAULT_CAMERA_BETA } from '../src/render/camera-zoom.js';
 
 describe('camera zoom', () => {
   it('exposes the widened default range', () => {

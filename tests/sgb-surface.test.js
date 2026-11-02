@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSystemsSource } from './systems-src.mjs';
-import { sgbSurfaceSnapY, POINT_SNAP_HALF, POINT_SNAP_LIFT } from '../src/sgb-surface.js';
+import { sgbSurfaceSnapY, POINT_SNAP_HALF, POINT_SNAP_LIFT } from '../src/maps/sgb-surface.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const identity = (tx, tz, out) => { out.x = tx; out.z = tz; return out; };
@@ -60,7 +60,7 @@ describe('sgb surface snap', () => {
   });
 
   it('sgb load stashes the terrain root, clear drops it', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-upload.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-upload.ts'), 'utf8');
     assert.ok(src.includes('window.__sgbTerrainRoot = root;'), 'stashed on load');
     assert.ok(src.includes('window.__sgbTerrainRoot = null;'), 'cleared with the map');
   });

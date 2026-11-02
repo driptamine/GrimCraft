@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { register } from 'node:module';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
-import { setDefaultScene } from '../src/three-helpers.js';
+import { setDefaultScene } from '../src/render/three-helpers.js';
 import { CAPTURE_GUARD_DISTANCE } from '../src/entities/soldier-aim.js';
 
 register('./node-esm-hooks.mjs', import.meta.url);

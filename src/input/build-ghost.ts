@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clampGhostPos, intersectGroundPlane, screenToNDC } from '../ghost-place.js';
+import { clampGhostPos, intersectGroundPlane, screenToNDC } from '../ui/ghost-place.js';
 import { makeGhostMesh } from '../meshes.js';
 import {
   COSTS,
@@ -22,8 +22,8 @@ import {
   mkBox,
   mkGroup,
   mkLines,
-} from '../three-helpers.js';
-import type { MaybeMesh } from '../three-helpers.js';
+} from '../render/three-helpers.js';
+import type { MaybeMesh } from '../render/three-helpers.js';
 import { pickMesh } from './selection.js';
 
 

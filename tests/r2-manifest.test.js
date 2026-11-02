@@ -4,7 +4,7 @@ import { register } from 'node:module';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 
-const { collectFactionR2Urls, collectBootR2Urls } = await import('../src/r2-manifest.js');
+const { collectFactionR2Urls, collectBootR2Urls } = await import('../src/net/r2-manifest.js');
 const { ARENA_POSITION_FACTIONS } = await import('../src/factions.js');
 
 describe('r2 boot manifest', () => {

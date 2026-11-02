@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isGroundMesh } from '../src/three-helpers.js';
+import { isGroundMesh } from '../src/render/three-helpers.js';
 
 describe('ground picking', () => {
   it('accepts the default ground plane and SGB tiles', () => {

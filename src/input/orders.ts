@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { createAirfieldEntity, createBeamEntity, createBuildingEntity, createStructureEntity, getSoldierMuzzlePos } from '../entities/entities.js';
-import { playHitCrunch } from '../audio.js';
+import { playHitCrunch } from '../fx/audio.js';
 import { FACTIONS, playerFaction, resolveFactionKey } from '../factions.js';
 import { updateHUD } from '../core/hud.js';
 import { canPlaceListeningPost } from '../meshes.js';
-import { netPlaceBuilding } from '../multiplayer.js';
+import { netPlaceBuilding } from '../net/multiplayer.js';
 import {
   COSTS,
   JET_ALT,
@@ -28,7 +28,7 @@ import {
 import { disposeMeshComponent, spawnParticles } from '../core/systems.js';
 import { _stopBuildGhost, cancelBuild } from './build-ghost.js';
 import { _spIdAt, flashHitmarker, spawnAttackMarker, spawnBeamTracer, spawnMoveMarker, spawnMoveMarkerAt, spawnSpPing } from './markers.js';
-import { fpsShotTarget, getViewmodelMuzzleWorldPos, resolveFpsTarget } from '../camera-fps.js';
+import { fpsShotTarget, getViewmodelMuzzleWorldPos, resolveFpsTarget } from '../render/camera-fps.js';
 import { snapOrderToFree } from '../../pathfinding/astar-integrated.js';
 import { _setAirfieldSelected, clearAirfieldRallyMarker, clearEnemySelection, clearRallyMarker, pickFpsTargetMesh, pickMesh, raycastGround, setBuildingSelected, updateAirfieldRallyMarker, updateRallyMarker } from './selection.js';
 

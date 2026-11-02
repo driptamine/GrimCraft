@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
-const { AnimGroup } = await import('../src/gltf-models.js');
+const { AnimGroup } = await import('../src/render/gltf-models.js');
 
 function scrubFixture() {
   const root = new THREE.Group();

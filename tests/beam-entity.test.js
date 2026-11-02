@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { register } from 'node:module';
 import * as THREE from 'three';
-import { setDefaultScene } from '../src/three-helpers.js';
+import { setDefaultScene } from '../src/render/three-helpers.js';
 
 // Teach node the Vite-isms in the import chain (bare JSON imports,
 // import.meta.env) before the dynamic import below runs.

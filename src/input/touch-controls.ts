@@ -4,7 +4,7 @@
 // Desktop is untouched: the UI only builds on coarse-pointer devices and
 // only shows while riding (isShooterMode).
 import { keys } from './camera.js';
-import { applyLookDelta, fpsAimPoint, isShooterMode } from '../camera-fps.js';
+import { applyLookDelta, fpsAimPoint, isShooterMode } from '../render/camera-fps.js';
 import { issueFpsShot } from './orders.js';
 import { canvas } from '../core/scene.js';
 

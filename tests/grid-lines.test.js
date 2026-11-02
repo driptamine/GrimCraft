@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { macroLinePositions, microLinePositions } from '../src/grid-helper.js';
+import { macroLinePositions, microLinePositions } from '../src/render/grid-helper.js';
 
 // Default Arena grid constants (src/scene.js buildGrid).
 const HALF = 550;

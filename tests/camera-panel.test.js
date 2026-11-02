@@ -11,7 +11,7 @@ import {
   clampRadius,
   clampTargetXZ,
   clampTargetY,
-} from '../src/camera-params.js';
+} from '../src/render/camera-params.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -93,7 +93,7 @@ describe('camera panel wiring', () => {
     assert.ok(html.includes('#fps-hitmarker::before'), 'fps hitmarker styled');
     assert.ok(html.includes('transparent 9px 19px'), 'hitmarker keeps a clear center gap');
     assert.ok(html.includes('pointer-events:none'), 'fps crosshair never blocks clicks');
-    const fps = fs.readFileSync(path.join(root, 'src/camera-fps.ts'), 'utf8');
+    const fps = fs.readFileSync(path.join(root, 'src/render/camera-fps.ts'), 'utf8');
     assert.ok(fps.includes("getElementById('fps-crosshair')"), 'fps mode owns crosshair visibility');
     assert.ok(fps.includes("cross.style.display = riding ? 'block' : 'none'"), 'crosshair shows only while riding');
   });
@@ -103,7 +103,7 @@ describe('camera panel wiring', () => {
     assert.ok(game.includes('window.toggleCameraPanel'), 'toggle bound');
     assert.ok(game.includes('window.updateCameraParam'), 'param writer bound');
     assert.ok(game.includes('window.resetCameraPanel'), 'reset bound');
-    assert.ok(game.includes("import('../camera-panel.js')"), 'lazy import used');
+    assert.ok(game.includes("import('../ui/camera-panel.js')"), 'lazy import used');
     assert.ok(game.includes('window.toggleCameraFps'), 'fps toggle bound');
     assert.ok(game.includes('toggleCameraFps } from'), 'fps toggle shared with hotkey');
   });
@@ -126,7 +126,7 @@ describe('camera panel wiring', () => {
   });
 
   it('camera-panel.js drives the orbit rig, not a copy', () => {
-    const panel = fs.readFileSync(path.join(root, 'src/camera-panel.ts'), 'utf8');
+    const panel = fs.readFileSync(path.join(root, 'src/ui/camera-panel.ts'), 'utf8');
     assert.ok(panel.includes("from './core/scene.js'"), 'imports live camera binding');
     assert.ok(panel.includes('camera.alpha ='), 'writes yaw');
     assert.ok(panel.includes('camera.beta ='), 'writes pitch');

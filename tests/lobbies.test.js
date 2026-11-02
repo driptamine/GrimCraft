@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { LOBBIES, capacityLabel, isFull, hasPlayers, createLobby } from '../src/lobbies.js';
+import { LOBBIES, capacityLabel, isFull, hasPlayers, createLobby } from '../src/net/lobbies.js';
 
 describe('lobby browser data', () => {
   it('lists the five servers in order', () => {

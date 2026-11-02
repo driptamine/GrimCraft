@@ -19,7 +19,7 @@ import {
   setResearchedTech,
   world,
 } from '../core/scene.js';
-import { childMeshes } from '../three-helpers.js';
+import { childMeshes } from '../render/three-helpers.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
 
 

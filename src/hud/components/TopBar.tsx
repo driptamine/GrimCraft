@@ -1,16 +1,16 @@
 import type { JSX } from 'react';
 import { world, PLAYER, controlBoth, canCommand, requisition, energy, kills, startTime, getPowerRate, getRequisitionRate, getRenderBackend, isBackendSwitching, supportsWebGPU, getBackendError, _gridVariant } from '../../core/scene.js';
 import { getFactionTeamcolor, getFactionTeamcolourScheme, getFactionTeamcolourSchemes, setFactionTeamcolourScheme, TEAMCOLOUR_SLOT } from '../../factions.js';
-import { teamcolorHex } from '../../teamcolour.js';
-import type { TeamcolourRGB } from '../../teamcolour.js';
+import { teamcolorHex } from '../../ui/teamcolour.js';
+import type { TeamcolourRGB } from '../../ui/teamcolour.js';
 import { useHUDVersion } from '../useHUD.js';
 import { infantryImmortal, setInfantryImmortal, getFps } from '../store.js';
-import { backendButtonState } from '../../render-backend.js';
+import { backendButtonState } from '../../render/render-backend.js';
 import {
   TopBarDiv, TbSection, TbStat, TbReq, TbSep, TbTitle, TerrainSelect, ResetBtn, InspectorBtn,
   ImmortalBtn,
 } from '../primitives.jsx';
-import { assetUrl } from '../../assets.js';
+import { assetUrl } from '../../render/assets.js';
 import { R2Img } from '../bits.jsx';
 
 function TeamcolourSelect({ faction, short }: any): JSX.Element {

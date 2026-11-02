@@ -112,7 +112,7 @@ PY`, { encoding: 'utf8' }));
   });
 
   it('layout builder must not cull cliff decals (regression for hang=4 bug leaving 8/80)', () => {
-    const src = fs.readFileSync(path.join(root, 'src/sgb-decals.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps/sgb-decals.ts'), 'utf8');
     const fn = src.slice(src.indexOf('export function buildSgbDecalsFromLayout'));
     assert.equal(fn.includes('hang > DECAL_MAX_HANG'), false, 'buildSgbDecalsFromLayout must not contain hang culling (would leave 8/80 stone_cliff_05)');
     assert.match(fn, /preview\.png/);

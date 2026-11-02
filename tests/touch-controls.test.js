@@ -12,7 +12,7 @@ globalThis.document = { getElementById: () => null };
 const THREE = await import('three');
 const scene = await import('../src/core/scene.js');
 const { World } = await import('../src/core/ecs.js');
-const { applyLookDelta, setCameraMode } = await import('../src/camera-fps.js');
+const { applyLookDelta, setCameraMode } = await import('../src/render/camera-fps.js');
 const { stickToKeys, isTouchDevice } = await import('../src/input/touch-controls.js');
 
 function bootRider() {

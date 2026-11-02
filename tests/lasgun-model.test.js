@@ -104,7 +104,7 @@ describe('guardsmen_lasgun_mesh.glb', () => {
   });
 
   it('is wired as the persistent FPS viewmodel', () => {
-    const fps = readFileSync(join(root, 'src', 'camera-fps.ts'), 'utf8');
+    const fps = readFileSync(join(root, 'src', 'render/camera-fps.ts'), 'utf8');
     assert.ok(fps.includes("LASGUN_MODEL_PATH = 'models/ig/infantry/guardsmen_lasgun_mesh.glb'"), 'viewmodel path pinned');
     assert.ok(fps.includes('preloadLasgunViewmodel'), 'lazy cached loader');
     const game = readFileSync(join(root, 'src', 'core/game.ts'), 'utf8');

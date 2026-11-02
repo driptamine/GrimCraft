@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { getMat } from '../mat-cache.js';
-import { _instantiateFromContainer } from '../model-upload.js';
+import { getMat } from '../render/mat-cache.js';
+import { _instantiateFromContainer } from '../render/model-upload.js';
 import { AIRFIELD_BOUNDS, TEAM_COLOR, scene } from '../core/scene.js';
 import {
   descendants,
@@ -9,7 +9,7 @@ import {
   mkGroup,
   mkSphere,
   mkTorus,
-} from '../three-helpers.js';
+} from '../render/three-helpers.js';
 import { _factionBucket } from './common.js';
 import { makeSquareSelRing } from './hud.js';
 import type { AnyGroup, AnyMesh, MetaPayload } from './types.js';

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { mergeStaticContainer } from '../src/merge-static.js';
+import { mergeStaticContainer } from '../src/render/merge-static.js';
 
 function box(name: string, material: THREE.Material | THREE.Material[], x = 0) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);

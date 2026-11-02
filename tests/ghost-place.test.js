@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readInputSource } from './input-src.mjs';
 import * as THREE from 'three';
-import { screenToNDC, intersectGroundPlane, clampGhostPos } from '../src/ghost-place.js';
+import { screenToNDC, intersectGroundPlane, clampGhostPos } from '../src/ui/ghost-place.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

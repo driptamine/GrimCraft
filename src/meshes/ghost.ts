@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PLAYER } from '../core/scene.js';
-import { childMeshes } from '../three-helpers.js';
+import { childMeshes } from '../render/three-helpers.js';
 import { makeBarracksMesh, makeConfigStructureMesh, makeGunTurretMesh, makeHQMesh, makeThermoMesh, makeTowerBaseMesh, makeTowerMesh } from './buildings.js';
 import { makeAirfieldMesh, makeApcMesh } from './vehicles.js';
 import type { AnyGroup, AnyMesh, MetaPayload } from './types.js';

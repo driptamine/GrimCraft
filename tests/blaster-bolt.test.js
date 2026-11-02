@@ -20,7 +20,7 @@ const {
   updateBlasterBoltFx,
   BLASTER_CORE_NAME,
   BLASTER_SHELL_NAME,
-} = await import('../src/blaster-bolt.js');
+} = await import('../src/fx/blaster-bolt.js');
 
 function collectByName(root) {
   const found = {};

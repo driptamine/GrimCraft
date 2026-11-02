@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   resolveModelSource, setModelSource, useProceduralModels,
   MODEL_SOURCE_GLB, MODEL_SOURCE_PROCEDURAL,
-} from '../src/model-source.js';
+} from '../src/render/model-source.js';
 
 describe('model source toggle', () => {
   it('defaults to GLB when nothing is set', () => {

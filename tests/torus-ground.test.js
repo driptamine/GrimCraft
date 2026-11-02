@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { mkTorus } from '../src/three-helpers.js';
+import { mkTorus } from '../src/render/three-helpers.js';
 
 // Ground rings (selection discs, team rings, pings) must lie flat in XZ:
 // a torus standing in XY would read as sunk into the surface.

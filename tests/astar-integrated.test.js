@@ -14,7 +14,7 @@ import {
   snapOrderToFree,
   applyPathEdits,
 } from '../pathfinding/astar-integrated.js';
-import { createSgbParser } from '../src/sgb-parser.js';
+import { createSgbParser } from '../src/maps/sgb-parser.js';
 import { sgbPassBlockedAt } from '../pathfinding/avoid.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
