@@ -3,6 +3,7 @@ import { PLAYER } from '../scene.js';
 import { childMeshes } from '../three-helpers.js';
 import { makeBarracksMesh, makeConfigStructureMesh, makeGunTurretMesh, makeHQMesh, makeThermoMesh, makeTowerBaseMesh, makeTowerMesh } from './buildings.js';
 import { makeAirfieldMesh, makeApcMesh } from './vehicles.js';
+import type { AnyGroup, AnyMesh, MetaPayload } from './types.js';
 
 
 export const LEGACY_GHOST_TYPES = new Set([
@@ -13,13 +14,13 @@ export const LEGACY_GHOST_TYPES = new Set([
 
 // Placement/scaffold ghosts use the real structure model for every
 // config-driven type; only legacy procedural types keep bespoke ghosts.
-export function ghostUsesConfigModel(type) {
+export function ghostUsesConfigModel(type: string): boolean {
   return !LEGACY_GHOST_TYPES.has(type);
 }
 
 
-export function makeGhostMesh(type, pos, meta, teamKey = PLAYER) {
-  let root;
+export function makeGhostMesh(type: string, pos: THREE.Vector3, meta: MetaPayload, teamKey: string = PLAYER): AnyGroup | undefined {
+  let root: AnyGroup | undefined;
 
   if (ghostUsesConfigModel(type)) {
     root = makeConfigStructureMesh(type, pos, teamKey, meta);
@@ -43,18 +44,22 @@ export function makeGhostMesh(type, pos, meta, teamKey = PLAYER) {
     root = makeAirfieldMesh(pos, teamKey, meta);
   }
 
+  if (!root) {
+    return root;
+  }
   const ghostEmissive = new THREE.Color(0.2, 0.7, 1.0);
   childMeshes(root).forEach((mesh) => {
     if (!mesh.material) {
       return;
     }
-    const ghostMaterial = mesh.material.clone();
+    const sourceMat = mesh.material as THREE.Material;
+    const ghostMaterial = sourceMat.clone() as THREE.MeshStandardMaterial & { isMeshStandardMaterial?: unknown };
     ghostMaterial.name = 'ghost_mat_' + Math.random();
     if (ghostMaterial.isMeshStandardMaterial) {
       ghostMaterial.color.setRGB(0, 0, 0);
       ghostMaterial.emissive.copy(ghostEmissive);
-    } else if (ghostMaterial.color) {
-      ghostMaterial.color.copy(ghostEmissive);
+    } else if ((ghostMaterial as { color?: THREE.Color }).color) {
+      (ghostMaterial as { color?: THREE.Color }).color!.copy(ghostEmissive);
     }
     ghostMaterial.opacity = 0.2;
     ghostMaterial.transparent = true;

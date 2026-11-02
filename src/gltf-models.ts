@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { reportR2Progress } from './r2-progress.js';
+import type { AnyGroup } from './meshes/types.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  GLTF MODELS — animated glTF/FBX loading + per-instance playback for three.js.
@@ -21,6 +22,9 @@ export interface GltfContainer {
   animations: THREE.AnimationClip[];
   meshes: THREE.Object3D[];
   _hiddenNodes: string[] | null;
+  // model-upload containers expose a duck-typed instantiate(metaPayload);
+  // strategic-point meshes probe for it instead of branching per source.
+  instantiate?(meta?: Record<string, unknown>): AnyGroup;
   dispose(): void;
 }
 

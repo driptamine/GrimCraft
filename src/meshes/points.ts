@@ -10,6 +10,8 @@ import {
   mkSphere,
 } from '../three-helpers.js';
 import { _factionBucket } from './common.js';
+import type { AnyGroup, MetaPayload } from './types.js';
+import type { GltfContainer } from '../gltf-models.js';
 
 
 export const SP_MODEL_PATHS = {
@@ -60,24 +62,26 @@ export const STRATEGIC_POINT_GROUND_PLANE_RENDER_ORDER = -1;
 // doors, so it gets a per-instance clone with depth writes off and draws
 // first (renderOrder -1), letting the doors blend over it. Returns how many
 // meshes were patched. Name match mirrors _instantiateFromContainer.
-export function patchStrategicPointGroundPlane(model) {
+export function patchStrategicPointGroundPlane(model: THREE.Object3D | null | undefined): number {
   if (!model || typeof model.traverse !== 'function') return 0;
   let patched = 0;
   model.traverse((child) => {
-    if (!child.isMesh) return;
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
     const name = String(child.name || '').toLowerCase().split('_inst_')[0];
     if (name !== STRATEGIC_POINT_GROUND_PLANE && !name.startsWith(STRATEGIC_POINT_GROUND_PLANE)) return;
-    const isArray = Array.isArray(child.material);
-    const mats = isArray ? child.material : [child.material];
+    const isArray = Array.isArray(mesh.material);
+    const matOrMats = mesh.material;
+    const mats: THREE.Material[] = isArray ? matOrMats as THREE.Material[] : [matOrMats as THREE.Material];
     const clones = mats.map((mat) => {
       if (!mat || typeof mat.clone !== 'function') return mat;
       const clone = mat.clone();
       clone.depthWrite = false;
       return clone;
     });
-    child.material = isArray ? clones : clones[0];
-    child.renderOrder = STRATEGIC_POINT_GROUND_PLANE_RENDER_ORDER;
-    child.visible = true;
+    mesh.material = isArray ? clones : clones[0] as THREE.Material;
+    mesh.renderOrder = STRATEGIC_POINT_GROUND_PLANE_RENDER_ORDER;
+    mesh.visible = true;
     patched += 1;
   });
   return patched;
@@ -92,15 +96,17 @@ export const STRATEGIC_POINT_CENTERPOST = 'stratetgic_point_centerpost';
 // metal). Give it a per-instance opaque clone so it draws in the opaque pass
 // with depth writes and no sorting artifacts. RGB is untouched (verified
 // against the texture), only the blend flag changes. Returns patched count.
-export function patchStrategicPointCenterpost(model) {
+export function patchStrategicPointCenterpost(model: THREE.Object3D | null | undefined): number {
   if (!model || typeof model.traverse !== 'function') return 0;
   let patched = 0;
   model.traverse((child) => {
-    if (!child.isMesh) return;
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
     const name = String(child.name || '').toLowerCase().split('_inst_')[0];
     if (name !== STRATEGIC_POINT_CENTERPOST && !name.startsWith(STRATEGIC_POINT_CENTERPOST)) return;
-    const isArray = Array.isArray(child.material);
-    const mats = isArray ? child.material : [child.material];
+    const isArray = Array.isArray(mesh.material);
+    const matOrMats = mesh.material;
+    const mats: THREE.Material[] = isArray ? matOrMats as THREE.Material[] : [matOrMats as THREE.Material];
     const clones = mats.map((mat) => {
       if (!mat || typeof mat.clone !== 'function') return mat;
       const clone = mat.clone();
@@ -110,7 +116,7 @@ export function patchStrategicPointCenterpost(model) {
       clone.depthTest = true;
       return clone;
     });
-    child.material = isArray ? clones : clones[0];
+    mesh.material = isArray ? clones : clones[0] as THREE.Material;
     patched += 1;
   });
   return patched;
@@ -118,7 +124,7 @@ export function patchStrategicPointCenterpost(model) {
 
 
 // Listening Posts build only on player-owned points/relics without one.
-export function canPlaceListeningPost(sp, team) {
+export function canPlaceListeningPost(sp: { owner?: unknown; hasListeningPost?: unknown } | null | undefined, team: unknown): boolean {
   return !!sp && sp.owner === team && !sp.hasListeningPost;
 }
 
@@ -144,7 +150,7 @@ export const STRATEGIC_POINT_BANNERS = {
 // same tick his carried pair pops out. Progress can tick while he is still
 // walking/planting, so the unowned clauses wait for planted too; owned
 // points keep the old behavior.
-export function shouldShowCaptureFlag({ engaged, owner, progress, planted }) {
+export function shouldShowCaptureFlag({ engaged, owner, progress, planted }: { engaged?: boolean; owner?: string | null; progress?: number; planted?: unknown }): boolean {
   if (owner != null) {
     return true;
   }
@@ -152,13 +158,13 @@ export function shouldShowCaptureFlag({ engaged, owner, progress, planted }) {
 }
 
 
-export function _wirePointFlagNodes(model) {
-  const banners = {};
+export function _wirePointFlagNodes(model: AnyGroup): void {
+  const banners: Record<string, THREE.Object3D[]> = {};
   for (const [faction, names] of Object.entries(STRATEGIC_POINT_BANNERS)) {
     banners[faction] = [];
     for (const name of names) {
       for (const node of findNodesByName(model, [name])) {
-        if (node.isMesh) {
+        if ((node as THREE.Mesh).isMesh) {
           banners[faction].push(node);
         }
       }
@@ -168,14 +174,14 @@ export function _wirePointFlagNodes(model) {
 }
 
 
-export function updatePointFlag(model, { faction, show }) {
+export function updatePointFlag(model: AnyGroup | null | undefined, { faction, show }: { faction?: string; show?: boolean }): void {
   const wired = model ? model._flagNodes : null;
   if (!wired) {
     return;
   }
   for (const [key, nodes] of Object.entries(wired.banners)) {
     const visible = show && key === faction;
-    for (const node of nodes) {
+    for (const node of nodes as THREE.Object3D[]) {
       node.visible = !!visible;
     }
   }
@@ -201,7 +207,7 @@ export const POINT_PRE_PLANT_RISE = 0.2;
 // Capture progress (-1..1, either side) mapped onto the raise clip from the
 // pre-plant hold to full capture, remapped so the rise spans from the plant
 // mark to 100%.
-export function raiseScrubProgress(progress, raiseFrom = 0) {
+export function raiseScrubProgress(progress: number, raiseFrom = 0): number {
   const m = Math.min(1, Math.abs(progress || 0));
   const from = Math.min(0.999, Math.max(0, raiseFrom || 0));
   const raw = Math.min(1, Math.max(0, (m - from) / (1 - from)));
@@ -215,7 +221,15 @@ export function raiseScrubProgress(progress, raiseFrom = 0) {
 // raise clip by capture progress (plant mark to 100%), 'raised' loops the
 // captured clip. Owned points go straight to the raised loop; a contested
 // raised point re-enters 'raising'.
-export function nextStrategicPointAnim({ owner, beingCaptured, animState, currentAnim, progress, planted, raiseFrom }) {
+export function nextStrategicPointAnim({ owner, beingCaptured, animState, currentAnim, progress, planted, raiseFrom }: {
+  owner?: string | null;
+  beingCaptured?: boolean;
+  animState?: string | null;
+  currentAnim?: string | null;
+  progress?: number;
+  planted?: boolean;
+  raiseFrom?: number;
+}): { play: string | null; loop: boolean; state: string | null; scrub: number | null } {
   if (owner != null && animState !== 'raised') {
     return { play: 'captured', loop: true, state: 'raised', scrub: null };
   }
@@ -229,10 +243,10 @@ export function nextStrategicPointAnim({ owner, beingCaptured, animState, curren
     return { play: 'raise', loop: false, state: 'opening', scrub: POINT_PRE_PLANT_RISE };
   }
   if (beingCaptured && planted && animState === 'opening' && (currentAnim == null || currentAnim === 'raise')) {
-    return { play: 'raise', loop: false, state: 'raising', scrub: raiseScrubProgress(progress, raiseFrom) };
+    return { play: 'raise', loop: false, state: 'raising', scrub: raiseScrubProgress(progress as number, raiseFrom) };
   }
   if (beingCaptured && planted && (animState === 'raising' || animState === 'raised')) {
-    return { play: 'raise', loop: false, state: 'raising', scrub: raiseScrubProgress(progress, raiseFrom) };
+    return { play: 'raise', loop: false, state: 'raising', scrub: raiseScrubProgress(progress as number, raiseFrom) };
   }
   if (!beingCaptured && animState !== 'idle') {
     return { play: 'idle', loop: true, state: 'idle', scrub: null };
@@ -244,10 +258,10 @@ export function nextStrategicPointAnim({ owner, beingCaptured, animState, curren
 // Wire the capture-state clips onto an instantiated point model. Slots are
 // 'idle'/'captured' (looped), 'open' (one-shot), and 'raise' (scrubbed by
 // capture progress); one-shot end clears _currentAnim.
-export function _wirePointAnims(model, kind) {
-  const clips = STRATEGIC_POINT_CLIPS[kind] || STRATEGIC_POINT_CLIPS.point;
+export function _wirePointAnims(model: AnyGroup, kind: string): void {
+  const clips = STRATEGIC_POINT_CLIPS[kind as keyof typeof STRATEGIC_POINT_CLIPS] || STRATEGIC_POINT_CLIPS.point;
   const groups = model._animationGroups || [];
-  const find = (wanted) => groups.find((g) => String(g.name || '').toLowerCase() === wanted) || null;
+  const find = (wanted: string): { name?: unknown } | null => groups.find((g: { name?: unknown }) => String(g.name || '').toLowerCase() === wanted) || null;
   model._animGroups = {};
   const idle = find(clips.idle);
   const open = find(clips.open);
@@ -258,13 +272,13 @@ export function _wirePointAnims(model, kind) {
   if (raise) model._animGroups.raise = raise;
   if (captured) model._animGroups.captured = captured;
   model._currentAnim = null;
-  model._scrubAnim = function (name, progress) {
+  model._scrubAnim = function (name: string, progress: number): void {
     const ag = model._animGroups[name];
     if (!ag || typeof ag.scrub !== 'function') {
       return;
     }
     if (model._currentAnim !== name) {
-      Object.values(model._animGroups).forEach((other) => {
+      (Object.values(model._animGroups) as { stop(): void }[]).forEach((other) => {
         try { other.stop(); } catch (e) { /* ignore */ }
       });
       model._currentAnim = name;
@@ -275,7 +289,7 @@ export function _wirePointAnims(model, kind) {
       console.warn('_scrubAnim error', name, e);
     }
   };
-  model._playAnim = function (name, loop) {
+  model._playAnim = function (name: string, loop?: boolean): void {
     if (loop === undefined) loop = true;
     if (model._currentAnim === name) {
       return;
@@ -284,7 +298,7 @@ export function _wirePointAnims(model, kind) {
     if (!ag) {
       return;
     }
-    Object.values(model._animGroups).forEach((other) => {
+    (Object.values(model._animGroups) as { stop(): void }[]).forEach((other) => {
       try { other.stop(); } catch (e) { /* ignore */ }
     });
     model._currentAnim = name;
@@ -305,10 +319,10 @@ export function _wirePointAnims(model, kind) {
 }
 
 
-export const _strategicPointContainers = { point: null, relic: null, objective: null };
+export const _strategicPointContainers: Record<string, GltfContainer | null> = { point: null, relic: null, objective: null };
 
 
-export async function _loadPointContainer(kind) {
+export async function _loadPointContainer(kind: string): Promise<GltfContainer | null> {
   if (_strategicPointContainers[kind]) {
     return _strategicPointContainers[kind];
   }
@@ -317,7 +331,7 @@ export async function _loadPointContainer(kind) {
       import('../gltf-models.js'),
       import('../assets.js'),
     ]);
-    const container = await loadGltf(modelUrl(SP_MODEL_PATHS[kind]));
+    const container = await loadGltf(modelUrl(SP_MODEL_PATHS[kind as keyof typeof SP_MODEL_PATHS]));
     if (container) {
       container._hiddenNodes = STRATEGIC_POINT_HIDDEN_NODES;
       _strategicPointContainers[kind] = container;
@@ -329,33 +343,45 @@ export async function _loadPointContainer(kind) {
 }
 
 
-export async function preloadStrategicPointModel() {
+export async function preloadStrategicPointModel(): Promise<GltfContainer | null> {
   return _loadPointContainer('point');
 }
 
 
-export async function preloadRelicModel() {
+export async function preloadRelicModel(): Promise<GltfContainer | null> {
   return _loadPointContainer('relic');
 }
 
-export async function preloadObjectiveModel() {
+
+export async function preloadObjectiveModel(): Promise<GltfContainer | null> {
   return _loadPointContainer('objective');
 }
 
 
-export function makeStrategicPointMesh(x, z, kind = 'point') {
+export interface StrategicPointMesh {
+  group: AnyGroup;
+  model: AnyGroup | null;
+  gem: null;
+  gemMat: null;
+  capRing: null;
+  capRingMat: null;
+  pillar: null;
+}
+
+export function makeStrategicPointMesh(x: number, z: number, kind = 'point'): StrategicPointMesh {
   const position = new THREE.Vector3(x, 0, z);
-  const root = mkGroup('sp');
+  const root = mkGroup('sp') as AnyGroup;
   root.position.copy(position);
   const container = useProceduralModels() ? null : (_strategicPointContainers[kind] || null);
   const model = container ? _instantiateFromContainer(container, {}) : null;
   if (model) {
-    _wirePointAnims(model, kind);
-    _wirePointFlagNodes(model);
-    patchStrategicPointGroundPlane(model);
-    patchStrategicPointCenterpost(model);
-    model.scale.setScalar(SP_MODEL_SCALES[kind] || SP_MODEL_SCALES.point);
-    root.add(model);
+    const pointModel = model as AnyGroup;
+    _wirePointAnims(pointModel, kind);
+    _wirePointFlagNodes(pointModel);
+    patchStrategicPointGroundPlane(pointModel);
+    patchStrategicPointCenterpost(pointModel);
+    pointModel.scale.setScalar(SP_MODEL_SCALES[kind as keyof typeof SP_MODEL_SCALES] || SP_MODEL_SCALES.point);
+    root.add(pointModel);
   } else {
     const base = mkCylinder('spbase', 2.8, 2.8, 0.3, 16);
     base.position.y = 0.15;
@@ -367,7 +393,7 @@ export function makeStrategicPointMesh(x, z, kind = 'point') {
 
   return {
     group: root,
-    model: model || null,
+    model: (model as AnyGroup | null) || null,
     gem: null,
     gemMat: null,
     capRing: null,
@@ -377,20 +403,20 @@ export function makeStrategicPointMesh(x, z, kind = 'point') {
 }
 
 
-export function buildListeningPostMesh(position, teamKey = PLAYER, metaPayload = {}) {
+export function buildListeningPostMesh(position: THREE.Vector3, teamKey: string = PLAYER, metaPayload: MetaPayload = {}): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.listening_post;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     if (scene._registerShadows) scene._registerShadows(root);
     return root;
   }
 
-  const root = mkGroup('lp');
+  const root = mkGroup('lp') as AnyGroup;
   root.position.copy(position);
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('lb', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);

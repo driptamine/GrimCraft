@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TGALoader } from 'three/addons/loaders/TGALoader.js';
 import { DDSLoader } from 'three/addons/loaders/DDSLoader.js';
 import { reportR2Progress } from './r2-progress.js';
+import type { AnyMesh } from './meshes/types.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  THREE.JS HELPERS — small factories + graph utilities for the migrated game.
@@ -182,14 +183,16 @@ export function ghostHitboxMaterial(): THREE.MeshBasicMaterial {
 
 // ── Graph utilities ─────────────────────────────────────────────────────────
 
-export function childMeshes(root: THREE.Object3D | null): THREE.Mesh[] {
-  const out: THREE.Mesh[] = [];
+// Meshes carry untyped runtime fields (selection discs, anim groups), so the
+// collector returns the codebase-wide AnyMesh alias instead of bare Mesh.
+export function childMeshes(root: THREE.Object3D | null): AnyMesh[] {
+  const out: AnyMesh[] = [];
   if (!root) {
     return out;
   }
   root.traverse((child: MaybeMesh) => {
     if (child !== root && child.isMesh) {
-      out.push(child as THREE.Mesh);
+      out.push(child as unknown as AnyMesh);
     }
   });
   return out;

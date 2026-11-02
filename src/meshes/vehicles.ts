@@ -12,14 +12,23 @@ import {
 } from '../three-helpers.js';
 import { _factionBucket } from './common.js';
 import { makeSquareSelRing } from './hud.js';
+import type { AnyGroup, AnyMesh, MetaPayload } from './types.js';
 
 
-export function makeApcMesh(position, teamKey, metaPayload) {
+// Legacy quirk preserved: THREE.Color has no (radix) overload, so
+// color.toString(16) falls through to Object.prototype.toString and yields
+// '#[object Object]' (white) at runtime — exactly as the JS build did.
+function _legacyColorHex(color: THREE.Color): string {
+  return (color as unknown as { toString(radix: number): string }).toString(16);
+}
+
+
+export function makeApcMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.mechanized || faction.structures.apc;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const turretNode = descendants(root).find((n) => n.name.toLowerCase().includes('turret')) || root;
     root._turret = turretNode;
@@ -45,10 +54,10 @@ export function makeApcMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('apc');
+  const root = mkGroup('apc') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('apcb', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -63,7 +72,7 @@ export function makeApcMesh(position, teamKey, metaPayload) {
     box.userData = { ...metaPayload };
     return box;
   };
-  const addCyl = function addCyl(diameterTop, diameterBottom, height, color, emissiveColor, x, y, z) {
+  const addCyl = function addCyl(diameterTop: number, diameterBottom: number, height: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const cylinder = mkCylinder('apcc', diameterTop, diameterBottom, height, 10);
     cylinder.position.set(x, y, z);
     root.add(cylinder);
@@ -79,7 +88,7 @@ export function makeApcMesh(position, teamKey, metaPayload) {
     return cylinder;
   };
   addBox(3.5, 1.4, 5.5, 0x1a3020, 0, 0, 0.7, 0);
-  const hullTop = addBox(2.8, 1.0, 3.5, 0x223828, 0, 1.7, 0.5);
+  const hullTop = addBox(2.8, 1.0, 3.5, 0x223828, 0, 1.7, 0.5, 0);
   const hullTopMaterial = new THREE.MeshStandardMaterial();
   hullTopMaterial.color = config.diffuse.clone();
   hullTopMaterial.emissive = config.emissive.clone();
@@ -90,7 +99,7 @@ export function makeApcMesh(position, teamKey, metaPayload) {
     addCyl(0.6, 0.6, 5.5, 0x111111, 0, x, 0.5, 0).rotation.z = Math.PI / 2;
     addCyl(0.5, 0.5, 5.5, 0x222222, 0, x, 0.5, 0).rotation.z = Math.PI / 2;
   });
-  const turretNode = mkGroup('apc_turret');
+  const turretNode = mkGroup('apc_turret') as AnyGroup;
   root.add(turretNode);
   turretNode.position.set(0, 2.3, 0.5);
   const turretHead = mkBox('apcth', 1.8, 0.7, 1.8);
@@ -138,11 +147,11 @@ export function makeApcMesh(position, teamKey, metaPayload) {
 }
 
 
-export function makeVehicleMesh(model, position, teamKey, metaPayload) {
+export function makeVehicleMesh(model: string, position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction?.vehicles?.[model];
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const turretNode = descendants(root).find((n) => n.name.toLowerCase().includes('turret')) || root;
     root._turret = turretNode;
@@ -167,14 +176,14 @@ export function makeVehicleMesh(model, position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('vehicle');
+  const root = mkGroup('vehicle') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
   const box = mkBox('vbox', 2.2, 1.2, 3.4);
   box.position.y = 0.6;
   root.add(box);
   box.material = getMat('vboxmat', {
-    diffuseColor: new THREE.Color('#' + config.diffuse.toString(16).padStart(6, '0')),
+    diffuseColor: new THREE.Color('#' + _legacyColorHex(config.diffuse).padStart(6, '0')),
     emissiveColor: config.emissive,
     specularColor: new THREE.Color(0, 0, 0),
   });
@@ -183,7 +192,7 @@ export function makeVehicleMesh(model, position, teamKey, metaPayload) {
   top.position.set(0, 1.3, -0.2);
   root.add(top);
   top.material = getMat('vturretmat', {
-    diffuseColor: new THREE.Color('#' + config.diffuse.toString(16).padStart(6, '0')),
+    diffuseColor: new THREE.Color('#' + _legacyColorHex(config.diffuse).padStart(6, '0')),
     emissiveColor: config.emissive,
     specularColor: new THREE.Color(0, 0, 0),
   });
@@ -193,12 +202,12 @@ export function makeVehicleMesh(model, position, teamKey, metaPayload) {
 }
 
 
-export function makeAirfieldMesh(position, teamKey, metaPayload) {
+export function makeAirfieldMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.airfield || faction.structures.mechanized;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const ring = makeSquareSelRing(root, AIRFIELD_BOUNDS, 0.16, 0.05);
     root._ring = ring;
@@ -207,11 +216,11 @@ export function makeAirfieldMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('airfield');
+  const root = mkGroup('airfield') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
 
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('afb', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -225,7 +234,7 @@ export function makeAirfieldMesh(position, teamKey, metaPayload) {
     box.userData = { ...metaPayload };
     return box;
   };
-  const addCyl = function addCyl(diameterTop, diameterBottom, height, color, emissiveColor, x, y, z, tess = 8) {
+  const addCyl = function addCyl(diameterTop: number, diameterBottom: number, height: number, color: number, emissiveColor: number, x: number, y: number, z: number, tess = 8): THREE.Mesh {
     const cylinder = mkCylinder('afc', diameterTop, diameterBottom, height, tess);
     cylinder.position.set(x, y, z);
     root.add(cylinder);
@@ -287,7 +296,7 @@ export function makeAirfieldMesh(position, teamKey, metaPayload) {
   });
   addBox(0.1, 0.1, 1.8, 0x555548, 0, -9.4, 0.95, 0);
 
-  const parkedRoot = mkGroup('parked_jet');
+  const parkedRoot = mkGroup('parked_jet') as AnyGroup;
   root.add(parkedRoot);
   parkedRoot.position.set(-5.5, 0.22, 1.5);
   parkedRoot.rotation.y = Math.PI / 2;
@@ -308,10 +317,10 @@ export function makeAirfieldMesh(position, teamKey, metaPayload) {
 }
 
 
-export function _buildJetGeometry(root, config, metaPayload) {
+export function _buildJetGeometry(root: AnyGroup, config: { diffuse: THREE.Color; emissive: THREE.Color }, metaPayload: MetaPayload): void {
   const bodyColor = ('#' + config.diffuse.getHexString());
   const emissiveColor = ('#' + config.emissive.getHexString());
-  const material = function material(color, emis, alpha) {
+  const material = function material(color: number | string, emis: number | string, alpha?: number): THREE.MeshStandardMaterial {
     const jetMaterial = new THREE.MeshStandardMaterial();
     jetMaterial.color = (typeof color === 'string')
       ? new THREE.Color(color)
@@ -328,7 +337,7 @@ export function _buildJetGeometry(root, config, metaPayload) {
     }
     return jetMaterial;
   };
-  const box = function box(width, height, depth, color, emis, x, y, z, rx = 0, ry = 0, rz = 0) {
+  const box = function box(width: number, height: number, depth: number, color: number | string, emis: number | string, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0): THREE.Mesh {
     const jetBox = mkBox('jb', width, height, depth);
     jetBox.position.set(x, y, z);
     jetBox.rotation.set(rx, ry, rz);
@@ -340,7 +349,7 @@ export function _buildJetGeometry(root, config, metaPayload) {
     }
     return jetBox;
   };
-  const cyl = function cyl(diameterTop, diameterBottom, height, color, emis, x, y, z, rx = 0, ry = 0, rz = 0, tess = 8) {
+  const cyl = function cyl(diameterTop: number, diameterBottom: number, height: number, color: number | string, emis: number | string, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0, tess = 8): THREE.Mesh {
     const cylinder = mkCylinder('jc', diameterTop, diameterBottom, height, tess);
     cylinder.position.set(x, y, z);
     cylinder.rotation.set(rx, ry, rz);
@@ -365,8 +374,8 @@ export function _buildJetGeometry(root, config, metaPayload) {
     [1, -1],
   ].forEach(([signX]) => {
     const wingPlane = mkBox('jwing', 1.9, 0.06, 2.8);
-    wingPlane.position.set(signX * 1.05, -0.05, -0.4);
-    wingPlane.rotation.set(0, signX * wingAngle * -1, 0);
+    wingPlane.position.set((signX as number) * 1.05, -0.05, -0.4);
+    wingPlane.rotation.set(0, (signX as number) * wingAngle * -1, 0);
     root.add(wingPlane);
     wingPlane.userData.pickable = false;
     wingPlane.material = material(bodyColor, emissiveColor);
@@ -374,7 +383,7 @@ export function _buildJetGeometry(root, config, metaPayload) {
       wingPlane.userData = { ...metaPayload };
     }
     const wingTip = mkBox('jwt', 0.4, 0.05, 1.0);
-    wingTip.position.set(signX * 1.92, -0.04, -1.1);
+    wingTip.position.set((signX as number) * 1.92, -0.04, -1.1);
     root.add(wingTip);
     wingTip.userData.pickable = false;
     wingTip.material = material(0x222222, 0);
@@ -382,11 +391,11 @@ export function _buildJetGeometry(root, config, metaPayload) {
       wingTip.userData = { ...metaPayload };
     }
     const navLight = mkSphere('jntl', 0.12, 4);
-    navLight.position.set(signX * 2.1, -0.02, -1.5);
+    navLight.position.set((signX as number) * 2.1, -0.02, -1.5);
     root.add(navLight);
     navLight.userData.pickable = false;
     const navLightMaterial = new THREE.MeshBasicMaterial();
-    navLightMaterial.color = (signX < 0)
+    navLightMaterial.color = ((signX as number) < 0)
       ? new THREE.Color(1, 0.1, 0.1)
       : new THREE.Color(0.1, 1, 0.1);
     navLight.material = navLightMaterial;
@@ -397,8 +406,8 @@ export function _buildJetGeometry(root, config, metaPayload) {
     [1, -1],
   ].forEach(([signX]) => {
     const canardFin = mkBox('jcf', 0.55, 0.04, 0.55);
-    canardFin.position.set(signX * 0.42, 0.0, 2.1);
-    canardFin.rotation.set(0, signX * 0.2, 0);
+    canardFin.position.set((signX as number) * 0.42, 0.0, 2.1);
+    canardFin.rotation.set(0, (signX as number) * 0.2, 0);
     root.add(canardFin);
     canardFin.userData.pickable = false;
     canardFin.material = material(bodyColor, 0);
@@ -455,10 +464,10 @@ export function _buildJetGeometry(root, config, metaPayload) {
 }
 
 
-export function makeJetMesh(position, teamKey, metaPayload) {
-  const root = mkGroup('jet');
+export function makeJetMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
+  const root = mkGroup('jet') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
   _buildJetGeometry(root, config, metaPayload);
 
   const selectionRing = makeSquareSelRing(root, 3.5, 0.15, -0.3);

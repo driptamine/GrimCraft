@@ -72,7 +72,7 @@ for (const key of ARENA_POSITION_FACTIONS) {
 // verification and console inspection.
 export const mergeStats: Array<Record<string, unknown>> = [];
 
-export function resolveFactionKey(faction: string, fallback: string = playerFaction): string {
+export function resolveFactionKey(faction: string | null | undefined, fallback: string = playerFaction): string {
   if (faction && factionContainers[faction]) {
     return faction;
   }

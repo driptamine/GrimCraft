@@ -20,12 +20,13 @@ import {
 } from '../three-helpers.js';
 import { _factionBucket } from './common.js';
 import { makeSquareSelRing } from './hud.js';
+import type { AnyGroup, MetaPayload } from './types.js';
 
 
-export function makeHQMesh(position, teamKey, metaPayload) {
+export function makeHQMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const container = _factionBucket(teamKey, metaPayload).hq;
   if (!container) {
-    const root = mkGroup('hq_fallback');
+    const root = mkGroup('hq_fallback') as AnyGroup;
     root.position.copy(position);
     const box = mkBox('hq_box', 6, 6, 6);
     box.position.y = 3;
@@ -36,7 +37,7 @@ export function makeHQMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = _instantiateFromContainer(container, metaPayload);
+  const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
   root.position.copy(position);
   root.rotation.y = Math.PI / 2;
   // Ensure metadata is applied to all child meshes for picking
@@ -51,12 +52,12 @@ export function makeHQMesh(position, teamKey, metaPayload) {
 }
 
 
-export function makeBarracksMesh(position, teamKey, metaPayload) {
+export function makeBarracksMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.infantry_command || faction.structures.barracks;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const ring = makeSquareSelRing(root, BUILDING_BOUNDS.barracks, 0.13);
     root._ring = ring;
@@ -65,10 +66,10 @@ export function makeBarracksMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('barracks');
+  const root = mkGroup('barracks') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('b', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -131,12 +132,12 @@ export function makeBarracksMesh(position, teamKey, metaPayload) {
 }
 
 
-export function makeTowerMesh(position, teamKey, metaPayload) {
+export function makeTowerMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.turret;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const turretNode = descendants(root).find((n) => n.name.toLowerCase().includes('turret')) || root;
     root._turret = turretNode;
@@ -147,10 +148,10 @@ export function makeTowerMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('tower');
+  const root = mkGroup('tower') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
-  const addCyl = function addCyl(diameterTop, diameterBottom, height, color, emissiveColor, x, y, z) {
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
+  const addCyl = function addCyl(diameterTop: number, diameterBottom: number, height: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const cylinder = mkCylinder('c', diameterTop, diameterBottom, height, 8);
     cylinder.position.set(x, y, z);
     root.add(cylinder);
@@ -165,7 +166,7 @@ export function makeTowerMesh(position, teamKey, metaPayload) {
     cylinder.userData = { ...metaPayload };
     return cylinder;
   };
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('b', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -183,7 +184,7 @@ export function makeTowerMesh(position, teamKey, metaPayload) {
   addCyl(4, 4.8, 0.5, 0x334433, 0, 0, 0.25, 0);
   addCyl(1.2, 1.6, 5, 0x445544, 0, 0, 3, 0);
   addBox(2.4, 0.4, 2.4, 0x3a4a3a, 0, 0, 5.7, 0);
-  const turretNode = mkGroup('turret');
+  const turretNode = mkGroup('turret') as AnyGroup;
   root.add(turretNode);
   turretNode.position.set(0, 6.2, 0);
   const turretHead = mkBox('th', 1.4, 0.7, 1.4);
@@ -223,12 +224,12 @@ export function makeTowerMesh(position, teamKey, metaPayload) {
 }
 
 
-export function makeThermoMesh(position, teamKey, metaPayload) {
+export function makeThermoMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.thermo_generator;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const ring = makeSquareSelRing(root, STRUCTURE_BOUNDS.thermoGen, 0.14, 0.05);
     root._ring = ring;
@@ -237,11 +238,11 @@ export function makeThermoMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('powerplant');
+  const root = mkGroup('powerplant') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
 
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('ppb', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -256,7 +257,7 @@ export function makeThermoMesh(position, teamKey, metaPayload) {
     box.userData = { ...metaPayload };
     return box;
   };
-  const addCyl = function addCyl(diameterTop, diameterBottom, height, color, emissiveColor, x, y, z, tess = 12) {
+  const addCyl = function addCyl(diameterTop: number, diameterBottom: number, height: number, color: number, emissiveColor: number, x: number, y: number, z: number, tess = 12): THREE.Mesh {
     const cylinder = mkCylinder('ppc', diameterTop, diameterBottom, height, tess);
     cylinder.position.set(x, y, z);
     root.add(cylinder);
@@ -364,12 +365,12 @@ export function makeThermoMesh(position, teamKey, metaPayload) {
 }
 
 
-export function makeTowerBaseMesh(position, teamKey = PLAYER, metaPayload = {}) {
+export function makeTowerBaseMesh(position: THREE.Vector3, teamKey: string = PLAYER, metaPayload: MetaPayload = {}): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.armoury;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const ring = makeSquareSelRing(root, STRUCTURE_BOUNDS.towerBase, 0.13, 0.05);
     root._ring = ring;
@@ -378,9 +379,9 @@ export function makeTowerBaseMesh(position, teamKey = PLAYER, metaPayload = {}) 
     return root;
   }
 
-  const root = mkGroup('towerbase');
+  const root = mkGroup('towerbase') as AnyGroup;
   root.position.copy(position);
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('tb', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -395,7 +396,7 @@ export function makeTowerBaseMesh(position, teamKey = PLAYER, metaPayload = {}) 
     box.userData = { ...metaPayload };
     return box;
   };
-  const addCyl = function addCyl(diameterTop, diameterBottom, height, color, emissiveColor, x, y, z) {
+  const addCyl = function addCyl(diameterTop: number, diameterBottom: number, height: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const cylinder = mkCylinder('tc', diameterTop, diameterBottom, height, 8);
     cylinder.position.set(x, y, z);
     root.add(cylinder);
@@ -417,7 +418,7 @@ export function makeTowerBaseMesh(position, teamKey = PLAYER, metaPayload = {}) 
     });
   });
   addBox(2, 0.4, 2, 0x1a2a1a, 0, 0, 2.7, 0);
-  const turretNode = mkGroup('tbturret');
+  const turretNode = mkGroup('tbturret') as AnyGroup;
   root.add(turretNode);
   turretNode.position.set(0, 3.1, 0);
   const turretHead = mkBox('tbth', 1.8, 0.6, 1.8);
@@ -453,12 +454,12 @@ export function makeTowerBaseMesh(position, teamKey = PLAYER, metaPayload = {}) 
 }
 
 
-export function makeGunTurretMesh(position, teamKey, metaPayload) {
+export function makeGunTurretMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction.structures.gun_turret || faction.structures.turret;
 
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     const ring = makeSquareSelRing(root, STRUCTURE_BOUNDS.gunTurret, 0.13, 0.05);
     root._ring = ring;
@@ -467,11 +468,11 @@ export function makeGunTurretMesh(position, teamKey, metaPayload) {
     return root;
   }
 
-  const root = mkGroup('gunTurret');
+  const root = mkGroup('gunTurret') as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
 
-  const addBox = function addBox(width, height, depth, color, emissiveColor, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, color: number, emissiveColor: number, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('gtb', width, height, depth);
     box.position.set(x, y, z);
     root.add(box);
@@ -486,7 +487,7 @@ export function makeGunTurretMesh(position, teamKey, metaPayload) {
     box.userData = { ...metaPayload };
     return box;
   };
-  const addCyl = function addCyl(diameterTop, diameterBottom, height, color, emissiveColor, x, y, z, tess = 8) {
+  const addCyl = function addCyl(diameterTop: number, diameterBottom: number, height: number, color: number, emissiveColor: number, x: number, y: number, z: number, tess = 8): THREE.Mesh {
     const cylinder = mkCylinder('gtc', diameterTop, diameterBottom, height, tess);
     cylinder.position.set(x, y, z);
     root.add(cylinder);
@@ -518,7 +519,7 @@ export function makeGunTurretMesh(position, teamKey, metaPayload) {
 
   addCyl(0.7, 0.85, 0.75, 0x1e2218, 0, 0, 0.75, 0, 12);
 
-  const turretNode = mkGroup('gtturret');
+  const turretNode = mkGroup('gtturret') as AnyGroup;
   root.add(turretNode);
   turretNode.position.set(0, 1.22, 0);
 
@@ -618,14 +619,14 @@ export function makeGunTurretMesh(position, teamKey, metaPayload) {
 }
 
 
-export function makeConfigStructureMesh(type, position, teamKey, metaPayload) {
+export function makeConfigStructureMesh(type: string, position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
   const container = faction?.structures?.[type];
   if (container) {
-    const root = _instantiateFromContainer(container, metaPayload);
+    const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     if (root) {
       root.position.copy(position);
-      const ring = makeSquareSelRing(root, STRUCTURE_BOUNDS[type] ?? 3.5, 0.14, 0.05);
+      const ring = makeSquareSelRing(root, (STRUCTURE_BOUNDS as Record<string, number>)[type] ?? 3.5, 0.14, 0.05);
       root._ring = ring;
       root._ringMat = ring._material;
       if (scene._registerShadows) scene._registerShadows(root);
@@ -641,15 +642,15 @@ export function makeConfigStructureMesh(type, position, teamKey, metaPayload) {
 }
 
 
-export function _makeProceduralStructureMesh(type, position, teamKey, metaPayload) {
-  const root = mkGroup(`struct_${type}`);
+export function _makeProceduralStructureMesh(type: string, position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
+  const root = mkGroup(`struct_${type}`) as AnyGroup;
   root.position.copy(position);
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.blue;
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.blue;
   const mat = new THREE.MeshStandardMaterial();
   mat.color = config.diffuse.clone();
   mat.emissive = config.emissive.clone();
   const darkMat = getMat(0x222222);
-  const addBox = function addBox(w, h, d, material, x, y, z) {
+  const addBox = function addBox(w: number, h: number, d: number, material: THREE.Material, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('sb', w, h, d);
     box.position.set(x, y, z);
     root.add(box);
@@ -692,7 +693,7 @@ export function _makeProceduralStructureMesh(type, position, teamKey, metaPayloa
     root._meter = core;
   }
 
-  const ring = makeSquareSelRing(root, STRUCTURE_BOUNDS[type] ?? 3.5, 0.14, 0.05);
+  const ring = makeSquareSelRing(root, (STRUCTURE_BOUNDS as Record<string, number>)[type] ?? 3.5, 0.14, 0.05);
   root._ring = ring;
   root._ringMat = ring._material;
   if (scene._registerShadows) scene._registerShadows(root);

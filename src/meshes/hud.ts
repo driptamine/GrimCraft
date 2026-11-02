@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { PLAYER } from '../scene.js';
 import { mkBox, mkGroup, mkPlane } from '../three-helpers.js';
+import type { AnyGroup, AnyMesh } from './types.js';
 
 
-export function makeHpBar(width, teamKey) {
-  const group = mkGroup('hpgrp_' + Math.random());
+export function makeHpBar(width: number, teamKey: string): AnyGroup {
+  const group = mkGroup('hpgrp_' + Math.random()) as AnyGroup;
   const border = mkPlane('hpborder', width + 0.07, 0.22 + 0.07, true);
   border.rotation.x = -Math.PI / 2;
   border.position.y = -0.002;
@@ -49,7 +50,7 @@ export function makeHpBar(width, teamKey) {
 }
 
 
-export function updateHpBar(group, percentage) {
+export function updateHpBar(group: AnyGroup, percentage: number): void {
   group._fg.scale.x = Math.max(0.001, percentage);
   // Anchor the full end at +X: three.js mirrors the old left-handed view, so
   // +X is screen-left and the bar depletes from screen-right like before.
@@ -57,7 +58,7 @@ export function updateHpBar(group, percentage) {
 }
 
 
-export function makeSquareSelRing(parent, size, thickness = 0.12, y = 0.06) {
+export function makeSquareSelRing(parent: THREE.Object3D, size: number, thickness = 0.12, y = 0.06): AnyGroup {
   const ringThickness = thickness;
   const ringSize = size;
   const bars = [
@@ -66,7 +67,7 @@ export function makeSquareSelRing(parent, size, thickness = 0.12, y = 0.06) {
     [ringThickness, ringSize * 2, ringSize, 0],
     [ringThickness, ringSize * 2, -ringSize, 0],
   ];
-  const node = mkGroup('selRingNode');
+  const node = mkGroup('selRingNode') as AnyGroup;
   parent.add(node);
   node.position.y = y;
   node.userData.pickable = false;
@@ -78,7 +79,7 @@ export function makeSquareSelRing(parent, size, thickness = 0.12, y = 0.06) {
   node.visible = false;
   node.visible = false;
   bars.forEach(([w, d, x, z]) => {
-    const box = mkBox('srb', w, ringThickness, d);
+    const box = mkBox('srb', w, ringThickness, d) as AnyMesh;
     node.add(box);
     box.position.set(x, 0, z);
     box.material = material;

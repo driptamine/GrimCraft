@@ -6,7 +6,7 @@ import {
   playerFaction,
   resolveFactionKey,
 } from '../factions.js';
-import { instantiateGltf } from '../gltf-models.js';
+import { instantiateGltf, type AnimGroup, type GltfContainer } from '../gltf-models.js';
 import { getMat } from '../mat-cache.js';
 import { useProceduralModels } from '../model-source.js';
 import { _assetContainer, _cloneCustomModel } from '../model-upload.js';
@@ -37,9 +37,10 @@ import {
   mkSphere,
   mkTorus,
 } from '../three-helpers.js';
+import type { AnyGroup, MetaPayload } from './types.js';
 
 
-export function addTeamRing(root, isPlayerTeam) {
+export function addTeamRing(root: AnyGroup, isPlayerTeam: boolean): THREE.Mesh {
   const torus = mkTorus('teamRing_' + Math.random(), 1.5, 0.06, 24);
   torus.rotation.x = 0;
   torus.position.y = 0.05;
@@ -66,8 +67,8 @@ export function addTeamRing(root, isPlayerTeam) {
 // ══════════════════════════════════════════════════════════════════════════════
 //  MESH FACTORIES
 // ══════════════════════════════════════════════════════════════════════════════
-export function makeMissileMesh() {
-  const root = mkGroup('missile_root');
+export function makeMissileMesh(): AnyGroup {
+  const root = mkGroup('missile_root') as AnyGroup;
   const body = mkCylinder('mbody', 0.1, 0.13, 1.1, 7);
   root.add(body);
   body.rotation.x = Math.PI / 2;
@@ -102,7 +103,7 @@ for (const geo of [_bulletGeo, _laserGeo, _plasmaGeo, _grenadeGeo]) {
   geo.userData.shared = true;
 }
 
-export function makeBulletMesh() {
+export function makeBulletMesh(): THREE.Mesh {
   const mesh = mkSharedMesh(_bulletGeo, 'bullet');
   const bulletMaterial = new THREE.MeshStandardMaterial();
   bulletMaterial.color = new THREE.Color(0.87, 0.67, 0);
@@ -113,7 +114,7 @@ export function makeBulletMesh() {
 }
 
 
-export function makeLaserBulletMesh() {
+export function makeLaserBulletMesh(): THREE.Mesh {
   const mesh = mkSharedMesh(_laserGeo, 'laser');
   const laserMaterial = new THREE.MeshBasicMaterial();
   laserMaterial.color = new THREE.Color(1, 0, 0);
@@ -123,7 +124,7 @@ export function makeLaserBulletMesh() {
 }
 
 
-export function makePlasmaBulletMesh() {
+export function makePlasmaBulletMesh(): THREE.Mesh {
   const mesh = mkSharedMesh(_plasmaGeo, 'plasma');
   mesh.rotation.set(
     Math.random() * Math.PI * 2,
@@ -141,8 +142,8 @@ export function makePlasmaBulletMesh() {
 }
 
 
-export function makeGrenadeMesh() {
-  const root = mkGroup('grenade_root');
+export function makeGrenadeMesh(): AnyGroup {
+  const root = mkGroup('grenade_root') as AnyGroup;
   const mesh = mkSharedMesh(_grenadeGeo, 'grenade');
   root.add(mesh);
   const grenadeMaterial = new THREE.MeshStandardMaterial();
@@ -163,13 +164,13 @@ export function makeGrenadeMesh() {
 }
 
 
-export function makeSoldierMesh(teamKey, metaPayload = {}) {
+export function makeSoldierMesh(teamKey: string, metaPayload: MetaPayload = {}): THREE.Group {
   const isBuilder = (teamKey === 'builder' || metaPayload.builderEntityId !== undefined);
   const actualTeam = isBuilder ? (metaPayload.team || PLAYER) : teamKey;
 
   // Try faction-specific model first
   const factionKey = resolveFactionKey(metaPayload.faction, actualTeam === PLAYER ? playerFaction : enemyFaction);
-  let containerType = isBuilder ? 'worker' : 'soldier';
+  let containerType: 'worker' | 'soldier' = isBuilder ? 'worker' : 'soldier';
   const procedural = useProceduralModels();
   let container = procedural ? null : factionContainers[factionKey]?.[containerType];
   const unitContainer = (!procedural && !isBuilder && metaPayload.unitType) ? factionContainers[factionKey]?.units?.[metaPayload.unitType] : null;
@@ -184,8 +185,8 @@ export function makeSoldierMesh(teamKey, metaPayload = {}) {
   // Custom model only replaces player/builder units — enemies keep the default mesh
   if (_assetContainer && teamKey !== 'red') return _cloneCustomModel(teamKey, metaPayload);
 
-  const config = TEAM_COLOR[actualTeam] || TEAM_COLOR.builder;
-  const root = mkGroup('soldier_root');
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.builder;
+  const root = mkGroup('soldier_root') as AnyGroup;
 
   const bodyMat = new THREE.MeshStandardMaterial();
   bodyMat.color = config.diffuse.clone();
@@ -194,7 +195,7 @@ export function makeSoldierMesh(teamKey, metaPayload = {}) {
   const darkMat = getMat(0x1e1e1e);
   const gunMat = getMat(0x1a1a1a);
 
-  const addBox = function addBox(width, height, depth, material, x, y, z) {
+  const addBox = function addBox(width: number, height: number, depth: number, material: THREE.Material, x: number, y: number, z: number): THREE.Mesh {
     const box = mkBox('b', width, height, depth);
     box.position.set(x, y, z);
     box.material = material;
@@ -309,13 +310,13 @@ let _guardsmanHeadCycle = 0;
 // visible, stable per soldier entity id (reinforce and upgrade visuals keep
 // their head). No-ops when the hierarchy carries no head variants (other
 // factions, procedural fallback). Returns the picked index (0..3) or -1.
-export function applyGuardsmanHead(root, soldierEntityId) {
-  const heads = [];
+export function applyGuardsmanHead(root: AnyGroup, soldierEntityId: unknown): number {
+  const heads: THREE.Object3D[] = [];
   root.traverse((child) => {
     if (GUARDSMAN_HEADS.includes(child.name)) heads.push(child);
   });
   if (!heads.length) return -1;
-  const pick = Number.isInteger(soldierEntityId)
+  const pick = typeof soldierEntityId === 'number' && Number.isInteger(soldierEntityId)
     ? ((soldierEntityId % GUARDSMAN_HEADS.length) + GUARDSMAN_HEADS.length) % GUARDSMAN_HEADS.length
     : (_guardsmanHeadCycle++ % GUARDSMAN_HEADS.length);
   heads.forEach((head) => {
@@ -324,12 +325,12 @@ export function applyGuardsmanHead(root, soldierEntityId) {
   return pick;
 }
 
-export function _makeFactionSoldierMesh(container, teamKey, metaPayload, factionKey, role = 'soldier') {
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.builder;
+export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: string, metaPayload: MetaPayload, factionKey: string, role = 'soldier'): AnyGroup {
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.builder;
   const instance = instantiateGltf(container);
   instance.animationGroups.forEach((animationGroup) => animationGroup.stop());
 
-  const root = mkGroup('faction_soldier_root');
+  const root = mkGroup('faction_soldier_root') as AnyGroup;
 
   instance.rootNodes.forEach((rootNode) => {
     root.add(rootNode);
@@ -380,8 +381,8 @@ export function _makeFactionSoldierMesh(container, teamKey, metaPayload, faction
   root._selDisc = selDisc;
   root._selMat = selMat;
 
-  const _dummy = () => {
-    const node = mkGroup('dummy_faction');
+  const _dummy = (): AnyGroup => {
+    const node = mkGroup('dummy_faction') as AnyGroup;
     root.add(node);
     return node;
   };
@@ -397,15 +398,15 @@ export function _makeFactionSoldierMesh(container, teamKey, metaPayload, faction
   root._shootDone = false;
   root._trackingUntil = 0;
 
-  const animName = (g) => g.name.toLowerCase();
-  const isMeleeName = (name) => /(melee|attack|slash|swing|punch|stab|combat|knife|damage|thrown)/.test(name);
-  const isFiringName = (name) => /(fir|shoot|gun|weapon)/.test(name) && !name.startsWith('vis_');
-  const findAnim = (pred) => instance.animationGroups.find((g) => pred(animName(g)));
-  const animConfig = getFactionAnimations(factionKey, role) || {};
-  const findByName = (wantedName) => {
+  const animName = (g: AnimGroup): string => g.name.toLowerCase();
+  const isMeleeName = (name: string): boolean => /(melee|attack|slash|swing|punch|stab|combat|knife|damage|thrown)/.test(name);
+  const isFiringName = (name: string): boolean => /(fir|shoot|gun|weapon)/.test(name) && !name.startsWith('vis_');
+  const findAnim = (pred: (name: string) => boolean): AnimGroup | undefined => instance.animationGroups.find((g) => pred(animName(g)));
+  const animConfig = (getFactionAnimations(factionKey, role) || {}) as Record<string, string | undefined>;
+  const findByName = (wantedName: string | null | undefined): AnimGroup | null => {
     if (!wantedName) return null;
     const wanted = wantedName.toLowerCase();
-    return findAnim((n) => n.startsWith(wanted));
+    return findAnim((n) => n.startsWith(wanted)) || null;
   };
 
   const idleAnim = findByName(animConfig.idle)
@@ -421,7 +422,7 @@ export function _makeFactionSoldierMesh(container, teamKey, metaPayload, faction
   const shootMoveAnim = findByName(animConfig.moveFiring)
     || findAnim((n) => isFiringName(n) && !isMeleeName(n) && /^(move|run|walk|jog)_?(fir|shoot)/.test(n));
   // Exact first: 'fly_launch_continue' must not match the launch slot.
-  const findExact = (wantedName) => {
+  const findExact = (wantedName: string | null | undefined): AnimGroup | null => {
     if (!wantedName) return null;
     const wanted = wantedName.toLowerCase();
     return findAnim((n) => n === wanted) || null;
@@ -456,8 +457,8 @@ export function _makeFactionSoldierMesh(container, teamKey, metaPayload, faction
   const capture2Anim = findByName(animConfig.capture2)
     || findAnim((n) => /^capture_strategic_point_2/.test(n))
     || null;
-  const dieAnims = [];
-  const safeFind = (name) => (name ? findAnim((n) => n.toLowerCase().startsWith(name.toLowerCase())) : null);
+  const dieAnims: AnimGroup[] = [];
+  const safeFind = (name: string | null | undefined): AnimGroup | null => (name ? findAnim((n) => n.toLowerCase().startsWith(name.toLowerCase())) ?? null : null);
   ['die_normal_1', 'die_normal_2'].forEach((key) => {
     const ag = findByName(animConfig[key])
       || safeFind(key)
@@ -488,12 +489,12 @@ export function _makeFactionSoldierMesh(container, teamKey, metaPayload, faction
   if (capture2Anim) root._animGroups.capture2 = capture2Anim;
   if (dieAnims.length) root._dieAnims = dieAnims;
 
-  const firstNonMelee = () => instance.animationGroups.find((g) => !isMeleeName(animName(g))) || null;
+  const firstNonMelee = (): AnimGroup | null => instance.animationGroups.find((g) => !isMeleeName(animName(g))) || null;
   if (!root._animGroups.idle) root._animGroups.idle = firstNonMelee();
   if (!root._animGroups.run) root._animGroups.run = firstNonMelee() || root._animGroups.idle;
   if (!root._animGroups.shoot) root._animGroups.shoot = firstNonMelee() || root._animGroups.idle;
 
-  root._playAnim = function (name, loop, force) {
+  root._playAnim = function (name: string, loop?: boolean, force?: boolean): void {
     if (loop === undefined) loop = (name !== 'shoot' && name !== 'shootMove');
     if (animSwitchBlocked({ currentAnim: root._currentAnim, shootDone: root._shootDone, name, force })) return;
     let resolvedName = name;
@@ -531,7 +532,7 @@ export function _makeFactionSoldierMesh(container, teamKey, metaPayload, faction
       else return;
     }
     const resolvedLoop = loop && resolvedName !== 'shoot' && resolvedName !== 'shootMove';
-    Object.values(root._animGroups).forEach((ag) => {
+    (Object.values(root._animGroups) as AnimGroup[]).forEach((ag) => {
       try { ag.stop(); } catch (e) { /* ignore */ }
     });
     root._currentAnim = resolvedName;
