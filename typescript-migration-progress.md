@@ -11,6 +11,8 @@ Update this file every time a module is migrated: move the row from Queue to Don
 | `src/r2-progress.ts` | `tests/r2-progress.test.ts` | Typed `R2FileState` / `R2Snapshot` / `R2CacheProbeResult` / listener. Test fakes for `globalThis.caches` go through `Record<string, unknown>`. |
 | `src/assets.ts` | `tests/asset-url.test.ts` | Typed `modelUrl` / `assetUrl` (`string \| null` — the test passes `null`). Fetch stubs cast `as unknown as typeof fetch` (matches `r2ImageUrl(src, fetchImpl = fetch)`). |
 | `src/ecs.ts` | — (covered by suites using `World`) | Typed `World`: `EntityId`, `SystemFunction`, `Map<string, Map<EntityId, unknown>>` stores, generic `add<T>`. No dedicated test — behavior pinned by existing suites (touch-controls, bullet-routing, etc.). |
+| `src/camera-params.ts` | — (covered by `camera-panel.test.js`) | Pure orbit helpers; `CameraLimits` structural interface, `unknown` inputs with `num()` fallback. |
+| `src/decal-size.ts` | `tests/decal-size.test.ts` | `DecalFlatRotation` / `DrapeOptions` interfaces; test callbacks annotated (`(x: number, z: number)` etc.). |
 
 ## Infrastructure (done, supports all future renames)
 
@@ -29,8 +31,7 @@ Update this file every time a module is migrated: move the row from Queue to Don
 
 ## Queue (plan order: leaves first, hubs last)
 
-- [ ] `src/camera-params.js`
-- [ ] `src/decal-size.js` (`tests/decal-size.test.js`)
+- [x] `src/camera-params.js`, `src/decal-size.js` (+ `tests/decal-size.test.js`)
 - [ ] Three.js utils: `three-helpers.js`, `merge-static.js`, `merge-skinned.js`, `gltf-models.js`, `model-upload.js`, `mat-cache.js`, `grid-helper.js`
 - [ ] Data + config: `factions/*.js`, `factions.js`, `maps-menu.js`, `teamcolour.js`, `meshes/*` (+ shared types file)
 - [ ] Input layer: `input/camera.js`, `input/selection.js`, `input/markers.js`, `input/orders.js`, `input/events.js`, `input/touch-controls.js`, `input.js`

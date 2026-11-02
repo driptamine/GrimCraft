@@ -120,21 +120,21 @@ describe('sgb decal drape', () => {
   });
 
   it('linear slope maps exactly', () => {
-    const h = (x, z) => 2 * x + 3 * z + 5;
+    const h = (x: number, z: number) => 2 * x + 3 * z + 5;
     const params = {
       scaleX: 2, scaleY: 3, yaw: 0, centerX: 10, centerZ: 20,
       centerH: h(10, 20), sampleHeight: h,
     };
     // yaw=0: worldX = cx + lx*sx, worldZ = cz - ly*sy
-    const expect = (lx, ly) => 2 * lx * 2 - 3 * ly * 3 + 0.08;
+    const expect = (lx: number, ly: number) => 2 * lx * 2 - 3 * ly * 3 + 0.08;
     for (const [lx, ly] of [[1, 1], [-4, 2], [0, 0], [7.5, -6.25]]) {
       assert.ok(Math.abs(drapeDecalLocalZ(lx, ly, params) - expect(lx, ly)) < 1e-9, `${lx},${ly}`);
     }
   });
 
   it('sampling rotates with the decal yaw', () => {
-    const h = (x) => x; // ramps in +x only
-    const params = (yaw) => ({
+    const h = (x: number) => x; // ramps in +x only
+    const params = (yaw: number) => ({
       scaleX: 2, scaleY: 2, yaw, centerX: 0, centerZ: 0, centerH: 0, sampleHeight: h,
     });
     assert.ok(Math.abs(drapeDecalLocalZ(1, 0, params(0)) - (2 + 0.08)) < 1e-9);

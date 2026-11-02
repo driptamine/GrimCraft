@@ -8,7 +8,7 @@
 // (size 0.05 ≈ 25 world units at the default decal scale 6).
 const CHAOS_MATCH = 'chaos';
 
-export function isChaosDecal(path) {
+export function isChaosDecal(path: unknown): boolean {
   return String(path || '').includes(CHAOS_MATCH);
 }
 
@@ -23,21 +23,21 @@ export const ALVARUS_DECAL_STORE = '/maps/6p_alvarus/decals/';
 // the 324 transparent sheets by origin depth every frame and overlaps swap
 // draw order during any camera motion = flicker. Ground stain first, mid
 // rubble, crater details on top.
-export function decalLayer(path) {
+export function decalLayer(path: unknown): number {
   if (isChaosDecal(path)) return 0;
   if (String(path || '').includes('crater')) return 2;
   return 1;
 }
 
-export function decalStoreDirs(mapKey) {
-  const dirs = [];
+export function decalStoreDirs(mapKey: unknown): string[] {
+  const dirs: string[] = [];
   const m = String(mapKey || '').match(/maps\/([^/]+)/);
   if (m && m[1] !== '6p_alvarus') dirs.push(`/maps/${m[1]}/decals/`);
   dirs.push(ALVARUS_DECAL_STORE);
   return dirs;
 }
 
-export function decalBaseSize(path, sizeRaw) {
+export function decalBaseSize(path: unknown, sizeRaw: number): number {
   if (isChaosDecal(path)) {
     return Math.max(0.5, sizeRaw) / 0.05;
   }
@@ -49,7 +49,13 @@ export function decalBaseSize(path, sizeRaw) {
 // Z component: Rz spins the quad in its own plane first, then Rx(-90°)
 // lays it flat. Yaw in Y tilts the plane (normal becomes (sinψ, cosψ, 0))
 // and steep angles stick the decal into the sky — see chaos_taint_02.
-export function decalFlatRotation(angle) {
+export interface DecalFlatRotation {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export function decalFlatRotation(angle: unknown): DecalFlatRotation {
   const a = Number(angle);
   return { x: -Math.PI / 2, y: 0, z: (Number.isFinite(a) ? a : 0) + Math.PI };
 }
@@ -60,7 +66,18 @@ export function decalFlatRotation(angle) {
 //   worldZ = centerZ - ((lx*scaleX)*sin(yaw) + (ly*scaleY)*cos(yaw))
 // Local +Z maps to world +Y, hence the returned local Z is simply the
 // terrain height relative to the decal center plus the lift.
-export function drapeDecalLocalZ(lx, ly, { scaleX, scaleY, yaw, centerX, centerZ, centerH, sampleHeight, lift = 0.08 } = {}) {
+export interface DrapeOptions {
+  scaleX: number;
+  scaleY: number;
+  yaw: number;
+  centerX: number;
+  centerZ: number;
+  centerH: number;
+  sampleHeight: (x: number, z: number) => number;
+  lift?: number;
+}
+
+export function drapeDecalLocalZ(lx: number, ly: number, { scaleX, scaleY, yaw, centerX, centerZ, centerH, sampleHeight, lift = 0.08 }: DrapeOptions = {} as DrapeOptions): number {
   const vx = lx * scaleX;
   const vy = ly * scaleY;
   const c = Math.cos(yaw);
