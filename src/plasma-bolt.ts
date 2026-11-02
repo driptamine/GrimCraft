@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { loadTexture, mkGroup } from './three-helpers.js';
 import { _instantiateFromContainer } from './model-upload.js';
 import { modelUrl } from './assets.js';
+import type { GltfContainer } from './gltf-models.js';
 
 export const PLASMA_BOLT_PATH = 'models/ig/projectiles/plasma_bolt.glb';
 export const PLASMA_FX_DIR = 'models/ig/projectiles/plasma-fx';
@@ -17,8 +18,22 @@ export const BOLT_SHELL_NAME = 'bolt_shell';
 export const BOLT_HALO_NAME = 'bolt_halo';
 export const TENDRIL_PREFIX = 'tendril_';
 
-let _boltContainer = null;
-let _shared = null;
+let _boltContainer: GltfContainer | null = null;
+
+interface PlasmaBoltShared {
+  uniforms: { uTime: { value: number }; uFlicker: { value: number } };
+  coreGeo: THREE.BufferGeometry;
+  shellGeo: THREE.BufferGeometry;
+  haloGeo: THREE.BufferGeometry;
+  coreMat: THREE.MeshBasicMaterial;
+  shellMat: THREE.ShaderMaterial;
+  haloMat: THREE.MeshBasicMaterial;
+  tendrilMat: THREE.LineBasicMaterial;
+  glowTexture: THREE.CanvasTexture | null;
+  arcTextures: THREE.CanvasTexture[] | null;
+}
+
+let _shared: PlasmaBoltShared | null = null;
 
 const SHELL_VERTEX = /* glsl */`
 uniform float uTime;
@@ -57,12 +72,12 @@ void main() {
 }
 `;
 
-function _makeGlowTexture() {
+function _makeGlowTexture(): THREE.CanvasTexture {
   const size = 64;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   gradient.addColorStop(0, 'rgba(255,255,255,1)');
   gradient.addColorStop(0.25, 'rgba(150,200,255,0.75)');
@@ -75,7 +90,7 @@ function _makeGlowTexture() {
   return texture;
 }
 
-function _markShared(geo) {
+function _markShared(geo: THREE.BufferGeometry): THREE.BufferGeometry {
   if (geo) {
     geo.userData.shared = true; // disposeObj skips shared geometry.
   }
@@ -83,21 +98,21 @@ function _markShared(geo) {
 }
 
 // Jagged electric-arc streak texture for the crackle flash sprites.
-function _makeArcTexture(seed) {
+function _makeArcTexture(seed: number): THREE.CanvasTexture {
   const size = 128;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   let state = seed >>> 0;
-  const rand = () => {
+  const rand = (): number => {
     state |= 0;
     state = (state + 0x6d2b79f5) | 0;
     let t = Math.imul(state ^ (state >>> 15), 1 | state);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const points = [];
+  const points: Array<[number, number]> = [];
   const segments = 9;
   for (let i = 0; i <= segments; i++) {
     const t = i / segments;
@@ -106,7 +121,7 @@ function _makeArcTexture(seed) {
       size * 0.5 + (rand() - 0.5) * size * 0.55 * Math.sin(Math.PI * Math.min(1, t * 1.05)),
     ]);
   }
-  const stroke = (width, style, blur) => {
+  const stroke = (width: number, style: string, blur: number): void => {
     ctx.strokeStyle = style;
     ctx.lineWidth = width;
     ctx.lineJoin = 'round';
@@ -125,11 +140,11 @@ function _makeArcTexture(seed) {
   return texture;
 }
 
-// Rewrite a tendril's points in place: new random jagged discharge, zero alloc.
+// Rewrite a tendril's points in place: new jagged discharge, zero alloc.
 // Size-agnostic: follows the half-length / base radius measured at build time.
-function _rewriteTendril(line) {
-  const pos = line.geometry.attributes.position;
-  const { halfLen, baseR } = line.userData.crackleBase;
+function _rewriteTendril(line: THREE.Line): void {
+  const pos = line.geometry.attributes.position as THREE.BufferAttribute;
+  const { halfLen, baseR } = line.userData.crackleBase as { halfLen: number; baseR: number };
   const phase = Math.random() * Math.PI * 2;
   const turns = 1.1 + Math.random() * 0.9;
   const count = pos.count;
@@ -144,11 +159,11 @@ function _rewriteTendril(line) {
   pos.needsUpdate = true;
 }
 
-function _measureTendrilBase(line) {
+function _measureTendrilBase(line: THREE.Line): void {
   line.geometry.computeBoundingBox();
-  const box = line.geometry.boundingBox;
+  const box = line.geometry.boundingBox as THREE.Box3;
   const size = box.getSize(new THREE.Vector3());
-  const pos = line.geometry.attributes.position;
+  const pos = line.geometry.attributes.position as THREE.BufferAttribute;
   let baseR = 0;
   for (let i = 0; i < pos.count; i++) {
     baseR = Math.max(baseR, Math.hypot(pos.getX(i), pos.getY(i)));
@@ -157,7 +172,7 @@ function _measureTendrilBase(line) {
   line.frustumCulled = false; // bounds change on every crackle rewrite
 }
 
-function _sharedAssets() {
+function _sharedAssets(): PlasmaBoltShared {
   if (_shared) {
     return _shared;
   }
@@ -204,12 +219,18 @@ function _sharedAssets() {
   return _shared;
 }
 
+interface PlasmaFinalFx {
+  beam: THREE.Texture | null;
+  flash: THREE.Texture | null;
+  muzzle: THREE.Texture[];
+}
+
 // Plasma Final dressing from the plasma-fx folder (DDS): beam streak along
 // the bolt, head flash sprite, 3-frame muzzle blast. Textures load once via
 // the shared DDS path (async-filled placeholder, same as everywhere else).
-const _finalFx = { beam: null, flash: null, muzzle: [] };
+const _finalFx: PlasmaFinalFx = { beam: null, flash: null, muzzle: [] };
 
-export function plasmaFinalFxTextures() {
+export function plasmaFinalFxTextures(): PlasmaFinalFx | null {
   const canDom =
     typeof document !== 'undefined' &&
     typeof document.createElement === 'function' &&
@@ -227,7 +248,7 @@ export function plasmaFinalFxTextures() {
   return _finalFx;
 }
 
-export async function preloadPlasmaFinalFx() {
+export async function preloadPlasmaFinalFx(): Promise<void> {
   plasmaFinalFxTextures();
 }
 
@@ -235,7 +256,7 @@ const FINAL_BEAM_TINT = 0xffe9c4;
 const FINAL_FLASH_TINT = 0xffd9a0;
 const FINAL_MUZZLE_LIFE = 0.12;
 
-export function makePlasmaFinalBoltMesh() {
+export function makePlasmaFinalBoltMesh(): THREE.Group {
   // Full plasma contract (filaments/tendrils/arcs/crackle) so
   // systemPlasmaBullet drives it unchanged, plus the plasma-fx dressing.
   const root = makePlasmaBoltMesh();
@@ -280,7 +301,7 @@ export function makePlasmaFinalBoltMesh() {
 // frames over FINAL_MUZZLE_LIFE seconds. No ECS entity (visual only, runs
 // identically on every client) — ticked from systemSoldier next to the
 // existing flashTimer block.
-export function attachPlasmaMuzzleFlash(meshRoot) {
+export function attachPlasmaMuzzleFlash(meshRoot: THREE.Object3D | null): void {
   if (!meshRoot) {
     return;
   }
@@ -304,9 +325,9 @@ export function attachPlasmaMuzzleFlash(meshRoot) {
   meshRoot.userData.finalMuzzle = { sprite, t: 0 };
 }
 
-export function updatePlasmaMuzzleFlash(meshRoot, deltaTime) {
-  const state = meshRoot?.userData?.finalMuzzle;
-  if (!state) {
+export function updatePlasmaMuzzleFlash(meshRoot: THREE.Object3D | null, deltaTime: number): void {
+  const state = meshRoot?.userData?.finalMuzzle as { sprite: THREE.Sprite; t: number } | undefined;
+  if (!state || !meshRoot) {
     return;
   }
   state.t += deltaTime;
@@ -322,7 +343,7 @@ export function updatePlasmaMuzzleFlash(meshRoot, deltaTime) {
   state.sprite.material.opacity = 1 - state.t / FINAL_MUZZLE_LIFE;
 }
 
-export async function preloadPlasmaBoltModel() {
+export async function preloadPlasmaBoltModel(): Promise<GltfContainer | null> {
   if (_boltContainer) {
     return _boltContainer;
   }
@@ -341,13 +362,20 @@ export async function preloadPlasmaBoltModel() {
   return _boltContainer;
 }
 
-export function __setPlasmaBoltContainerForTests(container) {
+export function __setPlasmaBoltContainerForTests(container: GltfContainer | null): void {
   _boltContainer = container;
 }
 
-function _findBoltNodes(model) {
-  const found = { core: null, shell: null, halo: null, tendrils: [] };
-  model.traverse((child) => {
+interface BoltNodes {
+  core: THREE.Object3D | null;
+  shell: THREE.Object3D | null;
+  halo: THREE.Object3D | null;
+  tendrils: THREE.Object3D[];
+}
+
+function _findBoltNodes(model: THREE.Object3D): BoltNodes {
+  const found: BoltNodes = { core: null, shell: null, halo: null, tendrils: [] };
+  model.traverse((child: THREE.Object3D & { isLine?: unknown }) => {
     const name = child.name || '';
     if (name === BOLT_CORE_NAME) found.core = child;
     else if (name === BOLT_SHELL_NAME) found.shell = child;
@@ -357,7 +385,16 @@ function _findBoltNodes(model) {
   return found;
 }
 
-function _buildProceduralBolt(shared) {
+interface BoltParts {
+  model: THREE.Group;
+  core: THREE.Object3D;
+  shell: THREE.Object3D;
+  halo: THREE.Object3D;
+  tendrils: THREE.Object3D[];
+  filaments: THREE.Group | null;
+}
+
+function _buildProceduralBolt(shared: PlasmaBoltShared): BoltParts {
   const model = mkGroup('boltmodel');
   const core = new THREE.Mesh(shared.coreGeo, shared.coreMat);
   core.name = BOLT_CORE_NAME;
@@ -381,12 +418,13 @@ function _buildProceduralBolt(shared) {
   return { model, core, shell, halo, tendrils: [...filaments.children], filaments };
 }
 
-function _applySharedMaterials(shared, parts) {
-  parts.core.material = shared.coreMat;
-  parts.shell.material = shared.shellMat;
-  parts.halo.material = shared.haloMat;
+function _applySharedMaterials(shared: PlasmaBoltShared, parts: BoltParts): void {
+  (parts.core as THREE.Mesh).material = shared.coreMat;
+  (parts.shell as THREE.Mesh).material = shared.shellMat;
+  (parts.halo as THREE.Mesh).material = shared.haloMat;
   parts.halo.visible = false;
-  for (const line of parts.tendrils) {
+  for (const rawLine of parts.tendrils) {
+    const line = rawLine as THREE.Line;
     line.material = shared.tendrilMat;
     if (!line.userData.crackleBase) {
       // GLB path: clone so the crackle rewrite stays per-bolt.
@@ -396,20 +434,28 @@ function _applySharedMaterials(shared, parts) {
     }
   }
   for (const mesh of [parts.core, parts.shell, parts.halo]) {
-    _markShared(mesh.geometry);
+    _markShared((mesh as THREE.Mesh).geometry);
   }
 }
 
-export function makePlasmaBoltMesh() {
+export function makePlasmaBoltMesh(): THREE.Group {
   const shared = _sharedAssets();
-  let model = null;
-  let parts = null;
+  let model: THREE.Group | null = null;
+  let parts: BoltParts | null = null;
   if (_boltContainer) {
     try {
-      model = _instantiateFromContainer(_boltContainer, {});
-      const found = _findBoltNodes(model);
-      if (found.core && found.shell && found.halo) {
-        parts = { model, ...found, filaments: null };
+      const instModel = _instantiateFromContainer(_boltContainer, {}) as THREE.Group | null;
+      const found = instModel ? _findBoltNodes(instModel) : null;
+      if (instModel && found && found.core && found.shell && found.halo) {
+        model = instModel;
+        parts = {
+          model,
+          core: found.core,
+          shell: found.shell,
+          halo: found.halo,
+          tendrils: found.tendrils,
+          filaments: null,
+        };
       } else {
         model = null;
       }
@@ -417,9 +463,10 @@ export function makePlasmaBoltMesh() {
       model = null;
     }
   }
-  if (!model) {
-    parts = _buildProceduralBolt(shared);
-    model = parts.model;
+  if (!model || !parts) {
+    const built = _buildProceduralBolt(shared);
+    parts = built;
+    model = built.model;
   }
   _applySharedMaterials(shared, parts);
   if (!shared.glowTexture && typeof document !== 'undefined' && typeof document.createElement === 'function') {
@@ -485,19 +532,19 @@ export function makePlasmaBoltMesh() {
 // Electrification: every ~0.06-0.12s each bolt re-rolls its discharges —
 // tendrils get new jagged paths (in-place rewrite, no allocation) and arc
 // flashes blink with random orientation. Call per bolt from systemPlasmaBullet.
-export function updatePlasmaBoltCrackle(root, age) {
-  const crackle = root.userData.crackle;
+export function updatePlasmaBoltCrackle(root: THREE.Group, age: number): void {
+  const crackle = root.userData.crackle as { next: number } | undefined;
   if (!crackle || age < crackle.next) {
     return;
   }
   crackle.next = age + 0.06 + Math.random() * 0.06;
   for (const line of root.userData.tendrils || []) {
-    _rewriteTendril(line);
+    _rewriteTendril(line as THREE.Line);
   }
   for (const arc of root.userData.arcs || []) {
     arc.visible = Math.random() < 0.4;
     if (arc.visible) {
-      arc.material.rotation = Math.random() * Math.PI * 2;
+      (arc.material as THREE.SpriteMaterial).rotation = Math.random() * Math.PI * 2;
       const s = 0.35 + Math.random() * 0.3;
       arc.scale.set(s, s, 1);
     }
@@ -505,7 +552,7 @@ export function updatePlasmaBoltCrackle(root, age) {
 }
 
 // Irregular slow pulse: layered sines, never a cheap blink.
-export function updatePlasmaBoltFx(time) {
+export function updatePlasmaBoltFx(time: number): void {
   const shared = _sharedAssets();
   shared.uniforms.uTime.value = time;
   const flicker =

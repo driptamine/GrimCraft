@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mkGroup, findNodesByName } from './three-helpers.js';
+import { mkGroup, findNodesByName, type MaybeMesh } from './three-helpers.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  GUARDSMEN PLASMA PISTOL GLOW — Soulstorm-style internal plasma energy.
@@ -32,13 +32,12 @@ export const WEAPON_BONE = 'bone_ig_hand_weapon_r';
 const GLOW_MARKER = 'marker_plasma_glow';
 const MUZZLE_MARKER = 'marker_plasma_muzzle';
 
-let _plasmaMats = null;
-const _spillLights = [];
+let _plasmaMats: THREE.MeshStandardMaterial[] | null = null;
+const _spillLights: THREE.PointLight[] = [];
 
-
-function _pruneDeadLights() {
+function _pruneDeadLights(): void {
   for (let i = _spillLights.length - 1; i >= 0; i--) {
-    let node = _spillLights[i];
+    let node: THREE.Object3D | null = _spillLights[i];
     let alive = true;
     while (node) {
       if (node.userData && node.userData.disposed) {
@@ -52,18 +51,19 @@ function _pruneDeadLights() {
     }
   }
 }
-let _plasmaGeo = null;
-let _haloMat = null;
-let _sparkMat = null;
-let _glowTexture = null;
-let _coreGeo = null;
-let _coreMat = null;
+
+let _plasmaGeo: THREE.BufferGeometry | null = null;
+let _haloMat: THREE.SpriteMaterial | null = null;
+let _sparkMat: THREE.SpriteMaterial | null = null;
+let _glowTexture: THREE.DataTexture | null = null;
+let _coreGeo: THREE.CapsuleGeometry | null = null;
+let _coreMat: THREE.MeshBasicMaterial | null = null;
 const _coreBase = new THREE.Color(0xf0e6ff);
 // Capsule center rides ahead of the chamber marker, toward the muzzle.
 const CORE_MUZZLE_SHIFT = 0.12;
 
-let _gasGeo = null;
-let _gasMat = null;
+let _gasGeo: THREE.CapsuleGeometry | null = null;
+let _gasMat: THREE.ShaderMaterial | null = null;
 
 // Static gaseous envelope (same noise-shell pattern as the necron aura,
 // minus the clock): thresholded sin-noise leaves transparent gaps, fresnel
@@ -107,7 +107,7 @@ void main() {
 }
 `;
 
-function gasMaterial() {
+function gasMaterial(): THREE.ShaderMaterial {
   if (!_gasMat) {
     _gasMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -125,7 +125,7 @@ function gasMaterial() {
   return _gasMat;
 }
 
-function getGlowTexture() {
+function getGlowTexture(): THREE.DataTexture {
   if (_glowTexture) {
     return _glowTexture;
   }
@@ -149,7 +149,7 @@ function getGlowTexture() {
   return _glowTexture;
 }
 
-function getHaloMat() {
+function getHaloMat(): THREE.SpriteMaterial {
   if (!_haloMat) {
     _haloMat = new THREE.SpriteMaterial({
       map: getGlowTexture(),
@@ -163,7 +163,7 @@ function getHaloMat() {
   return _haloMat;
 }
 
-function getSparkMat() {
+function getSparkMat(): THREE.SpriteMaterial {
   if (!_sparkMat) {
     _sparkMat = new THREE.SpriteMaterial({
       map: getGlowTexture(),
@@ -185,11 +185,11 @@ function getSparkMat() {
  * the existing assembly when already installed. Returns null when the
  * model has no pistol or plasma markers.
  */
-export function addPlasmaPistolGlow(model) {
+export function addPlasmaPistolGlow(model: THREE.Object3D | null): THREE.Group | null {
   if (!model) {
     return null;
   }
-  const pistol = findNodesByName(model, [GUN_MESH]).find((n) => n.isMesh) || null;
+  const pistol = findNodesByName(model, [GUN_MESH]).find((n: MaybeMesh) => n.isMesh) as THREE.Mesh | null || null;
   if (!pistol || !pistol.material) {
     return null;
   }
@@ -197,7 +197,7 @@ export function addPlasmaPistolGlow(model) {
     ? model.getObjectByName('plasma_pistol_glow')
     : null;
   if (existing) {
-    return existing;
+    return existing as THREE.Group;
   }
   const glows = findNodesByName(model, [GLOW_MARKER]);
   const muzzles = findNodesByName(model, [MUZZLE_MARKER]);
@@ -208,7 +208,7 @@ export function addPlasmaPistolGlow(model) {
 
   // Shared emissive clone: chamber (emissiveMap) burns, body untouched.
   const srcMats = Array.isArray(pistol.material) ? pistol.material : [pistol.material];
-  if (!srcMats.every((m) => m && m.emissive)) {
+  if (!srcMats.every((m) => m && (m as THREE.MeshStandardMaterial).emissive)) {
     return null;
   }
   // Anchors in assembly space (markers live under the weapon bone).
@@ -221,7 +221,7 @@ export function addPlasmaPistolGlow(model) {
   const chamberOnPistol = pistol.worldToLocal(glowWorld.clone());
   if (!_plasmaMats) {
     _plasmaMats = srcMats.map((m) => {
-      const clone = m.clone();
+      const clone = m.clone() as THREE.MeshStandardMaterial;
       clone.emissive = new THREE.Color(0xe4daff);
       clone.emissiveIntensity = 4.2;
       clone.onBeforeCompile = (shader) => {
@@ -248,7 +248,7 @@ export function addPlasmaPistolGlow(model) {
     const geo = pistol.geometry.clone();
     geo.computeBoundingSphere();
     const radius = (geo.boundingSphere?.radius || 0.5) * 0.6;
-    const posAttr = geo.attributes.position;
+    const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const mask = new Float32Array(posAttr.count);
     const v = new THREE.Vector3();
     for (let i = 0; i < posAttr.count; i++) {
@@ -311,7 +311,7 @@ export function addPlasmaPistolGlow(model) {
   if (!_coreMat) {
     _coreMat = new THREE.MeshBasicMaterial({ color: _coreBase.clone() });
   }
-  const core = new THREE.Mesh(_coreGeo, _coreMat);
+  const core = new THREE.Mesh(_coreGeo as THREE.CapsuleGeometry, _coreMat as THREE.MeshBasicMaterial);
   core.name = 'plasma_pistol_core';
   core.position.copy(chamber);
   const barrelDir = muzzle.clone().sub(chamber);
@@ -329,7 +329,7 @@ export function addPlasmaPistolGlow(model) {
     _gasGeo = new THREE.CapsuleGeometry(0.075, 0.16, 6, 12);
     _gasGeo.userData.shared = true;
   }
-  const gas = new THREE.Mesh(_gasGeo, gasMaterial());
+  const gas = new THREE.Mesh(_gasGeo as THREE.CapsuleGeometry, gasMaterial());
   gas.name = 'plasma_pistol_gas';
   gas.position.copy(core.position);
   gas.quaternion.copy(core.quaternion);
@@ -346,6 +346,6 @@ export function addPlasmaPistolGlow(model) {
  * install-time values are the final look, so there is nothing to animate.
  * Only prunes lights of removed soldiers. Safe to call headless.
  */
-export function updatePlasmaPistolGlow() {
+export function updatePlasmaPistolGlow(): void {
   _pruneDeadLights();
 }

@@ -8,14 +8,22 @@ import { mkGroup } from './three-helpers.js';
 export const BLASTER_CORE_NAME = 'blaster_core';
 export const BLASTER_SHELL_NAME = 'blaster_shell';
 
-let _shared = null;
+interface BlasterSharedAssets {
+  coreGeo: THREE.BufferGeometry;
+  shellGeo: THREE.BufferGeometry;
+  coreMat: THREE.MeshBasicMaterial;
+  shellMat: THREE.MeshBasicMaterial;
+  glowTexture: THREE.CanvasTexture | null;
+}
 
-function _makeGlowTexture() {
+let _shared: BlasterSharedAssets | null = null;
+
+function _makeGlowTexture(): THREE.CanvasTexture {
   const size = 64;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   gradient.addColorStop(0, 'rgba(255,255,255,1)');
   gradient.addColorStop(0.3, 'rgba(170,215,255,0.7)');
@@ -28,14 +36,14 @@ function _makeGlowTexture() {
   return texture;
 }
 
-function _markShared(geo) {
+function _markShared(geo: THREE.BufferGeometry): THREE.BufferGeometry {
   if (geo) {
     geo.userData.shared = true; // disposeObj skips shared geometry.
   }
   return geo;
 }
 
-function _sharedAssets() {
+function _sharedAssets(): BlasterSharedAssets {
   if (_shared) {
     return _shared;
   }
@@ -59,7 +67,7 @@ function _sharedAssets() {
   return _shared;
 }
 
-export function makeBlasterBoltMesh() {
+export function makeBlasterBoltMesh(): THREE.Group {
   const shared = _sharedAssets();
   const root = mkGroup('blasterbolt');
   const core = new THREE.Mesh(shared.coreGeo, shared.coreMat);
@@ -89,7 +97,7 @@ export function makeBlasterBoltMesh() {
 }
 
 // Gentle irregular shimmer on the shared shell — one update per frame.
-export function updateBlasterBoltFx(time) {
+export function updateBlasterBoltFx(time: number): void {
   const shared = _sharedAssets();
   shared.shellMat.opacity = 0.5 + 0.1 * Math.sin(time * 17.3) + 0.05 * Math.sin(time * 29.7 + 1.1);
 }

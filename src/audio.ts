@@ -1,11 +1,12 @@
 // Tiny synthesized SFX: no audio files, everything is generated with the
 // Web Audio API on the first user gesture (LMB counts, so the context is
 // always allowed by the time a shot lands).
-let _ctx = null;
+let _ctx: AudioContext | null = null;
 
-function ensureContext() {
+function ensureContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-  const AC = window.AudioContext || window.webkitAudioContext;
+  const AC = (window as unknown as { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext }).AudioContext
+    || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) return null;
   if (!_ctx) {
     try {
@@ -24,9 +25,9 @@ function ensureContext() {
 // fast pitch-dropping thump (impact). ~0.2s, quiet enough to spam per click.
 // The noise buffer is generated once and reused: allocating + filling it per
 // shot caused GC churn and FPS dips during rapid fire.
-let _noiseCache = { rate: 0, buffer: null };
+let _noiseCache: { rate: number; buffer: AudioBuffer | null } = { rate: 0, buffer: null };
 
-function _noiseBuffer(ctx) {
+function _noiseBuffer(ctx: AudioContext): AudioBuffer {
   if (_noiseCache.buffer && _noiseCache.rate === ctx.sampleRate) {
     return _noiseCache.buffer;
   }
@@ -41,7 +42,7 @@ function _noiseBuffer(ctx) {
   return noiseBuffer;
 }
 
-export function playHitCrunch(volume = 0.5) {
+export function playHitCrunch(volume = 0.5): boolean {
   const ctx = ensureContext();
   if (!ctx) return false;
   const now = ctx.currentTime;

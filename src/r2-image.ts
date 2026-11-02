@@ -8,21 +8,23 @@
 // in hud/bits.jsx.
 import { assetUrl } from './assets.js';
 
-const _blobCache = new Map(); // resolved URL -> blob: URL
-const _inflight = new Map(); // resolved URL -> Promise<string>
+const _blobCache = new Map<string, string>(); // resolved URL -> blob: URL
+const _inflight = new Map<string, Promise<string>>(); // resolved URL -> Promise<string>
 
-export function r2ImageUrl(src, fetchImpl = fetch) {
+export function r2ImageUrl(src: string | null, fetchImpl: typeof fetch = fetch): Promise<string | null> {
   const url = assetUrl(src);
   if (!url || typeof url !== 'string') {
     return Promise.resolve(src);
   }
-  if (_blobCache.has(url)) {
-    return Promise.resolve(_blobCache.get(url));
+  const hit = _blobCache.get(url);
+  if (hit) {
+    return Promise.resolve(hit);
   }
-  if (_inflight.has(url)) {
-    return _inflight.get(url);
+  const pending = _inflight.get(url);
+  if (pending) {
+    return pending;
   }
-  const pending = fetchImpl(url)
+  const request = fetchImpl(url)
     .then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -41,11 +43,11 @@ export function r2ImageUrl(src, fetchImpl = fetch) {
       _inflight.delete(url);
       return url;
     });
-  _inflight.set(url, pending);
-  return pending;
+  _inflight.set(url, request);
+  return request;
 }
 
-export function _resetR2ImageCacheForTests() {
+export function _resetR2ImageCacheForTests(): void {
   _blobCache.clear();
   _inflight.clear();
 }

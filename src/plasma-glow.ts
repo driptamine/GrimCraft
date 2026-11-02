@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mkGroup, findNodesByName } from './three-helpers.js';
+import { mkGroup, findNodesByName, type MaybeMesh } from './three-helpers.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  KASRKIN PLASMAGUN GLOW — Soulstorm-style internal plasma energy.
@@ -7,7 +7,7 @@ import { mkGroup, findNodesByName } from './three-helpers.js';
 //  The kasrkin_plasmagun mesh shares the body material, which ships an
 //  emissive texture that stays dark while emissive is black. This module
 //  assigns the gun mesh a SHARED emissive clone (coils light up, body and
-//  asset untouched) and adds a capsule core plus two small additive halo
+//  asset untouched) and attaches a capsule core plus two small additive halo
 //  sprites anchored to the plasma markers so the glow reads as coming
 //  from inside the chamber.
 //
@@ -23,17 +23,17 @@ const GUN_NODE = 'karskin_plasmagun';
 const PWR_MARKER = 'marker_plasma_pwr';
 const MUZZLE_MARKER = 'marker_plasma_muzzle';
 
-let _plasmaMats = null;
-let _haloMat = null;
-let _glowTexture = null;
+let _plasmaMats: THREE.MeshStandardMaterial[] | null = null;
+let _haloMat: THREE.SpriteMaterial | null = null;
+let _glowTexture: THREE.DataTexture | null = null;
 let _time = 0;
-let _capsuleGeo = null;
-let _capsuleMat = null;
+let _capsuleGeo: THREE.CapsuleGeometry | null = null;
+let _capsuleMat: THREE.MeshBasicMaterial | null = null;
 const _capsuleBase = new THREE.Color(0xeaf4ff);
 // Capsule center along the pwr -> muzzle axis (chamber/coils region).
 const CAPSULE_T = 0.45;
 
-function getGlowTexture() {
+function getGlowTexture(): THREE.DataTexture {
   if (_glowTexture) {
     return _glowTexture;
   }
@@ -57,7 +57,7 @@ function getGlowTexture() {
   return _glowTexture;
 }
 
-function getHaloMat() {
+function getHaloMat(): THREE.SpriteMaterial {
   if (!_haloMat) {
     _haloMat = new THREE.SpriteMaterial({
       map: getGlowTexture(),
@@ -76,11 +76,11 @@ function getHaloMat() {
  * bone of one soldier. Returns the halo group, or null when the model has
  * no (visible) plasmagun or plasma markers.
  */
-export function applyPlasmaGlow(soldierRoot) {
+export function applyPlasmaGlow(soldierRoot: THREE.Object3D | null): THREE.Group | null {
   if (!soldierRoot) {
     return null;
   }
-  const gun = findNodesByName(soldierRoot, [GUN_NODE]).find((n) => n.isMesh) || null;
+  const gun = findNodesByName(soldierRoot, [GUN_NODE]).find((n: MaybeMesh) => n.isMesh) as THREE.Mesh | null || null;
   if (!gun || gun.visible === false || !gun.material) {
     return null;
   }
@@ -98,12 +98,12 @@ export function applyPlasmaGlow(soldierRoot) {
 
   // Shared emissive clone: coils (emissiveMap) glow, body material untouched.
   const srcMats = Array.isArray(gun.material) ? gun.material : [gun.material];
-  if (!srcMats.every((m) => m && m.emissive)) {
+  if (!srcMats.every((m) => m && (m as THREE.MeshStandardMaterial).emissive)) {
     return null;
   }
   if (!_plasmaMats) {
     _plasmaMats = srcMats.map((m) => {
-      const clone = m.clone();
+      const clone = m.clone() as THREE.MeshStandardMaterial;
       clone.emissive = new THREE.Color(0x9fd4ff);
       clone.emissiveIntensity = 1.6;
       return clone;
@@ -113,7 +113,7 @@ export function applyPlasmaGlow(soldierRoot) {
 
   // Halo anchors in the weapon-bone space, biased to chamber and coils.
   const pwrLocal = pwrNode.position.clone();
-  let muzzleLocal;
+  let muzzleLocal: THREE.Vector3;
   if (muzzleNode.parent === parent) {
     muzzleLocal = muzzleNode.position.clone();
   } else {
@@ -144,7 +144,7 @@ export function applyPlasmaGlow(soldierRoot) {
   if (!_capsuleMat) {
     _capsuleMat = new THREE.MeshBasicMaterial({ color: _capsuleBase.clone() });
   }
-  const capsule = new THREE.Mesh(_capsuleGeo, _capsuleMat);
+  const capsule = new THREE.Mesh(_capsuleGeo as THREE.CapsuleGeometry, _capsuleMat as THREE.MeshBasicMaterial);
   capsule.name = 'plasma_glow_capsule';
   const coilDir = muzzleLocal.clone().sub(pwrLocal);
   capsule.position.copy(pwrLocal).lerp(muzzleLocal, CAPSULE_T);
@@ -161,7 +161,7 @@ export function applyPlasmaGlow(soldierRoot) {
  * Advances the shared plasma pulse. Called once per frame from the game
  * loop; safe to call headless (uniform/material update only).
  */
-export function updatePlasmaGlow(deltaTime) {
+export function updatePlasmaGlow(deltaTime: number): void {
   _time += deltaTime || 0;
   if (!_plasmaMats) {
     return;

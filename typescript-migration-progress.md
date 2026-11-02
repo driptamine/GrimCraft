@@ -46,6 +46,18 @@ Update this file every time a module is migrated: move the row from Queue to Don
 - [ ] HUD: `hud/bits.jsx` → `.tsx`, `hud/primitives.jsx`, components, `hud.js`
 - [ ] Core loop (last): `scene.js`, `systems/*`, `entities.js`, `game.js`, `multiplayer.js`, `camera-fps.js`, `main-menu.js`
 
+## Batches (one gate cycle each; deploy rides every push, live verified after batch 4)
+
+- [x] Batch 1 — bolts/effects/audio: `blaster-bolt.js`, `plasma-bolt.js`, `reaper-bolt.js`, `plasma-glow.js`, `plasma-pistol-glow.js`, `necron-aura.js`, `necron-conduit.js`, `necron-lightning.js`, `audio.js`, `r2-image.js`, `r2-manifest.js` (no test renames — .js suites cover the .ts through hooks; `r2-manifest` reads factions via a minimal `FactionModels` contract)
+- [ ] Batch 2 — data + config: `factions.js`, `factions/*.js` (9), `teamcolour.js`, `maps-menu.js`, `map-layout.js`, `model-source.js`
+- [ ] Batch 3 — meshes: `meshes.js`, `meshes/*.js` (7)
+- [ ] Batch 4 — SGB + terrain: `sgb-decals.js`, `sgb-mirror.js`, `sgb-parser.js`, `sgb-reader.js`, `sgb-surface.js`, `sgb-textures.js`, `sgb-upload.js`, `terrain-upload.js`
+- [ ] Batch 5 — input: `input.js`, `input/*.js` (7)
+- [ ] Batch 6 — panels: `camera-panel.js`, `decals-menu.js`, `decals-panel.js`, `entities-panel.js`, `nodes-panel.js`, `pathfinding-panel.js`, `cursors.js`, `ghost-place.js`, `switch-faction.js`, `main-menu.js`, `taskbar-icons.js`, `soldier-aim.js`, `lobbies.js`
+- [ ] Batch 7 — HUD: `hud.js`, `hud/*.jsx` + `hud/components/*.jsx` (13)
+- [ ] Batch 8 — core: `scene.js`, `systems.js`, `systems/*.js` (10), `entities.js`, `game.js`, `multiplayer.js`, `camera-fps.js`, `camera-zoom.js`, `render-backend.js`
+- [ ] Batch 9 — tail: `rsh.js`, `rtx.js`, `whe.js`, `whm.js`, `wtp.js` — DROPPED: root copies are dead (zero importers; live code uses `src/parsers/*`). `rsh.js` is additionally rotten (`rootSceneRAFT`, `bytesiant`, `null1`, undefined `GsqLogger`). Left in place; deletion is the user's call.
+
 ## Gates (must stay green)
 
 - `npx tsc --noEmit` → exit 0, zero errors, zero `@ts-nocheck`.

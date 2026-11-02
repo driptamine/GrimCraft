@@ -5,12 +5,31 @@
 import { FACTIONS, ARENA_POSITION_FACTIONS } from './factions.js';
 import { modelUrl } from './assets.js';
 
-function _collectVehicleModels(config) {
-  const models = [];
-  const seen = new Set();
+interface ProductionItem {
+  model?: unknown;
+}
+
+interface StructureLike {
+  model?: unknown;
+  production?: ProductionItem[] | null;
+}
+
+// Minimal contract this module reads from a faction config. factions.js is
+// still untyped and per-faction shapes differ (some lack units/structures),
+// so the access goes through this interface instead of the inferred union.
+interface FactionModels {
+  hq?: unknown;
+  infantry?: Array<{ model?: unknown }>;
+  units?: Array<{ model?: unknown }>;
+  structures?: StructureLike[] | null;
+}
+
+function _collectVehicleModels(config: { structures?: StructureLike[] | null } | null | undefined): string[] {
+  const models: string[] = [];
+  const seen = new Set<string>();
   for (const structure of config?.structures || []) {
     for (const item of structure.production || []) {
-      if (item.model && !seen.has(item.model)) {
+      if (typeof item.model === 'string' && !seen.has(item.model)) {
         seen.add(item.model);
         models.push(item.model);
       }
@@ -19,21 +38,21 @@ function _collectVehicleModels(config) {
   return models;
 }
 
-export function collectFactionR2Urls(factionKeys = ARENA_POSITION_FACTIONS) {
-  const urls = [];
-  const seen = new Set();
-  const push = (path) => {
+export function collectFactionR2Urls(factionKeys: string[] = ARENA_POSITION_FACTIONS): string[] {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  const push = (path: unknown): void => {
     if (!path) {
       return;
     }
-    const url = modelUrl(path);
+    const url = modelUrl(String(path));
     if (url && !seen.has(url)) {
       seen.add(url);
       urls.push(url);
     }
   };
   for (const key of factionKeys || []) {
-    const config = FACTIONS[key];
+    const config = FACTIONS[key as keyof typeof FACTIONS] as unknown as FactionModels | undefined;
     if (!config) {
       continue;
     }
@@ -53,7 +72,7 @@ export function collectFactionR2Urls(factionKeys = ARENA_POSITION_FACTIONS) {
   return urls;
 }
 
-export function collectBootR2Urls(factionKeys = ARENA_POSITION_FACTIONS, extraPaths = []) {
+export function collectBootR2Urls(factionKeys: string[] = ARENA_POSITION_FACTIONS, extraPaths: string[] = []): string[] {
   const urls = collectFactionR2Urls(factionKeys);
   const seen = new Set(urls);
   for (const path of extraPaths || []) {

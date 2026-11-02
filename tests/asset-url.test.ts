@@ -34,7 +34,7 @@ describe('asset url', () => {
     }) as unknown as typeof fetch;
     const first = await r2ImageUrl('assets/icons/x.png', stubFetch);
     const second = await r2ImageUrl('assets/icons/x.png', stubFetch);
-    assert.ok(first.startsWith('blob:'), 'resolves to a blob URL');
+    assert.ok(typeof first === 'string' && first.startsWith('blob:'), 'resolves to a blob URL');
     assert.equal(first, second);
     assert.equal(fetchCalls, 1);
   });

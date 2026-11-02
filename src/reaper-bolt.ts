@@ -9,14 +9,22 @@ import { mkGroup } from './three-helpers.js';
 export const REAPER_CORE_NAME = 'reaper_core';
 export const REAPER_SHELL_NAME = 'reaper_shell';
 
-let _shared = null;
+interface ReaperSharedAssets {
+  coreGeo: THREE.BufferGeometry;
+  shellGeo: THREE.BufferGeometry;
+  coreMat: THREE.MeshBasicMaterial;
+  shellMat: THREE.MeshBasicMaterial;
+  glowTexture: THREE.CanvasTexture | null;
+}
 
-function _makeGlowTexture() {
+let _shared: ReaperSharedAssets | null = null;
+
+function _makeGlowTexture(): THREE.CanvasTexture {
   const size = 64;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   gradient.addColorStop(0, 'rgba(255,255,255,1)');
   gradient.addColorStop(0.35, 'rgba(240,244,255,0.65)');
@@ -29,14 +37,14 @@ function _makeGlowTexture() {
   return texture;
 }
 
-function _markShared(geo) {
+function _markShared(geo: THREE.BufferGeometry): THREE.BufferGeometry {
   if (geo) {
     geo.userData.shared = true; // disposeObj skips shared geometry.
   }
   return geo;
 }
 
-function _sharedAssets() {
+function _sharedAssets(): ReaperSharedAssets {
   if (_shared) {
     return _shared;
   }
@@ -60,7 +68,7 @@ function _sharedAssets() {
   return _shared;
 }
 
-export function makeReaperBoltMesh() {
+export function makeReaperBoltMesh(): THREE.Group {
   const shared = _sharedAssets();
   const root = mkGroup('reaperbolt');
   const core = new THREE.Mesh(shared.coreGeo, shared.coreMat);
@@ -90,7 +98,7 @@ export function makeReaperBoltMesh() {
 }
 
 // Gentle irregular shimmer on the shared shell — one update per frame.
-export function updateReaperBoltFx(time) {
+export function updateReaperBoltFx(time: number): void {
   const shared = _sharedAssets();
   shared.shellMat.opacity = 0.42 + 0.08 * Math.sin(time * 13.1) + 0.04 * Math.sin(time * 23.7 + 0.9);
 }

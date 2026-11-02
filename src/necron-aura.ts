@@ -17,12 +17,12 @@ const FOG = [
   { pos: [0.41, 0.12, 0.18], scale: 1.3, mat: 'A' },
   { pos: [-0.36, 0.1, 0.27], scale: 1.1, mat: 'B' },
   { pos: [-0.05, 0.14, -0.45], scale: 1.2, mat: 'A' },
-];
+] as const;
 
-let _gasMat = null;
-let _fogMatA = null;
-let _fogMatB = null;
-let _fogTexture = null;
+let _gasMat: THREE.ShaderMaterial | null = null;
+let _fogMatA: THREE.SpriteMaterial | null = null;
+let _fogMatB: THREE.SpriteMaterial | null = null;
+let _fogTexture: THREE.CanvasTexture | null = null;
 let _fogTextureTried = false;
 const _uniforms = { uTime: { value: 0 }, uIntensity: { value: 1.2 } };
 
@@ -75,7 +75,7 @@ void main() {
 }
 `;
 
-function gasMaterial() {
+function gasMaterial(): THREE.ShaderMaterial {
   if (!_gasMat) {
     _gasMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -95,7 +95,7 @@ function gasMaterial() {
   return _gasMat;
 }
 
-function getFogTexture() {
+function getFogTexture(): THREE.CanvasTexture | null {
   if (_fogTexture || _fogTextureTried) {
     return _fogTexture;
   }
@@ -104,7 +104,7 @@ function getFogTexture() {
     return null;
   }
   let state = 0xF09;
-  const rand = () => {
+  const rand = (): number => {
     state |= 0;
     state = (state + 0x6d2b79f5) | 0;
     let t = Math.imul(state ^ (state >>> 15), 1 | state);
@@ -115,7 +115,7 @@ function getFogTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 9; i++) {
     const cx = size * (0.3 + rand() * 0.4);
@@ -133,12 +133,12 @@ function getFogTexture() {
   return _fogTexture;
 }
 
-function ensureFogMats() {
+function ensureFogMats(): void {
   if (_fogMatA) {
     return;
   }
   const map = getFogTexture();
-  const make = (color, opacity) => new THREE.SpriteMaterial({
+  const make = (color: number, opacity: number): THREE.SpriteMaterial => new THREE.SpriteMaterial({
     map,
     color: new THREE.Color(color),
     transparent: true,
@@ -150,7 +150,7 @@ function ensureFogMats() {
   _fogMatB = make(0x1fae4c, 0.2);
 }
 
-function isExcluded(obj) {
+function isExcluded(obj: THREE.Object3D | null): boolean {
   let node = obj;
   while (node) {
     if (EXCLUDED.has(node.name)) {
@@ -166,7 +166,7 @@ function isExcluded(obj) {
  * Idempotent; never touches the model's own materials or geometry.
  * Returns the marker group, or null without a model.
  */
-export function addNecronAura(model) {
+export function addNecronAura(model: THREE.Object3D | null): THREE.Group | null {
   if (!model) {
     return null;
   }
@@ -174,21 +174,23 @@ export function addNecronAura(model) {
     ? model.getObjectByName(AURA_GROUP)
     : null;
   if (existing) {
-    return existing;
+    return existing as THREE.Group;
   }
   const mat = gasMaterial();
-  const bodies = [];
-  model.traverse((child) => {
+  const bodies: THREE.Mesh[] = [];
+  model.traverse((child: THREE.Object3D & { isMesh?: unknown; isSprite?: unknown }) => {
     if (!child.isMesh || child.isSprite) {
       return;
     }
-    if (child.material === mat || isExcluded(child)) {
+    const mesh = child as THREE.Mesh;
+    if (mesh.material === mat || isExcluded(mesh)) {
       return;
     }
-    bodies.push(child);
+    bodies.push(mesh);
   });
   for (const body of bodies) {
-    const shell = body.isSkinnedMesh
+    const asSkinned = body as THREE.Mesh & { isSkinnedMesh?: unknown; skeleton?: THREE.Skeleton; bindMatrix?: THREE.Matrix4 };
+    const shell: THREE.Mesh | THREE.SkinnedMesh = asSkinned.isSkinnedMesh
       ? new THREE.SkinnedMesh(body.geometry, mat)
       : new THREE.Mesh(body.geometry, mat);
     shell.name = `${body.name}${SHELL_SUFFIX}`;
@@ -200,16 +202,16 @@ export function addNecronAura(model) {
     shell.receiveShadow = false;
     shell.userData.pickable = false;
     shell.renderOrder = 5;
-    body.parent.add(shell);
-    if (shell.isSkinnedMesh) {
-      shell.bind(body.skeleton, body.bindMatrix);
+    (body.parent as THREE.Object3D).add(shell);
+    if (asSkinned.isSkinnedMesh) {
+      (shell as THREE.SkinnedMesh).bind(asSkinned.skeleton as THREE.Skeleton, asSkinned.bindMatrix as THREE.Matrix4);
     }
   }
   ensureFogMats();
   const group = mkGroup(AURA_GROUP);
   group.userData.pickable = false;
   for (const fog of FOG) {
-    const sprite = new THREE.Sprite(fog.mat === 'A' ? _fogMatA : _fogMatB);
+    const sprite = new THREE.Sprite((fog.mat === 'A' ? _fogMatA : _fogMatB) as THREE.SpriteMaterial);
     sprite.name = 'necron_aura_fog';
     sprite.position.set(fog.pos[0], fog.pos[1], fog.pos[2]);
     sprite.scale.set(fog.scale, fog.scale, 1);
@@ -224,7 +226,7 @@ export function addNecronAura(model) {
  * Advances the shared gas animation. Absolute time in seconds; safe to call
  * headless (updates uniforms even before any install).
  */
-export function updateNecronAura(time) {
+export function updateNecronAura(time: number): void {
   const t = time || 0;
   _uniforms.uTime.value = t;
   _uniforms.uIntensity.value = 1.2 + 0.2 * Math.sin(t * 2.1) + 0.08 * Math.sin(t * 5.3 + 1.0);

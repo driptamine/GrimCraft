@@ -23,12 +23,30 @@ const STREAM_RADIUS = 0.012;
 const RING_RADIUS = 0.045;
 const RING_TUBE = 0.012;
 
-let _template = null;
+interface ConduitTemplate {
+  dir: THREE.Vector3;
+  length: number;
+  mid: THREE.Vector3;
+  ringQuat: THREE.Quaternion;
+  ringOffsets: number[];
+  baseLocal: THREE.Vector3;
+  casingGeo: THREE.TubeGeometry;
+  casingMat: THREE.MeshStandardMaterial;
+  streamGeo: THREE.TubeGeometry;
+  streamMat: THREE.ShaderMaterial;
+  filamentGeos: THREE.BufferGeometry[];
+  filamentMat: THREE.LineBasicMaterial;
+  ringGeo: THREE.TorusGeometry;
+  ringMat: THREE.MeshStandardMaterial;
+  glowMat: THREE.SpriteMaterial;
+}
+
+let _template: ConduitTemplate | null = null;
 let _time = 0;
 
-let _glowTexture = null;
+let _glowTexture: THREE.DataTexture | null = null;
 
-function getGlowTexture() {
+function getGlowTexture(): THREE.DataTexture {
   if (_glowTexture) {
     return _glowTexture;
   }
@@ -79,7 +97,7 @@ const STREAM_FRAGMENT = /* glsl */`
   }
 `;
 
-function buildTemplate(baseLocal, endLocal) {
+function buildTemplate(baseLocal: THREE.Vector3, endLocal: THREE.Vector3): ConduitTemplate {
   const dir = endLocal.clone().sub(baseLocal);
   const length = dir.length() || 1;
   dir.normalize();
@@ -117,9 +135,9 @@ function buildTemplate(baseLocal, endLocal) {
   });
 
   // Branching filaments contained inside the casing.
-  const filamentGeos = [];
+  const filamentGeos: THREE.BufferGeometry[] = [];
   for (let f = 0; f < 2; f++) {
-    const pts = [];
+    const pts: THREE.Vector3[] = [];
     const count = 9;
     for (let i = 0; i < count; i++) {
       const t = i / (count - 1);
@@ -141,7 +159,7 @@ function buildTemplate(baseLocal, endLocal) {
 
   const ringGeo = new THREE.TorusGeometry(RING_RADIUS, RING_TUBE, 6, 14);
   const ringMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x1a1a1c),
+    color: new THREE.Color(0x1a1c1c),
     roughness: 0.4,
     metalness: 0.9,
   });
@@ -172,7 +190,7 @@ function buildTemplate(baseLocal, endLocal) {
  * Attaches the shared conduit assembly under the gun bone of one soldier.
  * Returns the attached group, or null when the model has no gun markers.
  */
-export function attachGaussConduit(soldierRoot) {
+export function attachGaussConduit(soldierRoot: THREE.Object3D | null): THREE.Group | null {
   if (!soldierRoot) {
     return null;
   }
@@ -190,7 +208,7 @@ export function attachGaussConduit(soldierRoot) {
   // Marker locals are in parent space when both share one bone; otherwise
   // resolve the end point into the base parent's space.
   const baseLocal = baseNode.position.clone();
-  let endLocal;
+  let endLocal: THREE.Vector3;
   if (endNode.parent === parent) {
     endLocal = endNode.position.clone();
   } else {
@@ -249,7 +267,7 @@ export function attachGaussConduit(soldierRoot) {
  * Advances the shared energy-stream clock. Called once per frame from the
  * game loop; safe to call headless (uniform update only).
  */
-export function updateNecronConduits(deltaTime) {
+export function updateNecronConduits(deltaTime: number): void {
   _time += deltaTime || 0;
   if (!_template) {
     return;

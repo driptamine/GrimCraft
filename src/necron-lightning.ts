@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mkGroup, mkTube, mkLines, disposeObj } from './three-helpers.js';
+import { mkGroup, mkTube, mkLines } from './three-helpers.js';
 import { spawnParticles } from './systems.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -26,24 +26,45 @@ const _side = new THREE.Vector3();
 const _upv = new THREE.Vector3();
 const _tmp = new THREE.Vector3();
 
-const DEFAULTS = {
-  quality: 'high', // 'high' | 'low'
-  intensity: 1.0, // scales brightness + flicker amplitude
-  color: 0x00ff41, // necron green energy
-  coreColor: 0xf2fff2, // near-white hot center
-  duration: 0.32, // seconds the bolt lives
-  segments: 12, // main-path joints (sharp angles)
-  branchCount: 4, // secondary arc pool size
-  branchProbability: 0.75, // respawn chance per dead branch per frame
-  jitter: 1.0, // lateral displacement scale
-  flicker: 0.55, // brightness noise amplitude
-  bloomStrength: 1.0, // glow sprite / aura scaling (fake + future real bloom)
-  particleCount: 5, // impact burst particles
+export interface LightningOptions {
+  quality: string; // 'high' | 'low'
+  intensity: number; // scales brightness + flicker amplitude
+  color: number; // necron green energy
+  coreColor: number; // near-white hot center
+  duration: number; // seconds the bolt lives
+  segments: number; // main-path joints (sharp angles)
+  branchCount: number; // secondary arc pool size
+  branchProbability: number; // respawn chance per dead branch per frame
+  jitter: number; // lateral displacement scale
+  flicker: number; // brightness noise amplitude
+  bloomStrength: number; // glow sprite / aura scaling (fake + future real bloom)
+  particleCount: number; // impact burst particles
+}
+
+const DEFAULTS: LightningOptions = {
+  quality: 'high',
+  intensity: 1.0,
+  color: 0x00ff41,
+  coreColor: 0xf2fff2,
+  duration: 0.32,
+  segments: 12,
+  branchCount: 4,
+  branchProbability: 0.75,
+  jitter: 1.0,
+  flicker: 0.55,
+  bloomStrength: 1.0,
+  particleCount: 5,
 };
 
-let _glowTexture = null;
+interface LightningBranch {
+  line: THREE.Line;
+  age: number;
+  life: number;
+}
 
-function getGlowTexture() {
+let _glowTexture: THREE.DataTexture | null = null;
+
+function getGlowTexture(): THREE.DataTexture {
   if (_glowTexture) {
     return _glowTexture;
   }
@@ -68,7 +89,7 @@ function getGlowTexture() {
   return _glowTexture;
 }
 
-function makeGlowSprite(color, opacity) {
+function makeGlowSprite(color: number, opacity: number): THREE.Sprite {
   const material = new THREE.SpriteMaterial({
     map: getGlowTexture(),
     color,
@@ -83,7 +104,37 @@ function makeGlowSprite(color, opacity) {
 }
 
 export class NecronLightning {
-  constructor(scene, options = {}) {
+  opts: LightningOptions;
+  scene: THREE.Object3D | null;
+  root: THREE.Group;
+  age = 0;
+  alive = false;
+
+  private _path: THREE.Vector3[];
+  private _coreGeo: THREE.BufferGeometry;
+  private _corePos: Float32Array;
+  private _coreBase: THREE.Color;
+  private _coreMat: THREE.LineBasicMaterial;
+  private _core: THREE.Line;
+  private _midMat: THREE.MeshBasicMaterial;
+  private _auraMat: THREE.MeshBasicMaterial;
+  private _tubeMid: THREE.Mesh | null = null;
+  private _tubeAura: THREE.Mesh | null = null;
+  private _glowMid: THREE.Sprite;
+  private _glowHit: THREE.Sprite;
+  private _flash: THREE.Sprite;
+  private _branches: LightningBranch[];
+  private _impactMat: THREE.LineBasicMaterial;
+  private _impactArcs: THREE.Line[];
+  private _frame = 0;
+  private _start = new THREE.Vector3();
+  private _end = new THREE.Vector3();
+  private _length = 1;
+  private _amp = 0.5;
+  private _side!: THREE.Vector3;
+  private _upv!: THREE.Vector3;
+
+  constructor(scene: THREE.Object3D | null, options: Partial<LightningOptions> = {}) {
     this.opts = { ...DEFAULTS, ...options };
     if (this.opts.quality === 'low') {
       this.opts.segments = Math.max(6, this.opts.segments - 4);
@@ -171,7 +222,7 @@ export class NecronLightning {
         null,
         1,
       );
-      line.material.dispose();
+      (line.material as THREE.Material).dispose();
       line.material = this._impactMat;
       line.frustumCulled = false;
       line.userData.pickable = false;
@@ -188,7 +239,7 @@ export class NecronLightning {
     this._amp = 0.5;
   }
 
-  fire(start, target) {
+  fire(start: THREE.Vector3, target: THREE.Vector3): this {
     this._start.copy(start);
     this._end.copy(target);
     _dir.copy(target).sub(start);
@@ -237,7 +288,7 @@ export class NecronLightning {
     return this;
   }
 
-  update(deltaTime) {
+  update(deltaTime: number): boolean {
     if (!this.alive) {
       return false;
     }
@@ -295,30 +346,30 @@ export class NecronLightning {
           branch.age = 0;
         }
       } else if (branch.line.visible) {
-        branch.line.material.opacity = Math.max(0, (1 - branch.age / branch.life) * flicker);
+        (branch.line.material as THREE.LineBasicMaterial).opacity = Math.max(0, (1 - branch.age / branch.life) * flicker);
       }
     }
     return true;
   }
 
-  dispose() {
+  dispose(): void {
     if (this.root.parent) {
       this.root.parent.remove(this.root);
     }
-    this.root.traverse((child) => {
+    this.root.traverse((child: THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] }) => {
       if (child.geometry) {
         child.geometry.dispose();
       }
       // All materials here are per-bolt instances; the shared glow texture
       // itself is never disposed (material.dispose leaves textures alone).
       if (child.material) {
-        child.material.dispose();
+        (child.material as THREE.Material).dispose();
       }
     });
     this.alive = false;
   }
 
-  _jitterPath() {
+  private _jitterPath(): void {
     const n = this._path.length;
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1);
@@ -333,17 +384,17 @@ export class NecronLightning {
     }
   }
 
-  _writeCore() {
+  private _writeCore(): void {
     for (let i = 0; i < this._path.length; i++) {
       const p = this._path[i];
       this._corePos[i * 3] = p.x;
       this._corePos[i * 3 + 1] = p.y;
       this._corePos[i * 3 + 2] = p.z;
     }
-    this._coreGeo.attributes.position.needsUpdate = true;
+    (this._coreGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
   }
 
-  _rebuildTubes() {
+  private _rebuildTubes(): void {
     if (this._tubeMid) {
       this.root.remove(this._tubeMid);
       this._tubeMid.geometry.dispose();
@@ -363,7 +414,7 @@ export class NecronLightning {
     this.root.add(this._tubeAura);
   }
 
-  _placeGlow() {
+  private _placeGlow(): void {
     _tmp.copy(this._start).add(this._end).multiplyScalar(0.5);
     this._glowMid.position.copy(_tmp);
     this._glowHit.position.copy(this._end);
@@ -371,7 +422,7 @@ export class NecronLightning {
     this._glowHit.scale.set(hitScale, hitScale, 1);
   }
 
-  _respawnBranch(branch) {
+  private _respawnBranch(branch: LightningBranch): void {
     const n = this._path.length;
     const fromIdx = 1 + Math.floor(Math.random() * (n - 2));
     const from = this._path[fromIdx];
@@ -380,13 +431,13 @@ export class NecronLightning {
     const reconnect = Math.random() < 0.25;
     const toIdx = Math.min(n - 1, Math.max(0, fromIdx + Math.floor((Math.random() - 0.5) * 6)));
     const points = 3 + Math.floor(Math.random() * 3);
-    const pos = branch.line.geometry.attributes.position;
+    const pos = branch.line.geometry.attributes.position as THREE.BufferAttribute;
     _tmp.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
     for (let i = 0; i < points; i++) {
       const t = i / (points - 1);
-      let px;
-      let py;
-      let pz;
+      let px: number;
+      let py: number;
+      let pz: number;
       if (reconnect && i === points - 1) {
         px = this._path[toIdx].x;
         py = this._path[toIdx].y;
@@ -400,21 +451,21 @@ export class NecronLightning {
     }
     branch.line.geometry.setDrawRange(0, points);
     pos.needsUpdate = true;
-    branch.line.material.opacity = 0.5 + Math.random() * 0.5;
+    (branch.line.material as THREE.LineBasicMaterial).opacity = 0.5 + Math.random() * 0.5;
     branch.life = 0.03 + Math.random() * 0.06;
     branch.age = 0;
     branch.line.visible = true;
   }
 
-  _randomShortArc(line, origin, length) {
-    const pos = line.geometry.attributes.position;
+  private _randomShortArc(line: THREE.Line, origin: THREE.Vector3, length: number): void {
+    const pos = line.geometry.attributes.position as THREE.BufferAttribute;
     _tmp.set(Math.random() - 0.5, Math.random() * 0.8, Math.random() - 0.5).normalize();
     const bend = (Math.random() - 0.5) * length * 0.6;
     pos.setXYZ(0, origin.x, origin.y, origin.z);
     pos.setXYZ(
       1,
       origin.x + _tmp.x * length * 0.5 - _tmp.z * bend,
-      origin.y + _tmp.y * length * 0.5,
+      origin.y + _tmp.y * length * 0.4,
       origin.z + _tmp.z * length * 0.5 + _tmp.x * bend,
     );
     if (pos.count > 2) {
