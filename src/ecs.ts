@@ -1,21 +1,23 @@
-export class World {
-  constructor() {
-    this._nextId = 1;
-    this._components = new Map();
-    this._entities = new Set();
-    this._systems = [];
-    this._tags = new Map();
-    this._toDestroy = [];
-  }
+export type EntityId = number;
 
-  createEntity(tags = []) {
+export type SystemFunction = (world: World, deltaTime: number) => void;
+
+export class World {
+  private _nextId = 1;
+  private _components = new Map<string, Map<EntityId, unknown>>();
+  private _entities = new Set<EntityId>();
+  private _systems: SystemFunction[] = [];
+  private _tags = new Map<EntityId, Set<string>>();
+  private _toDestroy: EntityId[] = [];
+
+  createEntity(tags: string[] = []): EntityId {
     const id = this._nextId++;
     this._entities.add(id);
     this._tags.set(id, new Set(tags));
     return id;
   }
 
-  destroyEntity(id) {
+  destroyEntity(id: EntityId) {
     this._toDestroy.push(id);
   }
 
@@ -30,42 +32,42 @@ export class World {
     this._toDestroy.length = 0;
   }
 
-  add(id, name, data) {
+  add<T>(id: EntityId, name: string, data: T): T {
     if (!this._components.has(name)) {
       this._components.set(name, new Map());
     }
-    this._components.get(name).set(id, data);
+    (this._components.get(name) as Map<EntityId, unknown>).set(id, data);
     return data;
   }
 
-  get(id, name) {
+  get(id: EntityId, name: string): unknown {
     const store = this._components.get(name);
     return store ? store.get(id) : undefined;
   }
 
-  has(id, name) {
+  has(id: EntityId, name: string): boolean {
     const store = this._components.get(name);
     return store ? store.has(id) : false;
   }
 
-  remove(id, name) {
+  remove(id: EntityId, name: string) {
     this._components.get(name)?.delete(id);
   }
 
-  hasTag(id, tag) {
+  hasTag(id: EntityId, tag: string): boolean {
     return this._tags.get(id)?.has(tag) ?? false;
   }
 
-  addTag(id, tag) {
+  addTag(id: EntityId, tag: string) {
     this._tags.get(id)?.add(tag);
   }
 
-  removeTag(id, tag) {
+  removeTag(id: EntityId, tag: string) {
     this._tags.get(id)?.delete(tag);
   }
 
-  query(...names) {
-    let smallest = null;
+  query(...names: string[]): EntityId[] {
+    let smallest: Map<EntityId, unknown> | null = null;
     for (const componentName of names) {
       const componentStore = this._components.get(componentName);
       if (!componentStore || componentStore.size === 0) {
@@ -78,7 +80,7 @@ export class World {
     if (!smallest) {
       return [];
     }
-    const result = [];
+    const result: EntityId[] = [];
     for (const id of smallest.keys()) {
       if (!this._entities.has(id)) {
         continue;
@@ -90,11 +92,11 @@ export class World {
     return result;
   }
 
-  addSystem(systemFunction) {
+  addSystem(systemFunction: SystemFunction) {
     this._systems.push(systemFunction);
   }
 
-  tick(deltaTime) {
+  tick(deltaTime: number) {
     for (const sys of this._systems) {
       sys(this, deltaTime);
     }
