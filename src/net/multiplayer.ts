@@ -241,6 +241,7 @@ function _onSession(info: any): void {
   setGameOver(false);
   updateHUD();
   _setConnectOverlay(false);
+  _setNetHudVisible(true);
   _updateNetHUD();
 }
 
@@ -416,6 +417,9 @@ function _buildingEntityTypeName(type: string): string {
 }
 
 export function _injectConnectUI() {
+  document.getElementById('webTransport-connect-overlay')?.remove();
+  document.getElementById('webTransport-net-hud')?.remove();
+  document.getElementById('webTransport-connect-style')?.remove();
   const overlay = document.createElement('div');
   overlay.id = 'webTransport-connect-overlay';
   overlay.innerHTML = [
@@ -459,6 +463,7 @@ export function _injectConnectUI() {
     '</div>',
   ].join('');
   const style = document.createElement('style');
+  style.id = 'webTransport-connect-style';
   style.textContent = [
     '#webTransport-connect-overlay { position:fixed; inset:0; z-index:9999; background:rgba(4,8,18,0.92); display:flex; align-items:center; justify-content:center; }',
     '.webTransport-panel { background:rgba(10,18,35,0.97); border:1px solid rgba(80,200,255,0.35); padding:28px 32px; max-width:480px; width:100%; font-family:\'Courier New\',monospace; box-shadow:0 0 40px rgba(80,200,255,0.15); }',
@@ -528,6 +533,7 @@ export function _injectConnectUI() {
   _buildServerList();
   _renderSlots(null);
   _buildCreateForm();
+  _injectSkirmishUI();
 }
 
 function _setLobbyView(creating: boolean): void {
@@ -694,10 +700,64 @@ export function showConnectOverlay(mode = 'multiplayer'): void {
 
 export function hideConnectOverlay() {
   _setConnectOverlay(false);
+  _setNetHudVisible(false);
 }
 
-function _renderMapDetail(card: any): void {
-  const box = document.getElementById('webTransport-map-detail');
+function _setSkirmishPanel(visible: boolean): void {
+  const element = document.getElementById('skirmish-panel');
+  if (element) {
+    element.style.display = visible ? 'flex' : 'none';
+  }
+}
+
+function _injectSkirmishUI(): void {
+  if (document.getElementById('skirmish-panel')) {
+    return;
+  }
+  const overlay = document.createElement('div');
+  overlay.id = 'skirmish-panel';
+  overlay.style.display = 'none';
+  overlay.innerHTML = [
+    '<div class="webTransport-panel webTransport-panel-skirmish">',
+    '<div class="webTransport-title">GRIMCRAFT SKIRMISH</div>',
+    '<div class="webTransport-subtitle">Offline Battle</div>',
+    '<div class="webTransport-map-label">MAP</div>',
+    '<div class="webTransport-map-body">',
+    '<div id="skirmish-map-grid" class="webTransport-map-grid"></div>',
+    '<div id="skirmish-map-detail" class="webTransport-map-detail"></div>',
+    '</div>',
+    '<div style="display:flex;gap:8px;margin-top:6px"><button id="skirmish-start-btn" class="webTransport-button webTransport-offline">START BATTLE</button></div>',
+    '<div style="display:flex;gap:8px;margin-top:8px"><button id="skirmish-back-btn" class="webTransport-button">‹ BACK</button></div>',
+    '</div>',
+  ].join('');
+  const style = document.createElement('style');
+  style.textContent = [
+    '#skirmish-panel { position:fixed; inset:0; z-index:9999; background:rgba(4,8,18,0.92); display:flex; align-items:center; justify-content:center; }',
+  ].join(' ');
+  document.head.appendChild(style);
+  document.body.appendChild(overlay);
+  document.getElementById('skirmish-start-btn')?.addEventListener('click', webTransportPlayOffline);
+  document.getElementById('skirmish-back-btn')?.addEventListener('click', () => {
+    hideSkirmishPanel();
+    if (window.__grimcraftShowMainMenu) {
+      window.__grimcraftShowMainMenu();
+    }
+  });
+  _buildMapGrid('skirmish-map-grid', 'skirmish-map-detail');
+}
+
+export function showSkirmishPanel(): void {
+  _setConnectOverlay(false);
+  _buildMapGrid('skirmish-map-grid', 'skirmish-map-detail');
+  _setSkirmishPanel(true);
+}
+
+export function hideSkirmishPanel(): void {
+  _setSkirmishPanel(false);
+  _setNetHudVisible(false);
+}
+
+function _renderMapDetail(card: any, box: HTMLElement | null = document.getElementById('webTransport-map-detail')): void {
   if (!box || !card) {
     return;
   }
@@ -726,9 +786,10 @@ function _renderMapDetail(card: any): void {
   box.appendChild(cap);
 }
 
-function _buildMapGrid() {
-  const grid = document.getElementById('webTransport-map-grid');
-  if (!grid) {
+function _buildMapGrid(gridId = 'webTransport-map-grid', detailId = 'webTransport-map-detail') {
+  const grid = document.getElementById(gridId);
+  const detail = document.getElementById(detailId);
+  if (!grid || !detail) {
     return;
   }
   grid.innerHTML = '';
@@ -762,17 +823,24 @@ function _buildMapGrid() {
           el.classList.toggle('active', el === btn);
         }
       });
-      _renderMapDetail(card);
+      _renderMapDetail(card, detail);
     });
     grid.appendChild(btn);
   }
-  _renderMapDetail(cards.find((c) => (c.path || 'arena') === selectedKey) || null);
+  _renderMapDetail(cards.find((c) => (c.path || 'arena') === selectedKey) || null, detail);
 }
 
 function _setConnectOverlay(visible: boolean): void {
   const element = document.getElementById('webTransport-connect-overlay');
   if (element) {
     element.style.display = visible ? 'flex' : 'none';
+  }
+}
+
+function _setNetHudVisible(visible: boolean): void {
+  const element = document.getElementById('webTransport-net-hud');
+  if (element) {
+    element.style.display = visible ? '' : 'none';
   }
 }
 
@@ -1080,6 +1148,7 @@ export async function webTransportConnect() {
   try {
     window._multiplayerMode = true;
     await bootGame({ onProgress: _updateLoadBar });
+    _setNetHudVisible(true);
     _setLoadingUI(false);
     statusElement.textContent = 'Connecting…';
     await _net.connect(url, cert);
@@ -1097,6 +1166,8 @@ export async function webTransportConnect() {
 export async function webTransportPlayOffline() {
   window._multiplayerMode = false;
   window._currentMapKey = _selectedMap ? _selectedMap.path : 'arena';
+  hideSkirmishPanel();
+  showConnectOverlay('skirmish');
   _setLoadingUI(true);
   try {
     await bootGame({ onProgress: _updateLoadBar });
@@ -1106,6 +1177,7 @@ export async function webTransportPlayOffline() {
     }
     _setLoadingUI(false);
     _setConnectOverlay(false);
+    _setNetHudVisible(true);
   } catch (error) {
     _setLoadingUI(false);
     const statusElement = document.getElementById('webTransport-connect-status') as HTMLElement | null;

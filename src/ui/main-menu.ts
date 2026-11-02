@@ -1,7 +1,8 @@
 // Startup main menu (right side): 200x200 art placeholder + section buttons.
-// Skirmish / Multi-player open the connect overlay in that mode; the rest are
-// stub screens until those sections exist. Only zero-dependency leaf modules
-// are imported statically (multiplayer stays lazy to avoid an import cycle).
+// Skirmish opens its own map-list panel; Multi-player opens the connect
+// overlay; the rest are stub screens until those sections exist. Only
+// zero-dependency leaf modules are imported statically (multiplayer stays
+// lazy to avoid an import cycle).
 import { modelSource, setModelSource, MODEL_SOURCE_PROCEDURAL, MODEL_SOURCE_GLB } from '../render/model-source.js';
 
 export const MENU_ITEMS = [
@@ -25,6 +26,8 @@ export function screenFor(itemId: string): string {
 
 let _showConnectOverlay: ((screen: string) => void) | null = null;
 let _hideConnectOverlay: (() => void) | null = null;
+let _showSkirmishPanel: (() => void) | null = null;
+let _hideSkirmishPanel: (() => void) | null = null;
 
 function _menuElement(): HTMLElement | null {
   return document.getElementById('grimcraft-main-menu');
@@ -33,6 +36,9 @@ function _menuElement(): HTMLElement | null {
 export function showMainMenu(): void {
   if (_hideConnectOverlay) {
     _hideConnectOverlay();
+  }
+  if (_hideSkirmishPanel) {
+    _hideSkirmishPanel();
   }
   renderMenuList();
   const menu = _menuElement();
@@ -59,6 +65,12 @@ function _onItemClick(item: { id: string; label: string }): void {
     return;
   }
   hideMainMenu();
+  if (screen === 'skirmish') {
+    if (_showSkirmishPanel) {
+      _showSkirmishPanel();
+    }
+    return;
+  }
   if (_showConnectOverlay) {
     _showConnectOverlay(screen);
   }
@@ -164,6 +176,8 @@ export async function injectMainMenu(): Promise<void> {
   const multiplayer = await import('../net/multiplayer.js');
   _showConnectOverlay = multiplayer.showConnectOverlay;
   _hideConnectOverlay = multiplayer.hideConnectOverlay;
+  _showSkirmishPanel = multiplayer.showSkirmishPanel;
+  _hideSkirmishPanel = multiplayer.hideSkirmishPanel;
   multiplayer._injectConnectUI();
   _hideConnectOverlay();
 
