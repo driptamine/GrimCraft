@@ -73,7 +73,7 @@ describe('chaos bloodthirster', () => {
       systems.includes("type === 'infantry_command' || type === 'greater_sacrificial_circle') {"),
       'build completion creates a building',
     );
-    const entities = fs.readFileSync(path.join(ROOT, 'src/entities.js'), 'utf8');
+    const entities = fs.readFileSync(path.join(ROOT, 'src/entities.ts'), 'utf8');
     assert.ok(
       entities.includes("type === 'greater_sacrificial_circle' ? (() => makeConfigStructureMesh(type, position, team, meta))"),
       'completion builds the config structure, not the HQ fallback',

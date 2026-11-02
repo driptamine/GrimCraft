@@ -106,15 +106,15 @@ describe('plasma final projectile', () => {
   });
 
   it('preloads the final fx at boot and ticks muzzle flashes in systemSoldier', () => {
-    const game = readSrc('src/game.js');
+    const game = readSrc('src/game.ts');
     assert.ok(game.includes('preloadPlasmaFinalFx()'), 'preloaded with the bolt model');
-    const squad = readSrc('src/systems/squad.js');
+    const squad = readSrc('src/systems/squad.ts');
     assert.ok(squad.includes('attachPlasmaMuzzleFlash(soldierMeshComponent.root)'), 'flash on final shots');
     assert.ok(squad.includes('updatePlasmaMuzzleFlash(meshComponent.root, deltaTime)'), 'flash ticked per soldier');
   });
 
   it('reports a stale-chunk failure on the decals tab instead of staying silent', () => {
-    const game = readSrc('src/game.js');
+    const game = readSrc('src/game.ts');
     assert.ok(game.includes('DECALS CHUNK FAILED TO LOAD'), 'visible message on lazy-chunk failure');
     assert.ok(game.includes('hard-refresh the page'), 'tells the user the fix');
   });

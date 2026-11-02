@@ -32,7 +32,7 @@ describe('boot timer', () => {
 
   it('ticks in the loading panel and reports the total', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const src = fs.readFileSync(path.join(root, 'src/multiplayer.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/multiplayer.ts'), 'utf8');
     assert.ok(src.includes("getElementById('webTransport-load-timer')"), 'timer element exists');
     assert.ok(src.includes('setInterval(_tickBootTimer, 100)'), 'timer ticks live');
     assert.ok(src.includes('[BOOT] game loaded in'), 'total logged to console');

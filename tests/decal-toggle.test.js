@@ -75,7 +75,7 @@ describe('decals tab hover toggle', () => {
   });
 
   it('game exposes the hover toggle on window', () => {
-    const game = fs.readFileSync(path.join(root, 'src/game.js'), 'utf8');
+    const game = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
     assert.ok(game.includes('window.toggleDecalHover = '), 'onclick handler resolves');
   });
 

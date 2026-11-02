@@ -40,17 +40,28 @@ export async function load(url, context, next) {
   if (url.endsWith('.json')) {
     return { format: 'json', source: await readFile(new URL(url), 'utf8'), shortCircuit: true };
   }
-  if (url.endsWith('/src/scene.js')) {
+  if (url.endsWith('/src/scene.js') || url.endsWith('/src/scene.ts')) {
     // Headless seam: let tests inject a scene/camera so resetGame can run
     // under node --test without a renderer. Appended export only; the game
     // itself never calls it (createScene owns scene/camera in production).
     const source = await readFile(new URL(url), 'utf8');
-    if (!source.includes('export let camera;')) {
-      throw new Error('node-esm-hooks: src/scene.js drifted, update the shim');
+    if (!source.includes('export let camera')) {
+      throw new Error('node-esm-hooks: src/scene drifted, update the shim');
+    }
+    const seam = '\nexport function __setSceneCameraForTests(sceneInstance, cameraInstance) { scene = sceneInstance; camera = cameraInstance; }\n';
+    if (url.endsWith('.ts')) {
+      const out = ts.transpileModule(source + seam, {
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2022,
+          jsx: ts.JsxEmit.ReactJSX,
+        },
+      });
+      return { format: 'module', source: out.outputText, shortCircuit: true };
     }
     return {
       format: 'module',
-      source: `${source}\nexport function __setSceneCameraForTests(sceneInstance, cameraInstance) { scene = sceneInstance; camera = cameraInstance; }\n`,
+      source: source + seam,
       shortCircuit: true,
     };
   }

@@ -73,7 +73,7 @@ describe('switch faction', () => {
   });
 
   it('game.js binds switchFaction and the module swaps + jumps', () => {
-    const game = fs.readFileSync(path.join(root, 'src/game.js'), 'utf8');
+    const game = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
     assert.ok(game.includes('window.switchFaction'), 'global bound');
     assert.ok(game.includes("import('./switch-faction.js')"), 'lazy import used');
     const mod = fs.readFileSync(path.join(root, 'src/switch-faction.ts'), 'utf8');

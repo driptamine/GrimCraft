@@ -71,7 +71,7 @@ describe('grid variants', () => {
   });
 
   it('no-grid is the default variant', () => {
-    const src = fs.readFileSync(path.join(root, 'src/scene.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/scene.ts'), 'utf8');
     assert.match(src, /export let _gridVariant = 3;/);
   });
 

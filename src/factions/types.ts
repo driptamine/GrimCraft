@@ -19,6 +19,7 @@ export interface FactionUnitEntry {
   model?: string;
   hiddenNodes?: string[];
   canFly?: boolean;
+  stationaryFireOnly?: boolean;
   icon?: string;
   cost?: number;
   time?: number;

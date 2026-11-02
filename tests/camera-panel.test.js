@@ -93,13 +93,13 @@ describe('camera panel wiring', () => {
     assert.ok(html.includes('#fps-hitmarker::before'), 'fps hitmarker styled');
     assert.ok(html.includes('transparent 9px 19px'), 'hitmarker keeps a clear center gap');
     assert.ok(html.includes('pointer-events:none'), 'fps crosshair never blocks clicks');
-    const fps = fs.readFileSync(path.join(root, 'src/camera-fps.js'), 'utf8');
+    const fps = fs.readFileSync(path.join(root, 'src/camera-fps.ts'), 'utf8');
     assert.ok(fps.includes("getElementById('fps-crosshair')"), 'fps mode owns crosshair visibility');
     assert.ok(fps.includes("cross.style.display = riding ? 'block' : 'none'"), 'crosshair shows only while riding');
   });
 
   it('game.js binds the camera panel globals', () => {
-    const game = fs.readFileSync(path.join(root, 'src/game.js'), 'utf8');
+    const game = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
     assert.ok(game.includes('window.toggleCameraPanel'), 'toggle bound');
     assert.ok(game.includes('window.updateCameraParam'), 'param writer bound');
     assert.ok(game.includes('window.resetCameraPanel'), 'reset bound');

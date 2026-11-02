@@ -17,7 +17,7 @@ describe('hud refresh cadence', () => {
   });
 
   it('gates the queue-driven HUD bump on the cadence, not every frame', () => {
-    const src = fs.readFileSync(path.join(root, 'src/game.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
     const block = src.slice(src.indexOf('// Queue bars animate'), src.indexOf('systemWinCheck(world);'));
     assert.ok(block.includes('hudDue(_frameNo)'), 'queue bump gated on hudDue');
     assert.ok(block.includes('if (hasQueue || hasReinforce)'), 'still bumps while queues run');

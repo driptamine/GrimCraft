@@ -13,17 +13,6 @@ import {
 import { assetUrl } from '../../assets.js';
 import { R2Img } from '../bits.jsx';
 
-declare global {
-  interface Window {
-    switchRenderBackend?: () => void;
-    toggleControlBoth?: () => void;
-    toggleGridVariant?: () => void;
-    setTerrain?: (value: string) => void;
-    resetGame?: () => void;
-    toggleInspector?: () => void;
-  }
-}
-
 function TeamcolourSelect({ faction, short }: any): JSX.Element {
   const scheme = getFactionTeamcolourScheme(faction);
   const slot = TEAMCOLOUR_SLOT[faction] || 'trim';

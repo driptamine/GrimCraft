@@ -81,7 +81,7 @@ describe('map selection menu', () => {
   });
 
   it('skirmish grid defaults the selection to alvarus', () => {
-    const src = fs.readFileSync(path.join(root, 'src/multiplayer.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/multiplayer.ts'), 'utf8');
     const grid = src.slice(src.indexOf('function _buildMapGrid'), src.indexOf('function _setConnectOverlay'));
     assert.ok(grid.includes('defaultSkirmishMap(cards)'), 'grid consults the default');
     assert.ok(grid.includes('_selectedMap = { path: def.path, url: def.url, name: def.name };'), 'default becomes the selection');

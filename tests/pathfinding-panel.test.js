@@ -12,7 +12,7 @@ import {
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const game = fs.readFileSync(path.join(root, 'src/game.js'), 'utf8');
+const game = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
 const panel = fs.readFileSync(path.join(root, 'src/pathfinding-panel.ts'), 'utf8');
 const passGrid = JSON.parse(
   fs.readFileSync(path.join(root, 'maps/6p_alvarus/6p_alvarus_path.json'), 'utf8'),

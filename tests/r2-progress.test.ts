@@ -87,7 +87,7 @@ describe('r2 download progress', () => {
     assert.ok(gltf.includes('loadAsync(url, onByteProgress)'), 'loader passes progress events');
     const helpers = read('src/three-helpers.ts');
     assert.ok(helpers.includes('reportR2Progress(url,'), 'textures report completion');
-    const mp = read('src/multiplayer.js');
+    const mp = read('src/multiplayer.ts');
     assert.ok(mp.includes('resetR2Progress()'), 'START BATTLE resets the bar');
     assert.ok(mp.includes('subscribeR2Progress(_renderR2Bar)'), 'loading UI subscribes to bytes');
     assert.ok(mp.includes("getElementById('r2-progress')"), 'standalone R2 overlay exists');

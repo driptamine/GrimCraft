@@ -49,7 +49,7 @@ describe('capture orders', () => {
   });
 
   it('declares the capture order on the entities without an idle clock', () => {
-    const src = readSrc('src/entities.js');
+    const src = readSrc('src/entities.ts');
     assert.ok(src.includes('captureOrderSpId: null'), 'squad factory carries the order');
     assert.ok(!src.includes('_captureIdle'), 'no idle clock: decay starts immediately');
   });
