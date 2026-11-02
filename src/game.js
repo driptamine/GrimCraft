@@ -29,7 +29,7 @@ import {
 } from './hud.js';
 import { tickFps, getFps, hudDue } from './hud/store.js';
 import { createDynamicResolution, pixelRatioForTier } from './three-helpers.js';
-import { toggleNodesPanel } from './nodes-panel.js';
+import { toggleNodesPanel, initNodesPanelAutoRefresh } from './nodes-panel.js';
 import { preloadLasgunViewmodel, tickFirstPerson, toggleCameraFps } from './camera-fps.js';
 import {
   toggleEntitiesPanel, entitiesFilter, entitiesRefresh, initEntitiesPanelAutoRefresh,
@@ -38,6 +38,7 @@ import {
   initInput, setupPointerEvents, tickCamera, cancelBuild, _rangeCirclesVisible, _showRangeCircles,
   clearAirfieldRallyMarker, clearRallyMarker, keys,
 } from './input.js';
+import { syncTouchControls } from './input/touch-controls.js';
 import { rebindDecalPointerActions } from './sgb-decals.js';
 import { nextBackend } from './render-backend.js';
 import {
@@ -297,6 +298,7 @@ export async function bootGame(loadHooks = {}) {
 
     tickCamera(deltaTime);
     tickFirstPerson(deltaTime, keys);
+    syncTouchControls();
 
     if (scene._gridMicroMesh && _gridVisible) {
       const radius = camera.radius;
@@ -360,6 +362,7 @@ window.addEventListener('DOMContentLoaded', () => {
   window.entitiesFilter = entitiesFilter;
   window.entitiesRefresh = entitiesRefresh;
   initEntitiesPanelAutoRefresh();
+  initNodesPanelAutoRefresh();
 
   window.toggleFactionTeamcolour = (faction) => import('./factions.js').then((module) => module.toggleFactionTeamcolourScheme(faction));
   // Lazy chunks 404 when the page predates the last `npm run build` (vite

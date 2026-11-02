@@ -28,6 +28,7 @@ import { isDecalHoverEnabled } from '../sgb-decals.js';
 import { _apcEjectPassengers } from '../systems.js';
 import { disposeObj } from '../three-helpers.js';
 import { cancelBuild, setGhostPending } from './build-ghost.js';
+import { initTouchControls } from './touch-controls.js';
 import {
   POINT_HOVER_RADIUS, POINT_HOVER_SEGMENTS, _hideRangeCircles, _lastGroundPt, _lastHoverPickT, _mouseEntered, _mouseX, _mouseY, _rangeCirclesVisible, altDown, altOrbitLast, isAltOrbiting, isOrbiting, isSelecting, keys, rightDown, rightDragStartPos, rightLastPos, selEnd, selStart,
   setAltDown, setAltOrbitLast, setIsAltOrbiting, setIsOrbiting, setIsSelecting, setLastHoverPickT, setMouseEntered, setMouseX, setMouseY, setRangeCirclesVisible, setRightDown, setRightDragStartPos, setRightLastPos, setSelEnd, setSelStart,
@@ -122,6 +123,12 @@ export function setupPointerEvents() {
   initGunPosePanel();
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   canvas.addEventListener('pointerdown', (event) => {
+    // Touch in shooter mode is owned by the touch controls (left stick for
+    // movement, right-side drag for look, FIRE button to shoot): letting the
+    // mouse path run would fire a shot on every look-drag start.
+    if (event.pointerType === 'touch' && isShooterMode()) {
+      return;
+    }
     if (event.button === 0) {
       // First person: left-click fires instead of selecting. The crosshair
       // is the aim in every case (pointer lock freezes the cursor position,
@@ -607,4 +614,5 @@ export function initInput() {
     setMouseEntered(true);
   });
   setupPointerEvents();
+  initTouchControls();
 }

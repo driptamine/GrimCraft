@@ -584,15 +584,21 @@ export const FPS_PITCH_SENS = 0.0022;
 export const FPS_BETA_MIN = 0.05;
 export const FPS_BETA_MAX = 2.6;
 
-export function fpsLook(movementX, movementY) {
+// Lock-free look delta shared by mouse (fpsLook, pointer lock only) and
+// touch drag (no pointer lock on mobile). Same signs, same clamps.
+export function applyLookDelta(movementX, movementY) {
   if (!isShooterMode() || !camera) return false;
-  if (typeof document !== 'undefined' && !document.pointerLockElement) return false;
   // Shooter directions: mouse right turns the view right, mouse up looks
   // up. (Deliberately opposite to ALT+drag signs: dragging moves the
   // camera, while mouse-look moves the view itself.)
   camera.alpha += (movementX || 0) * FPS_LOOK_SENS;
   camera.beta = Math.max(FPS_BETA_MIN, Math.min(FPS_BETA_MAX, camera.beta - (movementY || 0) * FPS_PITCH_SENS));
   return true;
+}
+
+export function fpsLook(movementX, movementY) {
+  if (typeof document !== 'undefined' && !document.pointerLockElement) return false;
+  return applyLookDelta(movementX, movementY);
 }
 
 // WASD/arrows (plus IJKL as a mirror) drive the ridden squad through short

@@ -549,8 +549,18 @@ export function filterNodes(value) {
   nodesRefresh();
 }
 
-setInterval(() => {
-  if (_nodesPanelOpen) {
-    nodesRefresh();
+let _nodesPanelRefreshWired = false;
+
+// Idempotent: call once when the game boots with a real DOM. Importing this
+// module must stay side-effect free so headless tests (node --test) exit.
+export function initNodesPanelAutoRefresh() {
+  if (_nodesPanelRefreshWired) {
+    return;
   }
-}, 2000);
+  _nodesPanelRefreshWired = true;
+  setInterval(() => {
+    if (_nodesPanelOpen) {
+      nodesRefresh();
+    }
+  }, 2000);
+}

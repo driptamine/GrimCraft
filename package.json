@@ -10,7 +10,9 @@
     "models:r2:sync": "bash scripts/upload-models-r2.sh",
     "assets:r2:sync": "bash scripts/upload-assets-r2.sh",
     "preview": "vite preview",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "test:ts": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@linaria/core": "^8.1.1",
@@ -20,9 +22,15 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^5.2.0",
     "@wyw-in-js/babel-preset": "^2.3.1",
     "@wyw-in-js/vite": "^2.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
     "vite": "^6.0.0"
   }
 }

@@ -1,21 +1,30 @@
 // Stopwatch for game boot: measures wall time from START BATTLE press until
 // the loading UI hides, so launch duration is visible instead of guessed.
 // Pure logic (injectable clock), the loading UI ticks it into the panel.
-export function createBootTimer(nowFn = () => performance.now()) {
-  let startedAt = null;
-  let stoppedAt = null;
+export type NowFn = () => number;
+
+export interface BootTimer {
+  start(): void;
+  elapsedMs(): number;
+  stop(): number;
+  running(): boolean;
+}
+
+export function createBootTimer(nowFn: NowFn = () => performance.now()): BootTimer {
+  let startedAt: number | null = null;
+  let stoppedAt: number | null = null;
   return {
-    start() {
+    start(): void {
       startedAt = nowFn();
       stoppedAt = null;
     },
-    elapsedMs() {
+    elapsedMs(): number {
       if (startedAt === null) {
         return 0;
       }
       return Math.max(0, (stoppedAt ?? nowFn()) - startedAt);
     },
-    stop() {
+    stop(): number {
       if (startedAt === null) {
         return 0;
       }
@@ -24,13 +33,13 @@ export function createBootTimer(nowFn = () => performance.now()) {
       }
       return Math.max(0, stoppedAt - startedAt);
     },
-    running() {
+    running(): boolean {
       return startedAt !== null && stoppedAt === null;
     },
   };
 }
 
-export function formatBootTime(ms) {
+export function formatBootTime(ms: number): string {
   const totalSeconds = Math.max(0, ms) / 1000;
   if (totalSeconds < 60) {
     return `${totalSeconds.toFixed(1)}s`;
