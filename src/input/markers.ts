@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { addBeforeRender, getDeltaTime, removeBeforeRender, world } from '../scene.js';
+import { addBeforeRender, getDeltaTime, removeBeforeRender, world } from '../core/scene.js';
 import { childMeshes, disposeObj, mkCylinder, mkTorus, spPingFrame } from '../three-helpers.js';
 import { _groundAt } from '../systems/terrain.js';
 import { raycastGround } from './selection.js';

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { particles } from '../scene.js';
+import { particles } from '../core/scene.js';
 import { mkSharedMesh } from '../three-helpers.js';
 
 // Blood spurts for guardsmen.glb hits. Particles ride the shared combat

@@ -5,9 +5,9 @@ import {
   createBulletEntity,
   createSquadEntity,
   createVehicleEntity,
-} from '../entities.js';
+} from '../entities/entities.js';
 import { FACTIONS, playerFaction, resolveFactionKey } from '../factions.js';
-import { updateHUD } from '../hud.js';
+import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import {
   AIRFIELD_BOUNDS,
@@ -18,7 +18,7 @@ import {
   setEnergy,
   setResearchedTech,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { childMeshes } from '../three-helpers.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
 

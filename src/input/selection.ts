@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { updateHUD } from '../hud.js';
+import { updateHUD } from '../core/hud.js';
 import {
   _stopTargetPulse,
   camera,
@@ -18,7 +18,7 @@ import {
   setSelListeningPost,
   setSelSquads,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import {
   disposeObj,
   isGroundMesh,

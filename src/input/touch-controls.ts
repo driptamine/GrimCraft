@@ -6,7 +6,7 @@
 import { keys } from './camera.js';
 import { applyLookDelta, fpsAimPoint, isShooterMode } from '../camera-fps.js';
 import { issueFpsShot } from './orders.js';
-import { canvas } from '../scene.js';
+import { canvas } from '../core/scene.js';
 
 export const TOUCH_STICK_RADIUS = 60;
 export const TOUCH_LOOK_GAIN = 1.6;

@@ -6,14 +6,14 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
 const { PLAYER } = sceneMod;
-const { World } = await import('../src/ecs.js');
-const { systemBullet, systemReaperBullet, systemSquad, systemSoldier } = await import('../src/systems.js');
-const { createSquadEntity } = await import('../src/entities.js');
+const { World } = await import('../src/core/ecs.js');
+const { systemBullet, systemReaperBullet, systemSquad, systemSoldier } = await import('../src/core/systems.js');
+const { createSquadEntity } = await import('../src/entities/entities.js');
 const { FACTIONS, factionContainers } = await import('../src/factions.js');
 const {
   makeReaperBoltMesh,

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureSlotTarget, CAPTURE_GUARD_DISTANCE, PLANTER_SPEED_MULT, PLANTER_STAND_DISTANCE, PLANTER_PLANT_DISTANCE, PLANTER_PLANT_YAW_OFF, POINT_SOCKET_OFFSET, RELIC_SOCKET_OFFSET, planterSocketXZ, planterPlantYaw, planterStandTarget, shouldHoldForCapture, isCaptureEngaged } from '../src/soldier-aim.js';
+import { captureSlotTarget, CAPTURE_GUARD_DISTANCE, PLANTER_SPEED_MULT, PLANTER_STAND_DISTANCE, PLANTER_PLANT_DISTANCE, PLANTER_PLANT_YAW_OFF, POINT_SOCKET_OFFSET, RELIC_SOCKET_OFFSET, planterSocketXZ, planterPlantYaw, planterStandTarget, shouldHoldForCapture, isCaptureEngaged } from '../src/entities/soldier-aim.js';
 
 describe('capture slots', () => {
   it('guards stand clear of the point model', () => {

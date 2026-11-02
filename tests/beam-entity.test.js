@@ -10,7 +10,7 @@ register('./node-esm-hooks.mjs', import.meta.url);
 // js/scene.js reads the render canvas once at module top level; stub that
 // single call so the real entities.js can load in node (browser unaffected).
 globalThis.document = { getElementById: () => null };
-const { createBeamEntity } = await import('../src/entities.js');
+const { createBeamEntity } = await import('../src/entities/entities.js');
 
 function makeStubWorld() {
   const comps = new Map();

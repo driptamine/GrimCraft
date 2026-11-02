@@ -1,6 +1,6 @@
 import { enemyFaction, factionContainers, playerFaction, resolveFactionKey, type FactionBucket } from '../factions.js';
 import { useProceduralModels } from '../model-source.js';
-import { PLAYER } from '../scene.js';
+import { PLAYER } from '../core/scene.js';
 
 
 // Empty bucket returned in procedural mode so every factory takes its

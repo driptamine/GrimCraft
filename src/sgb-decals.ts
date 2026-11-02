@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { scene, canvas, pickAt } from './scene.js';
+import { scene, canvas, pickAt } from './core/scene.js';
 import { mkPlane, mkLines, mkGroup, disposeObj, loadTexture } from './three-helpers.js';
 import type { MaybeMesh } from './three-helpers.js';
 import { decalBaseSize, decalFlatRotation, drapeDecalLocalZ, decalStoreDirs, decalLayer } from './decal-size.js';

@@ -6,8 +6,8 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const systems = await import('../src/systems.js');
-const { FORMATION } = await import('../src/scene.js');
+const systems = await import('../src/core/systems.js');
+const { FORMATION } = await import('../src/core/scene.js');
 
 const ONESHOT_TICKS = 30;
 const DT = 1 / 60;

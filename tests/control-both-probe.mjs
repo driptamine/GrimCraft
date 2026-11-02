@@ -8,9 +8,9 @@ import assert from 'node:assert/strict';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = { addEventListener() {}, _currentMapKey: 'arena' };
 globalThis.document = { getElementById: () => null };
-const scene = await import('../src/scene.js');
-const { isHostileToSelection } = await import('../src/input.js');
-const { systemAI } = await import('../src/systems.js');
+const scene = await import('../src/core/scene.js');
+const { isHostileToSelection } = await import('../src/core/input.js');
+const { systemAI } = await import('../src/core/systems.js');
 
 function stubWorld(comps) {
   return {

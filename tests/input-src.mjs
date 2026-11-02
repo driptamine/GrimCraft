@@ -8,7 +8,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 export function readInputSource() {
   const parts = [];
-  for (const barrel of ['src/input.ts', 'src/input.js']) {
+  for (const barrel of ['src/core/input.ts', 'src/core/input.js']) {
     const full = path.join(ROOT, barrel);
     if (fs.existsSync(full)) {
       parts.push(fs.readFileSync(full, 'utf8'));

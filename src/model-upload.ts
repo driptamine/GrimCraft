@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { scene, world, TEAM_COLOR, PLAYER } from './scene.js';
+import { scene, world, TEAM_COLOR, PLAYER } from './core/scene.js';
 import { makeSoldierMesh } from './meshes.js';
-import { _applyGrenadierVisuals, _applyPlasmaVisuals, _applySuperiorVisuals } from './entities.js';
+import { _applyGrenadierVisuals, _applyPlasmaVisuals, _applySuperiorVisuals } from './entities/entities.js';
 import { mkTorus, mkGroup, disposeObj, childMeshes, descendants } from './three-helpers.js';
 import { loadGltf, instantiateGltf, type AnimGroup, type GltfContainer } from './gltf-models.js';
 

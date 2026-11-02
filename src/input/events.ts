@@ -8,7 +8,7 @@ import {
   withinHoverRadius,
 } from '../cursors.js';
 import { preloadTaskbarIcons } from '../taskbar-icons.js';
-import { updateHUD } from '../hud.js';
+import { updateHUD } from '../core/hud.js';
 import { buildMenuOpen, setBuildMenuOpen } from '../hud/store.js';
 import {
   _hoverEnemySquad,
@@ -23,9 +23,9 @@ import {
   setSelBuilder,
   set_hoverEnemySquad,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { isDecalHoverEnabled } from '../sgb-decals.js';
-import { _apcEjectPassengers } from '../systems.js';
+import { _apcEjectPassengers } from '../core/systems.js';
 import { disposeObj } from '../three-helpers.js';
 import { cancelBuild, setGhostPending } from './build-ghost.js';
 import { initTouchControls } from './touch-controls.js';

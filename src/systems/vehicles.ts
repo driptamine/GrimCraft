@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { createBeamEntity, createBulletEntity, createLaserBulletEntity, createPlasmaBulletEntity } from '../entities.js';
-import { updateHUD } from '../hud.js';
+import { createBeamEntity, createBulletEntity, createLaserBulletEntity, createPlasmaBulletEntity } from '../entities/entities.js';
+import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
-import { currentBounds, selSquads, setSelSquads, world } from '../scene.js';
+import { currentBounds, selSquads, setSelSquads, world } from '../core/scene.js';
 import { HILL_RELEASE_DIST } from '../../pathfinding/avoid.js';
 import { clampStepToRoute, exitsStraight, updateMoverRoute } from '../../pathfinding/astar-integrated.js';
 import { disposeMeshComponent, spawnParticles } from './combat.js';

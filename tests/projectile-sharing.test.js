@@ -6,7 +6,7 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
@@ -14,7 +14,7 @@ const { particles } = sceneMod;
 const {
   makeBulletMesh, makeLaserBulletMesh, makePlasmaBulletMesh, makeGrenadeMesh,
 } = await import('../src/meshes.js');
-const { spawnParticles } = await import('../src/systems.js');
+const { spawnParticles } = await import('../src/core/systems.js');
 const { disposeObj } = await import('../src/three-helpers.js');
 
 // High-rate throwaways (shots, hit particles) share one BufferGeometry per

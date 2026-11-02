@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { useProceduralModels } from '../model-source.js';
 import { _instantiateFromContainer } from '../model-upload.js';
-import { PLAYER, scene } from '../scene.js';
+import { PLAYER, scene } from '../core/scene.js';
 import {
   findNodesByName,
   mkBox,

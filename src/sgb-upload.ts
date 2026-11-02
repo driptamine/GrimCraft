@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { scene, camera, addCameraChangeObserver, PLAYER } from './scene.js';
+import { scene, camera, addCameraChangeObserver, PLAYER } from './core/scene.js';
 import { disposeObj, childMeshes } from './three-helpers.js';
 import { applySgbRootTransform } from './sgb-mirror.js';
 import { factionBasePosition } from './map-layout.js';

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readMeshesSource } from './meshes-src.mjs';
-import { animSwitchBlocked, computeSoldierYaw, isFleeingMove, resolveIdleAnim, IDLE_TRACKING_HOLD_SEC } from '../src/soldier-aim.js';
+import { animSwitchBlocked, computeSoldierYaw, isFleeingMove, resolveIdleAnim, IDLE_TRACKING_HOLD_SEC } from '../src/entities/soldier-aim.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

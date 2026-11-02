@@ -1,8 +1,8 @@
 import type { JSX, MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { world, PLAYER, camera, currentBounds } from '../../scene.js';
-import { issueGroundOrder, isFlyArmed } from '../../input.js';
+import { world, PLAYER, camera, currentBounds } from '../../core/scene.js';
+import { issueGroundOrder, isFlyArmed } from '../../core/input.js';
 import { useHUDVersion } from '../useHUD.js';
 import { MinimapPanel, MinimapCanvas, MinimapLabel } from '../primitives.jsx';
 

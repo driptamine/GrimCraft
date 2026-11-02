@@ -12,9 +12,9 @@ import {
   createSoldierEntity,
   getSoldierMuzzlePos,
   upgradeToGrenadier,
-} from '../entities.js';
+} from '../entities/entities.js';
 import { FACTIONS } from '../factions.js';
-import { updateHUD } from '../hud.js';
+import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../plasma-bolt.js';
 import {
@@ -32,7 +32,7 @@ import {
   selSquads,
   setSelSquads,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { HILL_SLOT_RELEASE_DIST } from '../../pathfinding/avoid.js';
 import {
   CAPTURE_PROGRESS_RATE,
@@ -53,7 +53,7 @@ import {
   planterStandTarget,
   shouldHoldForCapture,
   shouldTickCapture,
-} from '../soldier-aim.js';
+} from '../entities/soldier-aim.js';
 import { childMeshes, disposeObj, findNodesByName } from '../three-helpers.js';
 import { getRideInfo, yieldSlotBehind } from '../camera-fps.js';
 import { findClosestEnemySoldier } from './combat.js';

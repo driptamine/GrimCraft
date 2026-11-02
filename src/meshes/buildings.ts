@@ -7,7 +7,7 @@ import {
   STRUCTURE_BOUNDS,
   TEAM_COLOR,
   scene,
-} from '../scene.js';
+} from '../core/scene.js';
 import {
   childMeshes,
   descendants,

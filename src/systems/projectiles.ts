@@ -8,7 +8,7 @@ import {
   particles,
   removeBeforeRender,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { childMeshes, disposeObj, mkBox, mkDisc } from '../three-helpers.js';
 import { _bulletDestroy, _soldierTakeDamage, spawnParticles } from './combat.js';
 import { _groundAt, _snapTerrainBegin } from './terrain.js';

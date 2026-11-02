@@ -1,20 +1,20 @@
 import * as THREE from 'three';
-import { World } from './ecs.js';
+import { World } from './core/ecs.js';
 import {
   scene, world, setWorld, PLAYER, requisition, setRequisition, energy, setEnergy,
   kills, setKills, gameOver, setGameOver, selSquads, selBuilder,
-} from './scene.js';
-import { updateHUD } from './hud.js';
-import { applySquadWeaponVisuals } from './entities.js';
+} from './core/scene.js';
+import { updateHUD } from './core/hud.js';
+import { applySquadWeaponVisuals } from './entities/entities.js';
 import {
   makeHpBar, makeSoldierMesh, makeBarracksMesh, makeTowerMesh,
   makeThermoMesh, makeAirfieldMesh, makeApcMesh, makeGunTurretMesh,
   makeStrategicPointMesh, makeLaserBulletMesh, makePlasmaBulletMesh,
   makeBulletMesh, makeGrenadeMesh, makeMissileMesh,
 } from './meshes.js';
-import { disposeMeshComponent, _initSystems, spawnParticles } from './systems.js';
-import { bootGame, resetGame } from './game.js';
-import { issueRightClick, pickMesh, raycastGround } from './input.js';
+import { disposeMeshComponent, _initSystems, spawnParticles } from './core/systems.js';
+import { bootGame, resetGame } from './core/game.js';
+import { issueRightClick, pickMesh, raycastGround } from './core/input.js';
 import { disposeObj } from './three-helpers.js';
 import { listBuiltinMaps, selectMap, previewState, entryLabel, skirmishMapCards, defaultSkirmishMap } from './maps-menu.js';
 import { LOBBIES, capacityLabel, isFull, hasPlayers, createLobby } from './lobbies.js';
@@ -33,7 +33,7 @@ declare global {
 import { SP_MODEL_PATHS } from './meshes/points.js';
 import { PLASMA_BOLT_PATH, PLASMA_FX_DIR } from './plasma-bolt.js';
 import { LASGUN_MODEL_PATH } from './camera-fps.js';
-import { createBootTimer, formatBootTime } from './boot-timer.js';
+import { createBootTimer, formatBootTime } from './core/boot-timer.js';
 
 export let SERVER_URL = 'https://127.0.0.1:4433/grimcraft';
 export let SERVER_CERT_HASH = '4c0409537cdf2905891d85c70369531614f138c923008c092ff72e31bc46fc25';

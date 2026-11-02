@@ -6,14 +6,14 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
 const { addPlasmaPistolGlow, updatePlasmaPistolGlow, GUN_MESH, WEAPON_BONE } = await import('../src/plasma-pistol-glow.js');
 const { makeSoldierMesh } = await import('../src/meshes.js');
 const { factionContainers } = await import('../src/factions.js');
-const { _toggleMeshNode } = await import('../src/entities.js');
+const { _toggleMeshNode } = await import('../src/entities/entities.js');
 
 function guardsmanHierarchy() {
   const root = new THREE.Group();

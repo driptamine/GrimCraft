@@ -5,7 +5,7 @@ import { register } from 'node:module';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
 const { default: tau } = await import('../src/factions/tau.js');
-const { COSTS } = await import('../src/scene.js');
+const { COSTS } = await import('../src/core/scene.js');
 
 const EXPECTED_GRID = [
   'tau_hq', 'tau_barracks', 'tau_listening_post', 'tau_plasma_generator',

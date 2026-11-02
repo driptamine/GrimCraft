@@ -10,7 +10,7 @@ import {
   decayedCaptureProgress,
   CAPTURE_PROGRESS_RATE,
   CAPTURE_DECAY_DELAY_SEC,
-} from '../src/soldier-aim.js';
+} from '../src/entities/soldier-aim.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readSrc = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -49,7 +49,7 @@ describe('capture orders', () => {
   });
 
   it('declares the capture order on the entities without an idle clock', () => {
-    const src = readSrc('src/entities.ts');
+    const src = readSrc('src/entities/entities.ts');
     assert.ok(src.includes('captureOrderSpId: null'), 'squad factory carries the order');
     assert.ok(!src.includes('_captureIdle'), 'no idle clock: decay starts immediately');
   });

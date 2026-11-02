@@ -11,7 +11,7 @@
  * Keeping this module's exported names stable means game.js / input.js /
  * entities.js / systems.js / multiplayer.js don't need to change.
  */
-import { bump } from './hud/store.js';
+import { bump } from '../hud/store.js';
 
 /**
  * Legacy button helper — no-op. React renders action buttons now.

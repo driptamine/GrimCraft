@@ -1,9 +1,9 @@
 import type { JSX } from 'react';
-import { world, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad, SQUAD_MAX, JET_ATTACK_RANGE, PLAYER, LP_REQUISITION_RATES } from '../../scene.js';
+import { world, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad, SQUAD_MAX, JET_ATTACK_RANGE, PLAYER, LP_REQUISITION_RATES } from '../../core/scene.js';
 import { getStructureConfig } from '../../factions.js';
 import { getViewKind, getAliveGroups, computeSquadData, entityFaction, workerDisplayName } from '../data.js';
 import { StatRow } from '../bits.jsx';
-import { MAX_UPGRADES_PER_SQUAD, meleeDamageEstimate, numberOfUpgrades } from '../../soldier-aim.js';
+import { MAX_UPGRADES_PER_SQUAD, meleeDamageEstimate, numberOfUpgrades } from '../../entities/soldier-aim.js';
 import { taskbarIconUrl } from '../../taskbar-icons.js';
 import {
   InfoPanel as InfoPanelCss, InfoTitle, InfoStats, QueueWrap, QueueLabel, QueueItemsRow, QueueItem,

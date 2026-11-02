@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PLAYER } from '../scene.js';
+import { PLAYER } from '../core/scene.js';
 import { childMeshes } from '../three-helpers.js';
 import { makeBarracksMesh, makeConfigStructureMesh, makeGunTurretMesh, makeHQMesh, makeThermoMesh, makeTowerBaseMesh, makeTowerMesh } from './buildings.js';
 import { makeAirfieldMesh, makeApcMesh } from './vehicles.js';

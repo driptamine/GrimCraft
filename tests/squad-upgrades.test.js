@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MAX_UPGRADES_PER_SQUAD, numberOfUpgrades } from '../src/soldier-aim.js';
+import { MAX_UPGRADES_PER_SQUAD, numberOfUpgrades } from '../src/entities/soldier-aim.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readSrc = (p) => fs.readFileSync(path.join(root, p), 'utf8');

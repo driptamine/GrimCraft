@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
-import { world, PLAYER, attackMode, SQUAD_SCATTER, setAttackMode, onScatterInput } from '../../scene.js';
+import { world, PLAYER, attackMode, SQUAD_SCATTER, setAttackMode, onScatterInput } from '../../core/scene.js';
 import { getViewKind, getAliveGroups } from '../data.js';
-import { updateHUD } from '../../hud.js';
+import { updateHUD } from '../../core/hud.js';
 import {
   RightPanel, RightBtn, AttackModeToggle, AtkModeLabel, AtkModeBtn, ScatterRow, ScatterVal,
 } from '../primitives.jsx';

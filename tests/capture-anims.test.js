@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readSystemsSource } from './systems-src.mjs';
-import { CAPTURE_SEQUENCE, nextCaptureStage, guardCaptureAnim, captureClipDone, isPointCapturedBy, GUARD_CAPTURE_SEQUENCE, nextGuardCaptureStage, isPlantingDone, planterBannerShown } from '../src/soldier-aim.js';
+import { CAPTURE_SEQUENCE, nextCaptureStage, guardCaptureAnim, captureClipDone, isPointCapturedBy, GUARD_CAPTURE_SEQUENCE, nextGuardCaptureStage, isPlantingDone, planterBannerShown } from '../src/entities/soldier-aim.js';
 
 function glbClipNames(url) {
   const buf = readFileSync(url);

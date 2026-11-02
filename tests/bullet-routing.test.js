@@ -6,14 +6,14 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
 const { PLAYER } = sceneMod;
-const { World } = await import('../src/ecs.js');
-const { systemBullet, systemPlasmaBullet } = await import('../src/systems.js');
-const { createPlasmaBulletEntity } = await import('../src/entities.js');
+const { World } = await import('../src/core/ecs.js');
+const { systemBullet, systemPlasmaBullet } = await import('../src/core/systems.js');
+const { createPlasmaBulletEntity } = await import('../src/entities/entities.js');
 
 // systemBullet must only fly plain tracer rounds. Plasma bolts carry the same
 // 'bullet' component and are owned by systemPlasmaBullet; if systemBullet also

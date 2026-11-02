@@ -7,12 +7,12 @@ register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null, querySelector: () => null };
 
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
-const { World } = await import('../src/ecs.js');
-const { systemSquad, systemSoldier } = await import('../src/systems.js');
+const { World } = await import('../src/core/ecs.js');
+const { systemSquad, systemSoldier } = await import('../src/core/systems.js');
 const { FORMATION, PLAYER, SQUAD_MAX } = sceneMod;
 
 const dt = 1 / 60;

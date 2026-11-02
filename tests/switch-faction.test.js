@@ -13,10 +13,10 @@ globalThis.document = { getElementById: () => null, querySelector: () => null };
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const factions = await import('../src/factions.js');
-const scene = await import('../src/scene.js');
+const scene = await import('../src/core/scene.js');
 const { setWorld } = scene;
 const { factionsWithHQ, hqPositionForFaction, hqTeamForFaction } = await import('../src/hud/data.ts');
-const { World } = await import('../src/ecs.js');
+const { World } = await import('../src/core/ecs.js');
 
 describe('switch faction', () => {
   it('points the player side at a valid faction, ignores unknown keys', () => {
@@ -73,9 +73,9 @@ describe('switch faction', () => {
   });
 
   it('game.js binds switchFaction and the module swaps + jumps', () => {
-    const game = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
+    const game = fs.readFileSync(path.join(root, 'src/core/game.ts'), 'utf8');
     assert.ok(game.includes('window.switchFaction'), 'global bound');
-    assert.ok(game.includes("import('./switch-faction.js')"), 'lazy import used');
+    assert.ok(game.includes("import('../switch-faction.js')"), 'lazy import used');
     const mod = fs.readFileSync(path.join(root, 'src/switch-faction.ts'), 'utf8');
     assert.ok(mod.includes('factionsWithHQ()'), 'cycles HQ factions');
     assert.ok(mod.includes('setPlayerFaction(next)'), 'advances the player side');

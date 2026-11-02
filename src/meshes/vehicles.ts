@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { getMat } from '../mat-cache.js';
 import { _instantiateFromContainer } from '../model-upload.js';
-import { AIRFIELD_BOUNDS, TEAM_COLOR, scene } from '../scene.js';
+import { AIRFIELD_BOUNDS, TEAM_COLOR, scene } from '../core/scene.js';
 import {
   descendants,
   mkBox,

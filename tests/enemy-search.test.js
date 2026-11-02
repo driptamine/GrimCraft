@@ -6,7 +6,7 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const { findClosestEnemySoldier } = await import('../src/systems.js');
+const { findClosestEnemySoldier } = await import('../src/core/systems.js');
 
 function makeWorld() {
   const comps = new Map();

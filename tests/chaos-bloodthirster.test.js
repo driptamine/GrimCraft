@@ -73,7 +73,7 @@ describe('chaos bloodthirster', () => {
       systems.includes("type === 'infantry_command' || type === 'greater_sacrificial_circle') {"),
       'build completion creates a building',
     );
-    const entities = fs.readFileSync(path.join(ROOT, 'src/entities.ts'), 'utf8');
+    const entities = fs.readFileSync(path.join(ROOT, 'src/entities/entities.ts'), 'utf8');
     assert.ok(
       entities.includes("type === 'greater_sacrificial_circle' ? (() => makeConfigStructureMesh(type, position, team, meta))"),
       'completion builds the config structure, not the HQ fallback',
@@ -93,13 +93,13 @@ describe('chaos bloodthirster', () => {
 describe('bloodthirster training pipeline', () => {
   it('ticks the circle queue into exactly one daemon squad', async () => {
     const THREE = await import('three');
-    const sceneMod = await import('../src/scene.js');
+    const sceneMod = await import('../src/core/scene.js');
     const headless = new THREE.Scene();
     headless._registerShadows = () => {};
     sceneMod.__setSceneCameraForTests(headless, { target: new THREE.Vector3() });
     const { setModelSource, MODEL_SOURCE_PROCEDURAL, MODEL_SOURCE_GLB } = await import('../src/model-source.js');
-    const { World } = await import('../src/ecs.js');
-    const { systemBuilding } = await import('../src/systems.js');
+    const { World } = await import('../src/core/ecs.js');
+    const { systemBuilding } = await import('../src/core/systems.js');
     const { makeHpBar } = await import('../src/meshes.js');
     setModelSource(MODEL_SOURCE_PROCEDURAL);
     try {
@@ -149,16 +149,16 @@ describe('bloodthirster training pipeline', () => {
 
   it('completing construction builds the circle, not the HQ fallback', async () => {
     const THREE = await import('three');
-    const sceneMod = await import('../src/scene.js');
+    const sceneMod = await import('../src/core/scene.js');
     const headless = new THREE.Scene();
     headless._registerShadows = () => {};
     sceneMod.__setSceneCameraForTests(headless, { target: new THREE.Vector3() });
-    const { World } = await import('../src/ecs.js');
-    const { systemBuilding } = await import('../src/systems.js');
+    const { World } = await import('../src/core/ecs.js');
+    const { systemBuilding } = await import('../src/core/systems.js');
     const { makeHpBar } = await import('../src/meshes.js');
     const world = new World();
     // Exercise the real factory wiring from createBuildingEntity.
-    const { createBuildingEntity } = await import('../src/entities.js');
+    const { createBuildingEntity } = await import('../src/entities/entities.js');
     const realId = createBuildingEntity(world, 'greater_sacrificial_circle', new THREE.Vector3(100, 0, 100), 'red', 'chaos');
     const realMesh = world.get(realId, 'mesh');
     assert.ok(realMesh._meshFactory, 'completion factory is set');
@@ -181,13 +181,13 @@ describe('bloodthirster flight', () => {
 
   it('flies a full takeoff-cruise-land sortie and holds fire while airborne', async () => {
     const THREE = await import('three');
-    const sceneMod = await import('../src/scene.js');
+    const sceneMod = await import('../src/core/scene.js');
     const headless = new THREE.Scene();
     headless._registerShadows = () => {};
     sceneMod.__setSceneCameraForTests(headless, { target: new THREE.Vector3() });
-    const { World } = await import('../src/ecs.js');
-    const { systemSquad, systemSoldier } = await import('../src/systems.js');
-    const { createSquadEntity } = await import('../src/entities.js');
+    const { World } = await import('../src/core/ecs.js');
+    const { systemSquad, systemSoldier } = await import('../src/core/systems.js');
+    const { createSquadEntity } = await import('../src/entities/entities.js');
     const { factionContainers } = await import('../src/factions.js');
     factionContainers.chaos = factionContainers.chaos || {};
     factionContainers.chaos.soldier = {

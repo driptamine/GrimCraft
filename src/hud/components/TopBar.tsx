@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { world, PLAYER, controlBoth, canCommand, requisition, energy, kills, startTime, getPowerRate, getRequisitionRate, getRenderBackend, isBackendSwitching, supportsWebGPU, getBackendError, _gridVariant } from '../../scene.js';
+import { world, PLAYER, controlBoth, canCommand, requisition, energy, kills, startTime, getPowerRate, getRequisitionRate, getRenderBackend, isBackendSwitching, supportsWebGPU, getBackendError, _gridVariant } from '../../core/scene.js';
 import { getFactionTeamcolor, getFactionTeamcolourScheme, getFactionTeamcolourSchemes, setFactionTeamcolourScheme, TEAMCOLOUR_SLOT } from '../../factions.js';
 import { teamcolorHex } from '../../teamcolour.js';
 import type { TeamcolourRGB } from '../../teamcolour.js';

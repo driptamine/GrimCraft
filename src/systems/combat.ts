@@ -7,7 +7,7 @@ import {
   particles,
   setKills,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { childMeshes, disposeObj, mkSharedMesh } from '../three-helpers.js';
 import { isGuardsmanMesh } from '../blood/blood-splat.js';
 import { spawnBloodLiquid } from '../blood/blood-liquid-splat.js';

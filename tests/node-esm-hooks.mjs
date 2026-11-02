@@ -40,13 +40,13 @@ export async function load(url, context, next) {
   if (url.endsWith('.json')) {
     return { format: 'json', source: await readFile(new URL(url), 'utf8'), shortCircuit: true };
   }
-  if (url.endsWith('/src/scene.js') || url.endsWith('/src/scene.ts')) {
+  if (url.endsWith('/src/core/scene.js') || url.endsWith('/src/core/scene.ts')) {
     // Headless seam: let tests inject a scene/camera so resetGame can run
     // under node --test without a renderer. Appended export only; the game
     // itself never calls it (createScene owns scene/camera in production).
     const source = await readFile(new URL(url), 'utf8');
     if (!source.includes('export let camera')) {
-      throw new Error('node-esm-hooks: src/scene drifted, update the shim');
+      throw new Error('node-esm-hooks: src/core/scene drifted, update the shim');
     }
     const seam = '\nexport function __setSceneCameraForTests(sceneInstance, cameraInstance) { scene = sceneInstance; camera = cameraInstance; }\n';
     if (url.endsWith('.ts')) {

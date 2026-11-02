@@ -8,7 +8,7 @@ import { register } from 'node:module';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function fakeScene() {
@@ -71,7 +71,7 @@ describe('grid variants', () => {
   });
 
   it('no-grid is the default variant', () => {
-    const src = fs.readFileSync(path.join(root, 'src/scene.ts'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/core/scene.ts'), 'utf8');
     assert.match(src, /export let _gridVariant = 3;/);
   });
 

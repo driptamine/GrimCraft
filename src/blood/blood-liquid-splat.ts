@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { particles } from '../scene.js';
+import { particles } from '../core/scene.js';
 import { mkSharedMesh } from '../three-helpers.js';
 
 // Liquid-look blood spray for guardsmen.glb hits: stretched flying droplets

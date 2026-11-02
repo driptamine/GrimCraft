@@ -5,7 +5,7 @@ import { register } from 'node:module';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
 const { default: marines } = await import('../src/factions/space-marines.js');
-const { COSTS } = await import('../src/scene.js');
+const { COSTS } = await import('../src/core/scene.js');
 
 const EXPECTED_GRID = [
   'command_hq', 'barracks', 'listening_post', 'plasma_generator',

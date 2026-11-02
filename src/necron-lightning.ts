@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mkGroup, mkTube, mkLines } from './three-helpers.js';
-import { spawnParticles } from './systems.js';
+import { spawnParticles } from './core/systems.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  NECRON LIGHTNING — Soulstorm-style unstable green energy discharge.

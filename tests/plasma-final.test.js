@@ -9,8 +9,8 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const systems = await import('../src/systems.js');
-const entities = await import('../src/entities.js');
+const systems = await import('../src/core/systems.js');
+const entities = await import('../src/entities/entities.js');
 const plasmaBolt = await import('../src/plasma-bolt.js');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -106,7 +106,7 @@ describe('plasma final projectile', () => {
   });
 
   it('preloads the final fx at boot and ticks muzzle flashes in systemSoldier', () => {
-    const game = readSrc('src/game.ts');
+    const game = readSrc('src/core/game.ts');
     assert.ok(game.includes('preloadPlasmaFinalFx()'), 'preloaded with the bolt model');
     const squad = readSrc('src/systems/squad.ts');
     assert.ok(squad.includes('attachPlasmaMuzzleFlash(soldierMeshComponent.root)'), 'flash on final shots');
@@ -114,7 +114,7 @@ describe('plasma final projectile', () => {
   });
 
   it('reports a stale-chunk failure on the decals tab instead of staying silent', () => {
-    const game = readSrc('src/game.ts');
+    const game = readSrc('src/core/game.ts');
     assert.ok(game.includes('DECALS CHUNK FAILED TO LOAD'), 'visible message on lazy-chunk failure');
     assert.ok(game.includes('hard-refresh the page'), 'tells the user the fix');
   });

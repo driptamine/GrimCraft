@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PLAYER } from '../scene.js';
+import { PLAYER } from '../core/scene.js';
 import { mkBox, mkGroup, mkPlane } from '../three-helpers.js';
 import type { AnyGroup, AnyMesh } from './types.js';
 

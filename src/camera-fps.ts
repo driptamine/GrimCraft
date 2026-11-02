@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { camera, canvas, selSquads, world } from './scene.js';
+import { camera, canvas, selSquads, world } from './core/scene.js';
 
 // First-person camera: rides the head of the first living soldier of the
 // first selected squad, looking along the squad facing. ALT+drag keeps

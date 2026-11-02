@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MELEE_DAMAGE_BASE, meleeDamageEstimate } from '../src/soldier-aim.js';
+import { MELEE_DAMAGE_BASE, meleeDamageEstimate } from '../src/entities/soldier-aim.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readSrc = (p) => fs.readFileSync(path.join(root, p), 'utf8');

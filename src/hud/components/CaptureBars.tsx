@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { world, scene, camera, PLAYER, projectToScreen } from '../../scene.js';
+import { world, scene, camera, PLAYER, projectToScreen } from '../../core/scene.js';
 import { useHUDVersion } from '../useHUD.js';
 import { CapWrap, CapLabel, CapBar, CapFill } from '../primitives.jsx';
 

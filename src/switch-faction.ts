@@ -4,10 +4,10 @@
 // Factions without an HQ are skipped, so a 2-faction match still toggles
 // like before.
 import * as THREE from 'three';
-import { camera, setPlayerTeam } from './scene.js';
+import { camera, setPlayerTeam } from './core/scene.js';
 import { playerFaction, setPlayerFaction } from './factions.js';
 import { factionsWithHQ, hqPositionForFaction, hqTeamForFaction } from './hud/data.js';
-import { updateHUD } from './hud.js';
+import { updateHUD } from './core/hud.js';
 
 export function switchFaction(): void {
   const present = factionsWithHQ();

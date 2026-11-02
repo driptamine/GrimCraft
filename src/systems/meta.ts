@@ -1,4 +1,4 @@
-import { createSquadEntity } from '../entities.js';
+import { createSquadEntity } from '../entities/entities.js';
 import {
   PLAYER,
   controlBoth,
@@ -7,7 +7,7 @@ import {
   getRequisitionRate,
   setGameOver,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { systemAirfield, systemJet } from './air.js';
 import { systemBuilder } from './builder.js';
 import { systemStrategicPoint } from './points.js';

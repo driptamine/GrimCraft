@@ -6,8 +6,8 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const systems = await import('../src/systems.js');
-const { CAPTURE_PROGRESS_RATE } = await import('../src/soldier-aim.js');
+const systems = await import('../src/core/systems.js');
+const { CAPTURE_PROGRESS_RATE } = await import('../src/entities/soldier-aim.js');
 
 const DT = 1 / 60;
 

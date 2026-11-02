@@ -11,7 +11,7 @@ import {
   researchedTech,
   JET_ALT,
   JET_SPEED,
-} from './scene.js';
+} from '../core/scene.js';
 import {
   makeSoldierMesh,
   makeHpBar,
@@ -31,14 +31,14 @@ import {
   makeJetMesh,
   makeMissileMesh,
   updateHpBar,
-} from './meshes.js';
-import { updateHUD } from './hud.js';
-import { FACTIONS, playerFaction, enemyFaction, resolveFactionKey } from './factions.js';
-import { NecronLightning } from './necron-lightning.js';
-import { makePlasmaBoltMesh, makePlasmaFinalBoltMesh } from './plasma-bolt.js';
-import { makeBlasterBoltMesh } from './blaster-bolt.js';
-import { makeReaperBoltMesh } from './reaper-bolt.js';
-import { mkBox, mkSphere, mkCylinder, mkPlane, mkGroup, disposeObj, childMeshes, descendants } from './three-helpers.js';
+} from '../meshes.js';
+import { updateHUD } from '../core/hud.js';
+import { FACTIONS, playerFaction, enemyFaction, resolveFactionKey } from '../factions.js';
+import { NecronLightning } from '../necron-lightning.js';
+import { makePlasmaBoltMesh, makePlasmaFinalBoltMesh } from '../plasma-bolt.js';
+import { makeBlasterBoltMesh } from '../blaster-bolt.js';
+import { makeReaperBoltMesh } from '../reaper-bolt.js';
+import { mkBox, mkSphere, mkCylinder, mkPlane, mkGroup, disposeObj, childMeshes, descendants } from '../three-helpers.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  ENTITIES

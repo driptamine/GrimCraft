@@ -3,7 +3,7 @@
 // the frame loop's updateCamera() applies them, and the camera-change
 // observer syncs the sliders back when the camera moves externally
 // (wheel zoom, ALT+drag orbit, pan, map fit).
-import { camera, addCameraChangeObserver, currentBounds } from './scene.js';
+import { camera, addCameraChangeObserver, currentBounds } from './core/scene.js';
 import { setCameraMode } from './camera-fps.js';
 import {
   radToDeg,

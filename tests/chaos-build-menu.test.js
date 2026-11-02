@@ -10,7 +10,7 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
 const { default: chaos } = await import('../src/factions/chaos.js');
-const { COSTS } = await import('../src/scene.js');
+const { COSTS } = await import('../src/core/scene.js');
 
 const EXPECTED_GRID = [
   'desecrated_stronghold', 'chaos_temple', 'listening_post', 'plasma_generator',

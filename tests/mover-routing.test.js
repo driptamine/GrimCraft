@@ -9,15 +9,15 @@ import { fileURLToPath } from 'node:url';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 {
   const headless = new THREE.Scene();
   headless._registerShadows = () => {};
   sceneMod.__setSceneCameraForTests(headless, { target: new THREE.Vector3() });
 }
-const { World } = await import('../src/ecs.js');
-const systems = await import('../src/systems.js');
-const entities = await import('../src/entities.js');
+const { World } = await import('../src/core/ecs.js');
+const systems = await import('../src/core/systems.js');
+const entities = await import('../src/entities/entities.js');
 const { sgbPassBlockedAt } = await import('../pathfinding/avoid.js');
 const { snapOrderToFree } = await import('../pathfinding/astar-integrated.js');
 

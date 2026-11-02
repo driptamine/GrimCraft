@@ -1,4 +1,4 @@
-import { world, selBuilder, selSquads, selBuildings, selListeningPost, requisition, SQUAD_MAX, COSTS, PROD_TIME } from '../scene.js';
+import { world, selBuilder, selSquads, selBuildings, selListeningPost, requisition, SQUAD_MAX, COSTS, PROD_TIME } from '../core/scene.js';
 import { FACTIONS, playerFaction, getStructureConfig, ARENA_POSITION_FACTIONS } from '../factions.js';
 import type { ProductionItem } from '../factions/types.js';
 

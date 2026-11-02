@@ -5,7 +5,7 @@ import { register } from 'node:module';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
 const { default: orks } = await import('../src/factions/orks.js');
-const { COSTS } = await import('../src/scene.js');
+const { COSTS } = await import('../src/core/scene.js');
 
 const EXPECTED_GRID = [
   'settlement', 'da_boyz_hut', 'listening_post', 'generator',

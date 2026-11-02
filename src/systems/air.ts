@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { createJetEntity, createMissileEntity } from '../entities.js';
-import { updateHUD } from '../hud.js';
+import { createJetEntity, createMissileEntity } from '../entities/entities.js';
+import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
-import { JET_ALT, JET_ATTACK_RANGE, JET_SPEED, world } from '../scene.js';
+import { JET_ALT, JET_ATTACK_RANGE, JET_SPEED, world } from '../core/scene.js';
 import { childMeshes, disposeObj } from '../three-helpers.js';
 import { spawnParticles } from './combat.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createBootTimer, formatBootTime } from '../src/boot-timer.js';
+import { createBootTimer, formatBootTime } from '../src/core/boot-timer.js';
 
 describe('boot timer', () => {
   it('measures elapsed wall time with an injectable clock', () => {

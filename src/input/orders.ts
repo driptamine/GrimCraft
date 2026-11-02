@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { createAirfieldEntity, createBeamEntity, createBuildingEntity, createStructureEntity, getSoldierMuzzlePos } from '../entities.js';
+import { createAirfieldEntity, createBeamEntity, createBuildingEntity, createStructureEntity, getSoldierMuzzlePos } from '../entities/entities.js';
 import { playHitCrunch } from '../audio.js';
 import { FACTIONS, playerFaction, resolveFactionKey } from '../factions.js';
-import { updateHUD } from '../hud.js';
+import { updateHUD } from '../core/hud.js';
 import { canPlaceListeningPost } from '../meshes.js';
 import { netPlaceBuilding } from '../multiplayer.js';
 import {
@@ -24,8 +24,8 @@ import {
   setMapRevealed,
   setRequisition,
   world,
-} from '../scene.js';
-import { disposeMeshComponent, spawnParticles } from '../systems.js';
+} from '../core/scene.js';
+import { disposeMeshComponent, spawnParticles } from '../core/systems.js';
 import { _stopBuildGhost, cancelBuild } from './build-ghost.js';
 import { _spIdAt, flashHitmarker, spawnAttackMarker, spawnBeamTracer, spawnMoveMarker, spawnMoveMarkerAt, spawnSpPing } from './markers.js';
 import { fpsShotTarget, getViewmodelMuzzleWorldPos, resolveFpsTarget } from '../camera-fps.js';

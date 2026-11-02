@@ -2,7 +2,7 @@
  * Pathfinding tab — routing-mode list for squad movement.
  * Mirrors decals-panel.ts: lazy-loaded from game.js, builds the list on open.
  */
-import { world } from './scene.js';
+import { world } from './core/scene.js';
 import {
   ROUTING_MODES,
   getRoutingMode,

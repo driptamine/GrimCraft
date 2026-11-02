@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene, world, camera, PLAYER, SQUAD_SCATTER } from './scene.js';
+import { scene, world, camera, PLAYER, SQUAD_SCATTER } from './core/scene.js';
 
 function _sceneLights(): THREE.Object3D[] {
   const lights: THREE.Object3D[] = [];

@@ -6,10 +6,10 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-await import('../src/scene.js');
-const scene = await import('../src/scene.js');
+await import('../src/core/scene.js');
+const scene = await import('../src/core/scene.js');
 const selection = await import('../src/input/selection.js');
-const { World } = await import('../src/ecs.js');
+const { World } = await import('../src/core/ecs.js');
 const { alphaForFacing, attachViewmodel, copyGunPose, detachViewmodel, fpsAimPoint, fpsLook, fpsShotTarget, getCameraMode, getRideInfo, getViewmodelMuzzleWorldPos, gunPoseSnapshot, hasViewmodel, initGunPosePanel, isGunEditMode, isShooterMode, readGunPosePanel, resolveFpsTarget, setCameraMode, staticizeViewmodelTemplate, syncGunPosePanel, tickFirstPerson, toggleCameraFps, toggleGunEditMode, updateFirstPersonCamera, updateThirdPersonCamera, yieldSlotBehind, _setGunPoseForTests, _setLasgunTemplateForTests } = await import('../src/camera-fps.js');
 
 function fakeWorld() {

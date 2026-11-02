@@ -10,8 +10,8 @@ globalThis.window = { addEventListener() {}, removeEventListener() {} };
 globalThis.document = { getElementById: () => null };
 
 const THREE = await import('three');
-const scene = await import('../src/scene.js');
-const { World } = await import('../src/ecs.js');
+const scene = await import('../src/core/scene.js');
+const { World } = await import('../src/core/ecs.js');
 const { applyLookDelta, setCameraMode } = await import('../src/camera-fps.js');
 const { stickToKeys, isTouchDevice } = await import('../src/input/touch-controls.js');
 
@@ -94,7 +94,7 @@ describe('touch controls', () => {
     assert.ok(touch.includes('setInterval') === false, 'no timers; visibility syncs from the frame loop');
     const events = read('src/input/events.ts');
     assert.ok(events.includes("event.pointerType === 'touch' && isShooterMode()"), 'touch taps skip the mouse fire path in shooter mode');
-    const game = read('src/game.ts');
+    const game = read('src/core/game.ts');
     assert.ok(game.includes('syncTouchControls();'), 'frame loop syncs touch UI visibility');
   });
 });

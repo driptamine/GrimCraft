@@ -3,12 +3,12 @@ import React from 'react';
 import {
   world, selBuilder, selBuildings, selSquads, selListeningPost, requisition, setRequisition, energy, setEnergy, PLAYER, COSTS, PROD_TIME, SQUAD_MAX,
   researchedTech,
-} from '../../scene.js';
+} from '../../core/scene.js';
 import { FACTIONS, getStructureConfig } from '../../factions.js';
 import type { FactionAddonEntry, FactionIcons, FactionResearchEntry, FactionStructureEntry, ProductionItem } from '../../factions/types.js';
-import { startBuild, demolishBuilding, setBuilderCommand, setBuilderStance, clearBuilderCommand, buildAddon, armFlyTargeting } from '../../input.js';
+import { startBuild, demolishBuilding, setBuilderCommand, setBuilderStance, clearBuilderCommand, buildAddon, armFlyTargeting } from '../../core/input.js';
 import { netTrainUnit, netDemolishBuilding } from '../../multiplayer.js';
-import { updateHUD } from '../../hud.js';
+import { updateHUD } from '../../core/hud.js';
 import { buildMenuOpen, setBuildMenuOpen } from '../store.js';
 import { getViewKind, getAliveGroups, computeSquadData, getBarracksProduction, getStructureProduction, unitTooltip, structureTooltip, addonTooltip, entityFaction, workerDisplayName } from '../data.js';
 import { ActionButton, CostGlyph } from '../bits.jsx';

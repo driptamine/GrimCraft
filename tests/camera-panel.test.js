@@ -99,11 +99,11 @@ describe('camera panel wiring', () => {
   });
 
   it('game.js binds the camera panel globals', () => {
-    const game = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
+    const game = fs.readFileSync(path.join(root, 'src/core/game.ts'), 'utf8');
     assert.ok(game.includes('window.toggleCameraPanel'), 'toggle bound');
     assert.ok(game.includes('window.updateCameraParam'), 'param writer bound');
     assert.ok(game.includes('window.resetCameraPanel'), 'reset bound');
-    assert.ok(game.includes("import('./camera-panel.js')"), 'lazy import used');
+    assert.ok(game.includes("import('../camera-panel.js')"), 'lazy import used');
     assert.ok(game.includes('window.toggleCameraFps'), 'fps toggle bound');
     assert.ok(game.includes('toggleCameraFps } from'), 'fps toggle shared with hotkey');
   });
@@ -127,7 +127,7 @@ describe('camera panel wiring', () => {
 
   it('camera-panel.js drives the orbit rig, not a copy', () => {
     const panel = fs.readFileSync(path.join(root, 'src/camera-panel.ts'), 'utf8');
-    assert.ok(panel.includes("from './scene.js'"), 'imports live camera binding');
+    assert.ok(panel.includes("from './core/scene.js'"), 'imports live camera binding');
     assert.ok(panel.includes('camera.alpha ='), 'writes yaw');
     assert.ok(panel.includes('camera.beta ='), 'writes pitch');
     assert.ok(panel.includes('camera.radius ='), 'writes radius');

@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import * as THREE from 'three';
-import { world, camera, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad } from '../../scene.js';
+import { world, camera, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad } from '../../core/scene.js';
 import { FACTIONS, getStructureConfig } from '../../factions.js';
 import { getViewKind, getAliveGroups, computeSquadData, getPortraitFocusPosition, entityFaction, workerDisplayName } from '../data.js';
 import {

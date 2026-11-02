@@ -11,7 +11,7 @@ globalThis.window = { addEventListener() {}, _currentMapKey: 'arena' };
 const fakeCanvas = { style: {} };
 globalThis.document = { getElementById: (id) => (id === 'renderCanvas' ? fakeCanvas : null) };
 
-const sceneMod = await import('../src/scene.js');
+const sceneMod = await import('../src/core/scene.js');
 const headlessScene = new THREE.Scene();
 headlessScene._registerShadows = () => {};
 sceneMod.__setSceneCameraForTests(headlessScene, { target: new THREE.Vector3() });
@@ -24,7 +24,7 @@ for (const key of factions.ARENA_POSITION_FACTIONS) {
   factions.factionContainers[key].worker = { scene: new THREE.Group(), animations: [], _hiddenNodes: null };
 }
 
-const game = await import('../src/game.js');
+const game = await import('../src/core/game.js');
 
 function necronSquads(world) {
   return world.query('squad')

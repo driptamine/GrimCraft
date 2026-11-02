@@ -4,12 +4,12 @@ import { register } from 'node:module';
 import { readFileSync } from 'node:fs';
 import * as THREE from 'three';
 import { setDefaultScene } from '../src/three-helpers.js';
-import { CAPTURE_GUARD_DISTANCE } from '../src/soldier-aim.js';
+import { CAPTURE_GUARD_DISTANCE } from '../src/entities/soldier-aim.js';
 
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
 const { STRATEGIC_POINT_HIDDEN_NODES, makeStrategicPointMesh, patchStrategicPointGroundPlane, patchStrategicPointCenterpost } = await import('../src/meshes.js');
-const { createStrategicPointEntity } = await import('../src/entities.js');
+const { createStrategicPointEntity } = await import('../src/entities/entities.js');
 
 function makeStubWorld() {
   const comps = new Map();

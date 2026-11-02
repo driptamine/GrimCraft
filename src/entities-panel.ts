@@ -1,4 +1,4 @@
-import { world, PLAYER } from './scene.js';
+import { world, PLAYER } from './core/scene.js';
 
 export let _entitiesPanelOpen = false;
 export let _entitiesFilter = '';

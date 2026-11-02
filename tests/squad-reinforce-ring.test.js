@@ -6,9 +6,9 @@ import * as THREE from 'three';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
-const systems = await import('../src/systems.js');
-const entities = await import('../src/entities.js');
-const sceneMod = await import('../src/scene.js');
+const systems = await import('../src/core/systems.js');
+const entities = await import('../src/entities/entities.js');
+const sceneMod = await import('../src/core/scene.js');
 {
   const headless = new THREE.Scene();
   headless._registerShadows = () => {};

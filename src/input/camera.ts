@@ -7,7 +7,7 @@ import {
   selBuildings,
   selSquads,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { disposeObj, mkTorus } from '../three-helpers.js';
 import { getCameraMode } from '../camera-fps.js';
 

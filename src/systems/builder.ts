@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { createBuildingEntity, createStructureEntity } from '../entities.js';
-import { updateHUD } from '../hud.js';
+import { createBuildingEntity, createStructureEntity } from '../entities/entities.js';
+import { updateHUD } from '../core/hud.js';
 import { buildListeningPostMesh } from '../meshes.js';
 import {
   COSTS,
@@ -8,7 +8,7 @@ import {
   requisition,
   setRequisition,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import { HILL_RELEASE_DIST } from '../../pathfinding/avoid.js';
 import { clampStepToRoute, exitsStraight, updateMoverRoute } from '../../pathfinding/astar-integrated.js';
 import { _soldierTakeDamage, spawnParticles } from './combat.js';

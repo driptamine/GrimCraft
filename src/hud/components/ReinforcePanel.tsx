@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
-import { world, requisition, setRequisition, COSTS } from '../../scene.js';
-import { updateHUD } from '../../hud.js';
+import { world, requisition, setRequisition, COSTS } from '../../core/scene.js';
+import { updateHUD } from '../../core/hud.js';
 import { computeSquadData } from '../data.js';
 import { ReinforcePanel as ReinforcePanelCss, ReinforcePanelLabel, RpWrap, RpBar, RpFill, RpIcon, RpLabel, RpQueue, RqSlot } from '../primitives.jsx';
 

@@ -1,7 +1,7 @@
-import { updateHUD } from '../hud.js';
+import { updateHUD } from '../core/hud.js';
 import { nextStrategicPointAnim, shouldShowCaptureFlag, updatePointFlag } from '../meshes.js';
-import { world } from '../scene.js';
-import { decayedCaptureProgress } from '../soldier-aim.js';
+import { world } from '../core/scene.js';
+import { decayedCaptureProgress } from '../entities/soldier-aim.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
 
 

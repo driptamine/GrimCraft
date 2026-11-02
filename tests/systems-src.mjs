@@ -9,9 +9,9 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export function readSystemsSource() {
   // Migration reads both spellings: each module exists once (either .js or
   // its .ts port), the barrel likewise.
-  const barrel = fs.existsSync(path.join(ROOT, 'src/systems.ts'))
-    ? path.join(ROOT, 'src/systems.ts')
-    : path.join(ROOT, 'src/systems.js');
+  const barrel = fs.existsSync(path.join(ROOT, 'src/core/systems.ts'))
+    ? path.join(ROOT, 'src/core/systems.ts')
+    : path.join(ROOT, 'src/core/systems.js');
   const parts = [fs.readFileSync(barrel, 'utf8')];
   const dir = path.join(ROOT, 'src/systems');
   for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.js') || f.endsWith('.ts')).sort()) {

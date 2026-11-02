@@ -5,7 +5,7 @@ import { register } from 'node:module';
 register('./node-esm-hooks.mjs', import.meta.url);
 globalThis.document = { getElementById: () => null };
 const { default: eldar } = await import('../src/factions/eldar.js');
-const { COSTS } = await import('../src/scene.js');
+const { COSTS } = await import('../src/core/scene.js');
 
 const EXPECTED_GRID = [
   'webway_assembly', 'aspect_portal', 'listening_post', 'warp_generator',

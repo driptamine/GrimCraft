@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const src = fs.readFileSync(path.join(root, 'src/game.ts'), 'utf8');
+const src = fs.readFileSync(path.join(root, 'src/core/game.ts'), 'utf8');
 
 // Frame-loop wiring that cannot run headless: pin the structure so the
 // perf work stays wired (dynamic resolution, shadow follow, HUD cadence).

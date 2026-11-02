@@ -98,13 +98,13 @@ function renderMenuList(): void {
   qualityBtn.type = 'button';
   qualityBtn.className = 'main-menu-btn';
   qualityBtn.textContent = 'QUALITY: …';
-  import('./scene.js').then((sceneModule) => {
+  import('./core/scene.js').then((sceneModule) => {
     qualityBtn.textContent = `QUALITY: ${String(sceneModule.qualityTier()).toUpperCase()}`;
   }).catch(() => {
     qualityBtn.textContent = 'QUALITY: HIGH';
   });
   qualityBtn.addEventListener('click', () => {
-    import('./scene.js').then((sceneModule) => {
+    import('./core/scene.js').then((sceneModule) => {
       sceneModule.cycleQualityTier();
       window.location.reload();
     });

@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
-import { world, requisition, setRequisition, SQUAD_MAX, COSTS } from '../../scene.js';
-import { updateHUD } from '../../hud.js';
-import { applySquadWeaponVisuals } from '../../entities.js';
+import { world, requisition, setRequisition, SQUAD_MAX, COSTS } from '../../core/scene.js';
+import { updateHUD } from '../../core/hud.js';
+import { applySquadWeaponVisuals } from '../../entities/entities.js';
 import { netSetProjectileType } from '../../multiplayer.js';
 import { computeSquadData } from '../data.js';
 import { CompactReinforceButton, AmmoButton, Tooltip } from '../bits.jsx';

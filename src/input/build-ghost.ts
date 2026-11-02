@@ -15,7 +15,7 @@ import {
   selBuilder,
   setBuildMode,
   world,
-} from '../scene.js';
+} from '../core/scene.js';
 import {
   childMeshes,
   disposeObj,

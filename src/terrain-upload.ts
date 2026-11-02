@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene } from './scene.js';
+import { scene } from './core/scene.js';
 import { mkGroup, disposeObj, childMeshes, loadTexture } from './three-helpers.js';
 import { loadGltf, instantiateGltf } from './gltf-models.js';
 import type { GltfContainer } from './gltf-models.js';

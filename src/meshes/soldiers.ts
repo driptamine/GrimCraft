@@ -21,8 +21,8 @@ import {
   _allHitboxes,
   _hitboxDebug,
   scene,
-} from '../scene.js';
-import { IDLE_TRACKING_HOLD_SEC, animSwitchBlocked, resolveIdleAnim } from '../soldier-aim.js';
+} from '../core/scene.js';
+import { IDLE_TRACKING_HOLD_SEC, animSwitchBlocked, resolveIdleAnim } from '../entities/soldier-aim.js';
 import {
   childMeshes,
   descendants,
