@@ -2,8 +2,61 @@
 // model/texture loads so the START BATTLE loading bar can show real
 // downloaded megabytes instead of just file counts. Pure logic, no DOM —
 // the loading UI subscribes and renders. Safe under node:test.
-const _files = new Map(); // url -> { loaded, total|null, done, failed }
-const _listeners = new Set();
+export interface R2FileState {
+  loaded: number;
+  total: number | null;
+  done: boolean;
+  failed: boolean;
+}
+
+export interface R2ProgressReport {
+  loaded?: number;
+  total?: number | null;
+  done?: boolean;
+  failed?: boolean;
+}
+
+export interface R2SnapshotFile {
+  url: string;
+  name: string;
+  loaded: number;
+  total: number | null;
+  done: boolean;
+  failed: boolean;
+}
+
+export interface R2SnapshotCurrent {
+  index: number;
+  total: number;
+  name: string;
+  url: string;
+}
+
+export interface R2Snapshot {
+  loadedBytes: number;
+  totalBytes: number;
+  doneFiles: number;
+  totalFiles: number;
+  unknownTotals: number;
+  failedFiles: number;
+  percent: number;
+  complete: boolean;
+  files: R2SnapshotFile[];
+  current: R2SnapshotCurrent | null;
+}
+
+export interface R2CacheProbeResult {
+  checked: boolean;
+  total: number;
+  cached: number;
+  missing: string[];
+  cacheName: string | null;
+}
+
+export type R2ProgressListener = (snapshot: R2Snapshot) => void;
+
+const _files = new Map<string, R2FileState>(); // url -> { loaded, total|null, done, failed }
+const _listeners = new Set<R2ProgressListener>();
 
 function _notify() {
   const snapshot = r2ProgressSnapshot();
@@ -21,7 +74,7 @@ export function resetR2Progress() {
   _notify();
 }
 
-export function subscribeR2Progress(listener) {
+export function subscribeR2Progress(listener: R2ProgressListener) {
   _listeners.add(listener);
   return () => {
     _listeners.delete(listener);
@@ -32,7 +85,7 @@ export function subscribeR2Progress(listener) {
 // Content-Length (lengthComputable === false). done=true marks the file
 // finished (success or failure — see failed flag); a fresh non-done report
 // for an already-done URL restarts the entry for re-downloads.
-export function reportR2Progress(url, { loaded = 0, total = null, done = false, failed = false } = {}) {
+export function reportR2Progress(url: unknown, { loaded = 0, total = null, done = false, failed = false }: R2ProgressReport = {}) {
   const key = String(url || '');
   if (!key) {
     return;
@@ -46,8 +99,8 @@ export function reportR2Progress(url, { loaded = 0, total = null, done = false, 
       failed: false,
     });
   } else {
-    const base = prev || { loaded: 0, total: null, done: false, failed: false };
-    const next = {
+    const base: R2FileState = prev || { loaded: 0, total: null, done: false, failed: false };
+    const next: R2FileState = {
       loaded: Math.max(base.loaded, Math.max(0, loaded)),
       total: total != null && total > 0 ? total : base.total,
       done: done || base.done,
@@ -61,14 +114,14 @@ export function reportR2Progress(url, { loaded = 0, total = null, done = false, 
   _notify();
 }
 
-export function r2ProgressSnapshot() {
+export function r2ProgressSnapshot(): R2Snapshot {
   let loadedBytes = 0;
   let totalBytes = 0;
   let knownBytes = 0;
   let doneFiles = 0;
   let failedFiles = 0;
   let unknownTotals = 0;
-  const files = [];
+  const files: R2SnapshotFile[] = [];
   for (const [url, file] of _files) {
     loadedBytes += file.loaded;
     if (file.total != null) {
@@ -102,11 +155,11 @@ export function r2ProgressSnapshot() {
     files,
     current: activeIndex === -1
       ? null
-      : { index: activeIndex + 1, total: totalFiles, name: files[activeIndex].name, url: files[activeIndex].url },
+      : { index: activeIndex + 1, total: totalFiles, name: (files[activeIndex] as R2SnapshotFile).name, url: (files[activeIndex] as R2SnapshotFile).url },
   };
 }
 
-function _baseName(url) {
+function _baseName(url: string) {
   try {
     return decodeURIComponent(String(url).split('?')[0].split('/').pop() || String(url));
   } catch (_) {
@@ -119,12 +172,12 @@ function _baseName(url) {
 // the START BATTLE UI show "already downloaded" and skip the download bar
 // entirely when nothing is missing. Never throws; without a Cache API
 // (node, old browsers) reports { checked: false }.
-export async function probeR2Cache(urls) {
-  const list = [...new Set((urls || []).map((url) => String(url || '')).filter(Boolean))];
+export async function probeR2Cache(urls: unknown): Promise<R2CacheProbeResult> {
+  const list = [...new Set(((urls as unknown[] | undefined) || []).map((url) => String(url || '')).filter(Boolean))];
   if (typeof caches === 'undefined' || !caches || typeof caches.match !== 'function') {
     return { checked: false, total: list.length, cached: 0, missing: list, cacheName: null };
   }
-  let cacheName = null;
+  let cacheName: string | null = null;
   try {
     const keys = await caches.keys();
     cacheName = keys.find((key) => key.indexOf('grimcraft-models') === 0) || null;
@@ -132,7 +185,7 @@ export async function probeR2Cache(urls) {
     return { checked: false, total: list.length, cached: 0, missing: list, cacheName: null };
   }
   let cached = 0;
-  const missing = [];
+  const missing: string[] = [];
   for (const url of list) {
     try {
       // Same lookup the service worker uses: any cache holding the URL counts.

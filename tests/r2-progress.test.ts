@@ -81,7 +81,7 @@ describe('r2 download progress', () => {
 
   it('r2 bar is wired into the START BATTLE loading flow', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
+    const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
     const gltf = read('src/gltf-models.js');
     assert.ok(gltf.includes("from './r2-progress.js'"), 'loadGltf reports bytes');
     assert.ok(gltf.includes('loadAsync(url, onByteProgress)'), 'loader passes progress events');
@@ -114,10 +114,11 @@ describe('r2 download progress', () => {
   });
 
   it('probes Cache Storage for already-downloaded urls', async () => {
-    const origCaches = globalThis.caches;
-    globalThis.caches = {
+    const g = globalThis as unknown as Record<string, unknown>;
+    const origCaches = g.caches;
+    g.caches = {
       keys: async () => ['grimcraft-models-v1', 'grimcraft-app-v1'],
-      match: async (url) => (String(url).includes('cached') ? { ok: true } : null),
+      match: async (url: unknown) => (String(url).includes('cached') ? { ok: true } : null),
     };
     try {
       const { probeR2Cache } = await import('../src/r2-progress.js');
@@ -129,24 +130,25 @@ describe('r2 download progress', () => {
       assert.equal((await probeR2Cache([])).total, 0);
     } finally {
       if (origCaches === undefined) {
-        delete globalThis.caches;
+        delete g.caches;
       } else {
-        globalThis.caches = origCaches;
+        g.caches = origCaches;
       }
     }
   });
 
   it('reports unchecked without a Cache API', async () => {
-    const origCaches = globalThis.caches;
+    const g = globalThis as unknown as Record<string, unknown>;
+    const origCaches = g.caches;
     try {
-      delete globalThis.caches;
+      delete g.caches;
       const { probeR2Cache } = await import('../src/r2-progress.js');
       const result = await probeR2Cache(['https://r2/a.glb']);
       assert.equal(result.checked, false);
       assert.deepEqual(result.missing, ['https://r2/a.glb']);
     } finally {
       if (origCaches !== undefined) {
-        globalThis.caches = origCaches;
+        g.caches = origCaches;
       }
     }
   });

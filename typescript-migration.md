@@ -53,7 +53,7 @@ Per file: rename → fix `tsc` errors in that file only → run `node --test` su
 - **World/ECS access**: type the component maps once (`components/squad.ts` etc.) instead of `any`-ing `world.get`. If a dynamic lookup resists typing, isolate it in a `*Untyped` helper with a `// TODO(ts)` marker rather than sprinkling `any`.
 - **`import.meta.env`**: add `src/vite-env.d.ts` with `/// <reference types="vite/client" />` on day one.
 - **`import.meta.glob`**: type as `Record<string, string>` at the call site; do not fight the generic overloads.
-- **Node test hooks** (`tests/node-esm-hooks.mjs`): keep as `.mjs` until the end; it operates on source text, types don't matter.
+- **Node test hooks** (`tests/node-esm-hooks.mjs`): keep as `.mjs` until the end; it operates on source text, types don't matter. Installed globally via `tests/register-hooks.mjs` (`node --import` in the `test` script) because per-file `register()` runs too late for static imports — every renamed `.js`→`.ts` module must resolve in static chains from day one.
 - **Scripts** (`scripts/*.mjs`, `bulk-extract.js` at root): migrate last or never — they're dev tools. If migrated, run them with `tsx`, not `tsc` emit.
 - **`dist/` stays ignored output**; nothing changes in deploy (Netlify builds from source).
 
