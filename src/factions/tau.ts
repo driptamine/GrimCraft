@@ -1,11 +1,13 @@
 import worker from '../../animations/tau/worker.json';
 import soldier from '../../animations/tau/soldier.json';
-import structures from '../../animations/tau/structures.json';
+import structuresJson from '../../animations/tau/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/tau/tau_structures_infantries_production_list.json';
 import vehProduction from '../../animations/tau/tau_structures_vehicles_production_list.json';
+import type { ProductionItem } from './types.js';
 
-const productionList = { ...infProduction, ...vehProduction };
+const productionList: Record<string, ProductionItem[]> = { ...infProduction, ...vehProduction };
 export default {
   name: 'Tau',
   hq: 'models/tau/structures/tau_hq.glb',

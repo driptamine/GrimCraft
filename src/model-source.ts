@@ -2,14 +2,13 @@
 // Zero-dependency leaf module: safe to import from anywhere, including
 // main-menu.js (no import cycle possible). Procedural mode reuses the exact
 // same fallback branches the factories take when a GLB fails to load.
-
 export const MODEL_SOURCE_GLB = 'glb';
 export const MODEL_SOURCE_PROCEDURAL = 'procedural';
 export const MODEL_SOURCE_STORAGE_KEY = 'grimcraft-models';
 
 // Pure resolution (node-testable): explicit URL param wins, then the stored
 // preference, then the default.
-export function resolveModelSource({ query = '', stored = '' } = {}) {
+export function resolveModelSource({ query = '', stored = '' }: { query?: unknown; stored?: unknown } = {}): string {
   const q = String(query || '').toLowerCase();
   if (q === MODEL_SOURCE_PROCEDURAL || q === MODEL_SOURCE_GLB) return q;
   const s = String(stored || '').toLowerCase();
@@ -17,9 +16,9 @@ export function resolveModelSource({ query = '', stored = '' } = {}) {
   return MODEL_SOURCE_GLB;
 }
 
-let _source = null;
+let _source: string | null = null;
 
-function _readInputs() {
+function _readInputs(): { query: string; stored: string } {
   let query = '';
   let stored = '';
   try {
@@ -35,14 +34,14 @@ function _readInputs() {
   return { query, stored };
 }
 
-export function modelSource() {
+export function modelSource(): string {
   if (!_source) {
     _source = resolveModelSource(_readInputs());
   }
   return _source;
 }
 
-export function setModelSource(value) {
+export function setModelSource(value: string): string {
   const next = value === MODEL_SOURCE_PROCEDURAL ? MODEL_SOURCE_PROCEDURAL : MODEL_SOURCE_GLB;
   _source = next;
   try {
@@ -53,6 +52,6 @@ export function setModelSource(value) {
   return next;
 }
 
-export function useProceduralModels() {
+export function useProceduralModels(): boolean {
   return modelSource() === MODEL_SOURCE_PROCEDURAL;
 }

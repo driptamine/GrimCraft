@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { modelUrl } from './assets.js';
-import { loadGltf } from './gltf-models.js';
+import { loadGltf, type GltfContainer } from './gltf-models.js';
 import { loadTeamcolour, teamcolorHex } from './teamcolour.js';
 import { mergeStaticContainer } from './merge-static.js';
 import { mergeSkinnedContainer } from './merge-skinned.js';
 import { bump } from './hud/store.js';
+import type { FactionConfig, FactionKey } from './factions/types.js';
 
 import chaos from './factions/chaos.js';
 import darkEldar from './factions/dark-eldar.js';
@@ -16,7 +17,7 @@ import sob from './factions/sob.js';
 import spaceMarines from './factions/space-marines.js';
 import tau from './factions/tau.js';
 
-export const FACTIONS = {
+export const FACTIONS: Record<string, FactionConfig> = {
   chaos,
   'dark eldar': darkEldar,
   eldar,
@@ -33,7 +34,7 @@ export let enemyFaction = 'chaos';
 
 // HUD "switch faction": point the player side at another faction.
 // Unknown keys are ignored so a bad cycle step can't corrupt lookups.
-export function setPlayerFaction(key) {
+export function setPlayerFaction(key: string): void {
   if (FACTIONS[key]) {
     playerFaction = key;
   }
@@ -47,11 +48,21 @@ export const POSITION_FACTIONS = ['orks', 'ig', 'necrons', 'chaos', 'space marin
 // loading always covers the union.
 export const ARENA_POSITION_FACTIONS = [...POSITION_FACTIONS, 'tau', 'dark eldar'];
 
-function _emptyBucket() {
+export interface FactionBucket {
+  hq: GltfContainer | null;
+  worker: GltfContainer | null;
+  soldier: GltfContainer | null;
+  units: Record<string, GltfContainer | null>;
+  structures: Record<string, GltfContainer | null>;
+  vehicles: Record<string, GltfContainer | null>;
+  teamcolor: Record<string, unknown> | null;
+}
+
+function _emptyBucket(): FactionBucket {
   return { hq: null, worker: null, soldier: null, units: {}, structures: {}, vehicles: {}, teamcolor: null };
 }
 
-export const factionContainers = {};
+export const factionContainers: Record<string, FactionBucket> = {};
 for (const key of ARENA_POSITION_FACTIONS) {
   factionContainers[key] = _emptyBucket();
 }
@@ -59,9 +70,9 @@ for (const key of ARENA_POSITION_FACTIONS) {
 // Static-merge results per HQ/structure container, filled during
 // loadFactionModels ({label, before, after, ...}). Powers benchmark.md
 // verification and console inspection.
-export const mergeStats = [];
+export const mergeStats: Array<Record<string, unknown>> = [];
 
-export function resolveFactionKey(faction, fallback = playerFaction) {
+export function resolveFactionKey(faction: string, fallback: string = playerFaction): string {
   if (faction && factionContainers[faction]) {
     return faction;
   }
@@ -71,19 +82,19 @@ export function resolveFactionKey(faction, fallback = playerFaction) {
   return POSITION_FACTIONS[0];
 }
 
-export function getFactionAnimations(factionKey, role = 'soldier') {
-  const key = FACTIONS[factionKey] ? factionKey : (factionKey === 'player' ? playerFaction : enemyFaction);
+export function getFactionAnimations(factionKey: string, role = 'soldier'): unknown {
+  const key: FactionKey = FACTIONS[factionKey] ? factionKey : (factionKey === 'player' ? playerFaction : enemyFaction);
   const idx = role === 'worker' ? 0 : 1;
   return FACTIONS[key]?.infantry?.[idx]?.animations || null;
 }
 
-export function getStructureConfig(factionKey, type) {
+export function getStructureConfig(factionKey: string, type: string) {
   return FACTIONS[factionKey]?.structures?.find((s) => s.type === type) || null;
 }
 
 // Parsed .teamcolour palette for a faction (null until loaded, or when the
 // faction declares no scheme file). Surfaces (HUD/banner) read from here.
-export function getFactionTeamcolor(factionKey) {
+export function getFactionTeamcolor(factionKey: string): Record<string, unknown> | null {
   return factionContainers[factionKey]?.teamcolor ?? null;
 }
 
@@ -92,14 +103,14 @@ export function getFactionTeamcolor(factionKey) {
 // `teamcolours` map (scheme -> .teamcolour path). The colorize slot picks
 // which palette entry drives the body look: IG reads white-grey Trim,
 // Space Marines read chapter Primary.
-export const TEAMCOLOUR_SLOT = { ig: 'trim', 'space marines': 'primary' };
+export const TEAMCOLOUR_SLOT: Record<string, string> = { ig: 'trim', 'space marines': 'primary' };
 
-export function getFactionTeamcolourSchemes(factionKey) {
+export function getFactionTeamcolourSchemes(factionKey: string): string[] {
   return ['default', ...Object.keys(FACTIONS[factionKey]?.teamcolours || {})];
 }
 
-const _teamcolourScheme = {};
-const _teamcolourCache = {};
+const _teamcolourScheme: Record<string, string> = {};
+const _teamcolourCache: Record<string, unknown> = {};
 
 // Scheme look: colorize the body toward the scheme slot color.
 //
@@ -117,7 +128,7 @@ const _teamcolourCache = {};
 const TEAMCOLOUR_BODY_MATERIALS = ['ig_guardsmen', 'space_marine_unit'];
 const TEAMCOLOUR_MIX = 0.85;
 
-const _TEAMCOLOUR_CHUNK = `
+const _TEAMCOLOUR_CHUNK = /* glsl */`
   {
     float teamLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
     float teamShade = smoothstep(0.0, 0.22, teamLum);
@@ -128,14 +139,14 @@ const _TEAMCOLOUR_CHUNK = `
   }
 `;
 
-function _patchTeamcolourMaterial(mat) {
+function _patchTeamcolourMaterial(mat: THREE.Material): void {
   if (mat.userData._teamPatched) {
     return;
   }
   mat.userData._teamPatched = true;
   mat.userData._uTeamColor = { value: new THREE.Color(0xffffff) };
   mat.userData._uTeamMix = { value: 0 };
-  const prev = mat.onBeforeCompile;
+  const prev = mat.onBeforeCompile as unknown as ((shader: object) => void) | undefined;
   mat.onBeforeCompile = (shader) => {
     if (typeof prev === 'function') {
       prev(shader);
@@ -155,18 +166,19 @@ function _patchTeamcolourMaterial(mat) {
   mat.needsUpdate = true;
 }
 
-function _applyTeamcolorToContainer(factionKey, target) {
+function _applyTeamcolorToContainer(factionKey: string, target: FactionBucket): void {
   const scene = target?.soldier?.scene;
   if (!scene || typeof scene.traverse !== 'function') {
     return;
   }
   const slot = TEAMCOLOUR_SLOT[factionKey] || 'trim';
-  const slotHex = teamcolorHex(target.teamcolor?.[slot])
-    ?? teamcolorHex(target.teamcolor?.primary);
-  scene.traverse((node) => {
+  const palette = target.teamcolor;
+  const slotHex = teamcolorHex(palette?.[slot] as { r: number; g: number; b: number } | null)
+    ?? teamcolorHex(palette?.primary as { r: number; g: number; b: number } | null);
+  scene.traverse((node: THREE.Object3D & { material?: THREE.Material | THREE.Material[] }) => {
     const mats = Array.isArray(node.material) ? node.material : (node.material ? [node.material] : []);
     for (const mat of mats) {
-      if (!TEAMCOLOUR_BODY_MATERIALS.includes(mat.name) || !mat.color) {
+      if (!TEAMCOLOUR_BODY_MATERIALS.includes(mat.name) || !(mat as THREE.MeshStandardMaterial).color) {
         continue;
       }
       _patchTeamcolourMaterial(mat);
@@ -180,11 +192,11 @@ function _applyTeamcolorToContainer(factionKey, target) {
   });
 }
 
-export function getFactionTeamcolourScheme(factionKey) {
+export function getFactionTeamcolourScheme(factionKey: string): string {
   return _teamcolourScheme[factionKey] || 'default';
 }
 
-export async function setFactionTeamcolourScheme(factionKey, scheme) {
+export async function setFactionTeamcolourScheme(factionKey: string, scheme: string): Promise<string> {
   const schemes = getFactionTeamcolourSchemes(factionKey);
   const next = schemes.includes(scheme) ? scheme : 'default';
   _teamcolourScheme[factionKey] = next;
@@ -193,16 +205,17 @@ export async function setFactionTeamcolourScheme(factionKey, scheme) {
     if (next === 'default') {
       target.teamcolor = null;
     } else {
-      const url = modelUrl(FACTIONS[factionKey]?.teamcolours?.[next]);
+      const teamcolourPath = FACTIONS[factionKey]?.teamcolours?.[next];
+      const url = teamcolourPath ? modelUrl(teamcolourPath) : teamcolourPath;
       if (!url) {
         target.teamcolor = null;
       } else if (_teamcolourCache[url]) {
-        target.teamcolor = _teamcolourCache[url];
+        target.teamcolor = _teamcolourCache[url] as Record<string, unknown>;
       } else {
         try {
           const parsed = await loadTeamcolour(url);
           if (parsed) _teamcolourCache[url] = parsed;
-          target.teamcolor = parsed;
+          target.teamcolor = parsed as Record<string, unknown> | null;
         } catch (_) {
           target.teamcolor = null;
         }
@@ -214,7 +227,7 @@ export async function setFactionTeamcolourScheme(factionKey, scheme) {
   return next;
 }
 
-export function toggleFactionTeamcolourScheme(factionKey) {
+export function toggleFactionTeamcolourScheme(factionKey: string): Promise<string> {
   const schemes = getFactionTeamcolourSchemes(factionKey);
   const cur = schemes.indexOf(getFactionTeamcolourScheme(factionKey));
   return setFactionTeamcolourScheme(factionKey, schemes[(cur + 1) % schemes.length]);
@@ -222,8 +235,8 @@ export function toggleFactionTeamcolourScheme(factionKey) {
 
 
 
-function _collectUnitModels(config) {
-  const models = new Set();
+function _collectUnitModels(config: FactionConfig | null | undefined): Set<string> {
+  const models = new Set<string>();
   for (const unit of config?.units || []) {
     if (unit.model) {
       models.add(unit.model);
@@ -232,11 +245,12 @@ function _collectUnitModels(config) {
   return models;
 }
 
-function _collectVehicleModels(config) {
-  const models = new Set();
+function _collectVehicleModels(config: FactionConfig | null | undefined): Set<string> {
+  const models = new Set<string>();
   for (const structure of config?.structures || []) {
     for (const item of structure.production || []) {
-      if (item.model) {
+      // Bare filename strings carry no .model and were always skipped.
+      if (typeof item !== 'string' && item.model && !models.has(item.model)) {
         models.add(item.model);
       }
     }
@@ -244,7 +258,7 @@ function _collectVehicleModels(config) {
   return models;
 }
 
-export function countFactionModels(config) {
+export function countFactionModels(config: FactionConfig | null | undefined): number {
   if (!config) {
     return 0;
   }
@@ -264,7 +278,12 @@ export function countFactionModels(config) {
   return total;
 }
 
-export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, hooks = {}) {
+export interface LoadFactionHooks {
+  loadModel?: (url: string) => Promise<GltfContainer | null>;
+  onProgress?: ((info: { loaded: number; total: number; label: string }) => void) | null;
+}
+
+export async function loadFactionModels(scene: unknown, factionKeys: string[] = POSITION_FACTIONS, hooks: LoadFactionHooks = {}): Promise<void> {
   console.log('[FACTION] START LOADING MODELS...');
   const { loadModel = loadGltf, onProgress = null } = hooks;
   let total = 0;
@@ -273,7 +292,7 @@ export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, 
   }
   let loaded = 0;
 
-  function reportProgress(label) {
+  function reportProgress(label: string): void {
     loaded += 1;
     if (onProgress) {
       try {
@@ -282,10 +301,10 @@ export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, 
     }
   }
 
-  async function safeLoad(path, label, hiddenNodes) {
+  async function safeLoad(path: unknown, label: string, hiddenNodes?: string[]): Promise<GltfContainer | null> {
     if (!path) return null;
     try {
-      const url = modelUrl(path);
+      const url = modelUrl(String(path));
       console.log(`[FACTION] Loading ${label}: ${url}`);
       const container = await loadModel(url);
       if (container && hiddenNodes) container._hiddenNodes = hiddenNodes;
@@ -298,8 +317,11 @@ export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, 
     }
   }
 
-  async function loadUnitContainers(config, target, label) {
+  async function loadUnitContainers(config: FactionConfig, target: Record<string, GltfContainer | null>, label: string | undefined): Promise<void> {
     for (const unit of config?.units || []) {
+      if (!unit.name) {
+        continue;
+      }
       target[unit.name] = maybeMergeSkinned(
         await safeLoad(unit.model, `${label} Unit ${unit.name}`, unit.hiddenNodes),
         unit.hiddenNodes,
@@ -311,7 +333,7 @@ export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, 
   // Worker/soldier/units: merge skinned parts per material at load.
   // Runtime-switched meshes (weapons, planter banner, glow anchors),
   // hidden and animated subtrees always stay separate.
-  function maybeMergeSkinned(container, hiddenNodes, label) {
+  function maybeMergeSkinned(container: GltfContainer | null, hiddenNodes: string[] | undefined, label: string): GltfContainer | null {
     if (!container) {
       return container;
     }
@@ -326,7 +348,7 @@ export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, 
   // HQ/structures only: merge static geometry per material at load.
   // Hidden subtrees stay separate so hiddenNodes keeps working;
   // animated subtrees, skins and morphs are never merged.
-  function maybeMergeStatic(container, hiddenNodes, label) {
+  function maybeMergeStatic(container: GltfContainer | null, hiddenNodes: string[] | undefined, label: string): GltfContainer | null {
     if (!container) {
       return container;
     }
@@ -353,6 +375,9 @@ export async function loadFactionModels(scene, factionKeys = POSITION_FACTIONS, 
     target.soldier = maybeMergeSkinned(await safeLoad(config.infantry?.[1]?.model, `${config.name} Soldier`, config.infantry?.[1]?.hiddenNodes), config.infantry?.[1]?.hiddenNodes, `${config.name} Soldier`);
     await loadUnitContainers(config, target.units, config.name);
     for (const s of config.structures || []) {
+      if (!s.type) {
+        continue;
+      }
       target.structures[s.type] = maybeMergeStatic(
         await safeLoad(s.model, `${config.name} Structure ${s.type}`, s.hiddenNodes),
         s.hiddenNodes,

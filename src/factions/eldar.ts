@@ -1,11 +1,13 @@
 import worker from '../../animations/eldar/worker.json';
 import soldier from '../../animations/eldar/soldier.json';
-import structures from '../../animations/eldar/structures.json';
+import structuresJson from '../../animations/eldar/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/eldar/eldar_structures_infantries_production_list.json';
 import vehProduction from '../../animations/eldar/eldar_structures_vehicles_production_list.json';
+import type { ProductionItem } from './types.js';
 
-const productionList = { ...infProduction, ...vehProduction };
+const productionList: Record<string, ProductionItem[]> = { ...infProduction, ...vehProduction };
 export default {
   name: 'Eldar',
   hq: 'models/eldar/structures/webway_assembly.glb',

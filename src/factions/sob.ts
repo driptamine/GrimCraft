@@ -1,11 +1,13 @@
 import worker from '../../animations/sob/worker.json';
 import soldier from '../../animations/sob/soldier.json';
-import structures from '../../animations/sob/structures.json';
+import structuresJson from '../../animations/sob/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/sob/sob_structures_infantries_production_list.json';
 import vehProduction from '../../animations/sob/sob_structures_vehicles_production_list.json';
+import type { ProductionItem } from './types.js';
 
-const productionList = { ...infProduction, ...vehProduction };
+const productionList: Record<string, ProductionItem[]> = { ...infProduction, ...vehProduction };
 export default {
   name: 'Sisters of Battle',
   hq: 'models/sob/structures/adepta_sororitas_convent.glb',

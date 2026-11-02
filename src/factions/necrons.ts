@@ -1,11 +1,13 @@
 import worker from '../../animations/necrons/worker.json';
 import soldier from '../../animations/necrons/soldier.json';
-import structures from '../../animations/necrons/structures.json';
+import structuresJson from '../../animations/necrons/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/necrons/necrons_structures_infantries_production_list.json';
 import vehProduction from '../../animations/necrons/necrons_structures_vehicles_production_list.json';
+import type { ProductionItem } from './types.js';
 
-const productionList = { ...infProduction, ...vehProduction };
+const productionList: Record<string, ProductionItem[]> = { ...infProduction, ...vehProduction };
 export default {
   name: 'Necrons',
   hq: 'models/necrons/structures/monolith.glb',

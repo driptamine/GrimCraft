@@ -1,12 +1,14 @@
 import worker from '../../animations/chaos/worker.json';
 import chaos_space_marine from '../../animations/chaos/chaos_space_marine.json';
 import bloodthirster from '../../animations/chaos/bloodthirster.json';
-import structures from '../../animations/chaos/structures.json';
+import structuresJson from '../../animations/chaos/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/chaos/chaos_structures_infantries_production_list.json';
 import vehProduction from '../../animations/chaos/chaos_structures_vehicles_production_list.json';
+import type { ProductionItem } from './types.js';
 
-const productionList = { ...infProduction, ...vehProduction };
+const productionList: Record<string, ProductionItem[]> = { ...infProduction, ...vehProduction };
 export default {
   name: 'Chaos',
   hq: 'models/chaos/structures/desecrated_stronghold.glb',

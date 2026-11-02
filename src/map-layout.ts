@@ -13,7 +13,39 @@ import vandeaCoastLayout from '../maps/6p_vandea_coast/6p_vandea_coast.json';
 import burialGroundsLayout from '../maps/8p_burial_grounds/8p_burial_grounds.json';
 import oasisOfSharrLayout from '../maps/8p_oasis_of_sharr/8p_oasis_of_sharr.json';
 
-const LAYOUTS = {
+export interface LayoutPosition {
+  x: number;
+  z: number;
+  team?: unknown;
+  faction?: string;
+}
+
+export interface LayoutStrategicPoint {
+  x: number;
+  z: number;
+  kind?: string;
+}
+
+export interface MapLayoutData {
+  positions: LayoutPosition[];
+  bounds?: number;
+  strategicPoints?: LayoutStrategicPoint[];
+  centerPoints?: number[][];
+  ringPerPosition?: unknown;
+  ringOffsets?: number[][];
+  relicDistance?: number;
+}
+
+export interface SpawnPoint {
+  team: unknown;
+  x: number;
+  z: number;
+  size: number;
+  unitType: string | null;
+  faction: string | undefined;
+}
+
+const LAYOUTS: Record<string, MapLayoutData> = {
   arena: arenaLayout,
   '6p_alvarus': alvarusLayout,
   mortalis: mortalisLayout,
@@ -26,27 +58,33 @@ const LAYOUTS = {
   '8p_oasis_of_sharr': oasisOfSharrLayout,
 };
 
-export function layoutFor(mapKey) {
+export function layoutFor(mapKey: string): MapLayoutData {
   if (mapKey === 'arena') {
     return LAYOUTS.arena;
   }
-  const base = String(mapKey || '').split('/').pop().replace(/\.sgb$/i, '');
+  const base = (String(mapKey || '').split('/').pop() || '').replace(/\.sgb$/i, '');
   return LAYOUTS[base] || LAYOUTS.arena;
 }
 
-export function startPositionsFor(mapKey) {
+export function startPositionsFor(mapKey: string): Array<{ x: number; z: number; team: unknown }> {
   return layoutFor(mapKey).positions.map((pos) => ({ x: pos.x, z: pos.z, team: pos.team }));
 }
 
-export function factionsFor(mapKey) {
+export function factionsFor(mapKey: string): Array<string | undefined> {
   return layoutFor(mapKey).positions.map((pos) => pos.faction);
 }
 
-export function boundsFor(mapKey) {
+export function boundsFor(mapKey: string): number {
   return layoutFor(mapKey).bounds || 256;
 }
 
-export function strategicPointsFor(mapKey) {
+export interface StrategicPointSpec {
+  x: number;
+  z: number;
+  kind: string;
+}
+
+export function strategicPointsFor(mapKey: string): StrategicPointSpec[] {
   const layout = layoutFor(mapKey);
   if (Array.isArray(layout.strategicPoints) && layout.strategicPoints.length) {
     return layout.strategicPoints.map((p) => ({
@@ -55,7 +93,7 @@ export function strategicPointsFor(mapKey) {
       kind: p.kind === 'relic' ? 'relic' : (p.kind === 'objective' ? 'objective' : 'point'),
     }));
   }
-  const points = (layout.centerPoints || []).map(([x, z]) => ({ x, z, kind: 'point' }));
+  const points: StrategicPointSpec[] = (layout.centerPoints || []).map(([x, z]) => ({ x, z, kind: 'point' }));
   if (layout.ringPerPosition) {
     for (const pos of layout.positions) {
       for (const [dx, dz] of layout.ringOffsets || []) {
@@ -71,15 +109,15 @@ export function strategicPointsFor(mapKey) {
 }
 
 // Starting camera target: the given side's base of a faction (if any).
-export function factionBasePosition(mapKey, team, faction) {
+export function factionBasePosition(mapKey: string, team: unknown, faction: string): { x: number; z: number } | null {
   const pos = layoutFor(mapKey).positions.find((p) => p.team === team && p.faction === faction);
   return pos ? { x: pos.x, z: pos.z } : null;
 }
 
 // Starting troops: the given side's IG base fields two guardsmen squads
 // flanking its HQ (unitType 'guardsmen' -> guardsmen.glb + sergeant lead).
-export function startingGuardsmenSpawns(mapKey, team) {
-  const spawns = [];
+export function startingGuardsmenSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'ig') {
       spawns.push(
@@ -93,8 +131,8 @@ export function startingGuardsmenSpawns(mapKey, team) {
 
 // Starting troops: the given side's Necron base fields two warrior squads
 // flanking its HQ (unitType null -> default soldier necron_basic_warrior.glb).
-export function startingNecronSpawns(mapKey, team) {
-  const spawns = [];
+export function startingNecronSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'necrons') {
       spawns.push(
@@ -109,8 +147,8 @@ export function startingNecronSpawns(mapKey, team) {
 // Starting troops: the given side's Tau base fields two fire warrior squads
 // flanking its HQ (unitType null -> default soldier fire_warrior.glb).
 // Only the arena fields Tau (7th position); SGB maps have no Tau base.
-export function startingTauSpawns(mapKey, team) {
-  const spawns = [];
+export function startingTauSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'tau') {
       spawns.push(
@@ -124,8 +162,8 @@ export function startingTauSpawns(mapKey, team) {
 
 // Starting troops: the given side's Dark Eldar base fields two Kabalite
 // Warrior squads flanking its HQ.
-export function startingDarkEldarSpawns(mapKey, team) {
-  const spawns = [];
+export function startingDarkEldarSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'dark eldar') {
       spawns.push(
@@ -139,8 +177,8 @@ export function startingDarkEldarSpawns(mapKey, team) {
 
 // Starting troops: the given side's Ork base fields a Boyz squad and a
 // Shoota Boyz squad flanking its HQ.
-export function startingOrkSpawns(mapKey, team) {
-  const spawns = [];
+export function startingOrkSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'orks') {
       spawns.push(
@@ -154,8 +192,8 @@ export function startingOrkSpawns(mapKey, team) {
 
 // Starting troops: the given side's Eldar base fields a Guardian squad and
 // a Dark Reaper squad flanking its HQ.
-export function startingEldarSpawns(mapKey, team) {
-  const spawns = [];
+export function startingEldarSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'eldar') {
       spawns.push(
@@ -170,8 +208,8 @@ export function startingEldarSpawns(mapKey, team) {
 // Starting troops: the given side's Space Marine base fields two tactical
 // squads flanking its HQ (unitType null -> space_marine.glb) plus a Grey
 // Knight squad between them.
-export function startingMarineSpawns(mapKey, team) {
-  const spawns = [];
+export function startingMarineSpawns(mapKey: string, team: unknown): SpawnPoint[] {
+  const spawns: SpawnPoint[] = [];
   for (const pos of layoutFor(mapKey).positions) {
     if (pos.team === team && pos.faction === 'space marines') {
       spawns.push(

@@ -20,6 +20,13 @@ Update this file every time a module is migrated: move the row from Queue to Don
 | `src/three-helpers.ts` | — (covered by grid/gpu/ground suites) | Factories, `MaybeMesh`, `TextureLoadCallbacks`, `DynamicResolution`, quality tiers. |
 | `src/gltf-models.ts` | — (covered by anim-scrub/migration suites) | `GltfContainer`, `GltfInstance`, `AnimGroup` (declared fields), `MixerRecord`. |
 | `src/model-upload.ts` | — | `AnimSlotNames`, `AnyGroup` for runtime-attached fields, DOM casts (`as HTMLInputElement`), `keyof typeof TEAM_COLOR`. |
+| `src/factions.ts` | — (covered by faction suites) | `FactionBucket`, `LoadFactionHooks`, string-keyed lookups via `Record<string, FactionConfig>`. |
+| `src/factions/types.ts` | — (new) | `FactionConfig`, `FactionUnit/StructureEntry`, `ProductionItem` (objects + bare strings), `FactionKey`. |
+| `src/factions/*.ts` (9) | — | Pure data; `productionList` + `structures` JSON maps typed as `Record` (missing keys fall back to `[]`/`undefined` as before). |
+| `src/teamcolour.ts` | — | `TeamcolourScheme`, nullable slots, `fetchImpl = fetch` default. |
+| `src/maps-menu.ts` | — | `MapEntry`/`MapCard`, DOM casts, `window._currentMapKey` via `Record`. |
+| `src/map-layout.ts` | — | `MapLayoutData`, `SpawnPoint`, JSON layouts via `resolveJsonModule`. |
+| `src/model-source.ts` | — | Trivial string-union toggle. |
 
 ## Infrastructure (done, supports all future renames)
 
@@ -49,7 +56,7 @@ Update this file every time a module is migrated: move the row from Queue to Don
 ## Batches (one gate cycle each; deploy rides every push, live verified after batch 4)
 
 - [x] Batch 1 — bolts/effects/audio: `blaster-bolt.js`, `plasma-bolt.js`, `reaper-bolt.js`, `plasma-glow.js`, `plasma-pistol-glow.js`, `necron-aura.js`, `necron-conduit.js`, `necron-lightning.js`, `audio.js`, `r2-image.js`, `r2-manifest.js` (no test renames — .js suites cover the .ts through hooks; `r2-manifest` reads factions via a minimal `FactionModels` contract)
-- [ ] Batch 2 — data + config: `factions.js`, `factions/*.js` (9), `teamcolour.js`, `maps-menu.js`, `map-layout.js`, `model-source.js`
+- [x] Batch 2 — data + config: `factions.js`, `factions/*.js` (9) + new `factions/types.ts`, `teamcolour.js`, `maps-menu.js`, `map-layout.js`, `model-source.js` (+ `resolveJsonModule`). Shared `FactionConfig` / `ProductionItem` (objects + bare filename strings); `maps-menu.test.js` source path bumped to `.ts`
 - [ ] Batch 3 — meshes: `meshes.js`, `meshes/*.js` (7)
 - [ ] Batch 4 — SGB + terrain: `sgb-decals.js`, `sgb-mirror.js`, `sgb-parser.js`, `sgb-reader.js`, `sgb-surface.js`, `sgb-textures.js`, `sgb-upload.js`, `terrain-upload.js`
 - [ ] Batch 5 — input: `input.js`, `input/*.js` (7)

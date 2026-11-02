@@ -11,12 +11,31 @@
 // grey #D4D4D4, Secondary/Eyes/Weapons near-black #232323.
 export const TEAMCOLOUR_SLOTS = ['eyes', 'weapons', 'primary', 'trim', 'secondary'];
 
-function _parseSlot(body, name) {
+export interface TeamcolourRGB {
+  r: number;
+  g: number;
+  b: number;
+}
+
+export interface TeamcolourScheme {
+  associatedRace: string | null;
+  badgeName: string | null;
+  bannerName: string | null;
+  patternName: string | null;
+  forceName: string | null;
+  eyes: TeamcolourRGB | null;
+  weapons: TeamcolourRGB | null;
+  primary: TeamcolourRGB | null;
+  trim: TeamcolourRGB | null;
+  secondary: TeamcolourRGB | null;
+}
+
+function _parseSlot(body: string, name: string): TeamcolourRGB | null {
   // `Name = { b = 1, g = 2, r = 3, }` with arbitrary order/whitespace.
   const block = new RegExp(name + '\\s*=\\s*\\{([^}]*)\\}', 'i').exec(body);
   if (!block) return null;
   const inner = block[1];
-  const channel = (ch) => {
+  const channel = (ch: string): number | null => {
     const m = new RegExp('\\b' + ch + '\\s*=\\s*(\\d+)', 'i').exec(inner);
     if (!m) return null;
     const v = Number(m[1]);
@@ -29,41 +48,46 @@ function _parseSlot(body, name) {
   return { r, g, b };
 }
 
-function _parseString(body, name) {
-  const m = new RegExp(name + '\\s*=\\s*\"([^\"]*)\"', 'i').exec(body);
+function _parseString(body: string, name: string): string | null {
+  const m = new RegExp(name + '\\s*=\\s*\\"([^\\"]*)\\"', 'i').exec(body);
   return m ? m[1] : null;
 }
 
 // Parse .teamcolour text. Returns null when the text has no recognizable
 // UnitCustomization block (missing file, wrong format) — callers treat null
 // as "no faction colors" and keep defaults.
-export function parseTeamcolour(text) {
+export function parseTeamcolour(text: unknown): TeamcolourScheme | null {
   if (typeof text !== 'string' || !text) return null;
   if (!/UnitCustomization\s*=/i.test(text)) return null;
-  const colors = {};
+  const colors: Record<string, TeamcolourRGB | null> = {};
   for (const slot of TEAMCOLOUR_SLOTS) {
     colors[slot] = _parseSlot(text, slot);
   }
-  if (!colors.primary) return null;
+  const primary = colors.primary;
+  if (!primary) return null;
   return {
     associatedRace: _parseString(text, 'associated_race'),
     badgeName: _parseString(text, 'badge_name'),
     bannerName: _parseString(text, 'banner_name'),
     patternName: _parseString(text, 'pattern_name'),
     forceName: _parseString(text, 'force_name'),
-    ...colors,
+    eyes: colors.eyes ?? null,
+    weapons: colors.weapons ?? null,
+    primary,
+    trim: colors.trim ?? null,
+    secondary: colors.secondary ?? null,
   };
 }
 
 // {r,g,b} 0-255 -> 0xRRGGBB int. Null-safe (null in, null out).
-export function teamcolorHex(rgb) {
+export function teamcolorHex(rgb: TeamcolourRGB | null | undefined): number | null {
   if (!rgb) return null;
   return ((rgb.r & 0xff) << 16) | ((rgb.g & 0xff) << 8) | (rgb.b & 0xff);
 }
 
 // Fetch + parse. Loader errors (404, network) resolve null — a missing
 // scheme file must never break model loading.
-export async function loadTeamcolour(url, fetchImpl = fetch) {
+export async function loadTeamcolour(url: string, fetchImpl: typeof fetch = fetch): Promise<TeamcolourScheme | null> {
   if (!url) return null;
   try {
     const res = await fetchImpl(url);

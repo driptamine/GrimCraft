@@ -99,7 +99,7 @@ describe('map selection menu', () => {
 
 describe('alvarus ground sheet', () => {
   it('uses the DDS-derived PNG, and the file is a real 256x256 PNG', () => {
-    const src = fs.readFileSync(path.join(root, 'src/maps-menu.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/maps-menu.ts'), 'utf8');
     assert.match(src, /loadTerrainTextureUrl\('\/maps\/6p_alvarus\/decals\/terrain\/chaos_taint_02_dds\.png', '6P ALVARUS'\)/);
     const buf = fs.readFileSync(path.join(root, 'maps/6p_alvarus/decals/terrain/chaos_taint_02_dds.png'));
     assert.equal(buf.subarray(1, 4).toString(), 'PNG');

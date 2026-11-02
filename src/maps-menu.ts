@@ -1,8 +1,8 @@
 // NOTE: call import.meta.glob unconditionally — vite replaces these calls
 // statically at build time, while `typeof import.meta.glob` is undefined at
 // runtime (browser and node alike), so it can't be used as a guard.
-let MAP_GLOB = {};
-let MAP_PREVIEW_GLOB = {};
+let MAP_GLOB: Record<string, string> = {};
+let MAP_PREVIEW_GLOB: Record<string, string> = {};
 try {
   MAP_GLOB = import.meta.glob('/maps/**/*.sgb', { as: 'url', eager: true });
   MAP_PREVIEW_GLOB = import.meta.glob('/maps/**/*_preview.png', { as: 'url', eager: true });
@@ -10,28 +10,45 @@ try {
   // Plain node (tests): no vite transform, keep the empty maps.
 }
 
-let _selectedPath = null;
-let _entries = [];
+let _selectedPath: string | null = null;
 
-export function displayName(path) {
-  return String(path)
+export interface MapEntry {
+  path: string;
+  url: string;
+  name: string;
+  players: number | null;
+  previewUrl: string | null;
+}
+
+export interface MapCard {
+  path: string | null;
+  url: string | null;
+  name: string;
+  players: number | null;
+  previewUrl: string | null;
+}
+
+let _entries: MapCard[] = [];
+
+export function displayName(path: string): string {
+  return (String(path)
     .split('/')
-    .pop()
+    .pop() || '')
     .replace(/\.sgb$/i, '')
     .replace(/[_-]+/g, ' ');
 }
 
-export function playersFor(path) {
-  const match = /(\d+)p[_-]/i.exec(String(path).split('/').pop());
+export function playersFor(path: string): number | null {
+  const match = /(\d+)p[_-]/i.exec(String(path).split('/').pop() || '');
   return match ? Number(match[1]) : null;
 }
 
-export function previewFor(path, previews = MAP_PREVIEW_GLOB) {
+export function previewFor(path: string, previews: Record<string, string> = MAP_PREVIEW_GLOB): string | null {
   const key = String(path).replace(/\.sgb$/i, '') + '_preview.png';
   return previews[key] || null;
 }
 
-export function listBuiltinMaps(glob = MAP_GLOB, previews = MAP_PREVIEW_GLOB) {
+export function listBuiltinMaps(glob: Record<string, string> = MAP_GLOB, previews: Record<string, string> = MAP_PREVIEW_GLOB): MapEntry[] {
   return Object.entries(glob)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([path, url]) => ({
@@ -43,11 +60,11 @@ export function listBuiltinMaps(glob = MAP_GLOB, previews = MAP_PREVIEW_GLOB) {
     }));
 }
 
-export function entryLabel({ name, players }) {
+export function entryLabel({ name, players }: { name: string; players: number | null }): string {
   return players ? `${name} (${players}P)` : name;
 }
 
-export function skirmishMapCards(builtin = listBuiltinMaps()) {
+export function skirmishMapCards(builtin: MapEntry[] = listBuiltinMaps()): MapCard[] {
   return [
     { path: null, url: null, name: 'Default Arena', players: null, previewUrl: null },
     ...builtin,
@@ -55,24 +72,25 @@ export function skirmishMapCards(builtin = listBuiltinMaps()) {
 }
 
 // Skirmish preselects 6p_alvarus when shipped (null = Default Arena).
-export function defaultSkirmishMap(cards) {
+export function defaultSkirmishMap(cards?: MapCard[] | null): MapCard | null {
   return (cards || []).find((c) => c.path && /alvarus/i.test(c.path)) || null;
 }
 
-export function previewState(entry) {
+export function previewState(entry: MapEntry | MapCard | null): { kind: 'image'; url: string } | { kind: 'empty' } {
   const url = entry?.previewUrl || null;
   return url ? { kind: 'image', url } : { kind: 'empty' };
 }
 
-function renderMapPreview(entry) {
+function renderMapPreview(entry: MapEntry | MapCard | null): void {
   const box = document.getElementById('maps-preview');
   if (!box) {
     return;
   }
   box.innerHTML = '';
-  if (previewState(entry).kind === 'image') {
+  const preview = previewState(entry);
+  if (preview.kind === 'image' && entry) {
     const img = document.createElement('img');
-    img.src = entry.previewUrl;
+    img.src = preview.url;
     img.alt = entry.name;
     img.addEventListener('error', () => {
       box.innerHTML = '';
@@ -82,7 +100,7 @@ function renderMapPreview(entry) {
       box.appendChild(empty);
       const cap = document.createElement('div');
       cap.className = 'maps-preview-cap';
-      cap.textContent = entryLabel(entry);
+      cap.textContent = entryLabel(entry as MapCard);
       box.appendChild(cap);
     });
     box.appendChild(img);
@@ -100,7 +118,7 @@ function renderMapPreview(entry) {
   }
 }
 
-export function buildMapsMenu() {
+export function buildMapsMenu(): void {
   const list = document.getElementById('maps-list');
   if (!list) {
     return;
@@ -128,13 +146,13 @@ export function buildMapsMenu() {
   renderMapPreview(_entries.find((e) => e.path === _selectedPath) || null);
 }
 
-export async function selectMap(path, url) {
+export async function selectMap(path: string, url: string): Promise<void> {
   _selectedPath = path;
-  window._currentMapKey = path;
+  (window as unknown as Record<string, unknown>)._currentMapKey = path;
   renderMapPreview(_entries.find((e) => e.path === path) || null);
   const list = document.getElementById('maps-list');
   if (list) {
-    Array.from(list.children).forEach((el) => {
+    (Array.from(list.children) as HTMLElement[]).forEach((el) => {
       if (el.classList) {
         el.classList.toggle('active', el.dataset.path === path);
       }
@@ -151,7 +169,7 @@ export async function selectMap(path, url) {
   applyMapDecalAutoPair(path, url);
 }
 
-async function applyMapDecalAutoPair(path, url) {
+async function applyMapDecalAutoPair(path: string, _url: string): Promise<void> {
   // The 6p_alvarus map is wired to the terrain decal store (maps/6p_alvarus/decals/) as
   // its biomes live there (jungle/urban/z_all + loose), not beside the .sgb.
   // Mirror the decals-browser click (loadTerrainTextureUrl) so the map jump
@@ -161,7 +179,7 @@ async function applyMapDecalAutoPair(path, url) {
   }
   const { loadTerrainTextureUrl, updateTerrainMeshY } = await import('./terrain-upload.js');
   // Default the map's ground to Y offset 4.0.
-  const ySlider = document.getElementById('terrain-mesh-y');
+  const ySlider = document.getElementById('terrain-mesh-y') as HTMLInputElement | null;
   const yVal = document.getElementById('terrain-mesh-y-val');
   if (ySlider) {
     ySlider.value = '4';
@@ -188,7 +206,7 @@ async function applyMapDecalAutoPair(path, url) {
       import('./sgb-decals.js'),
       import('./sgb-upload.js'),
     ]);
-    const sampleHeight = window.__sgbSampleHeight || (() => 0);
+    const sampleHeight = (window as unknown as Record<string, unknown>).__sgbSampleHeight || (() => 0);
     buildSgbDecalsFromLayout(sgbModule._sgbRoot, layout, sampleHeight);
   } catch (err) {
     console.error('layout decals error:', err);

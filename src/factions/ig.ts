@@ -1,6 +1,7 @@
 import tech_priest_engineseer from '../../animations/ig/infantry/tech_priest_engineseer.json';
 import imperial_guardsmen from '../../animations/ig/infantry/imperial_guardsmen.json';
-import structures from '../../animations/ig/structures/structures.json';
+import structuresJson from '../../animations/ig/structures/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 const STRUCTURE_HIDDEN_NODES = [
   'scaffolding', 'crate_', 'turbine', 'mrk_turbine',

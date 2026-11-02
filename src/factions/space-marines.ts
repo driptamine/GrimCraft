@@ -1,11 +1,13 @@
 import worker from '../../animations/space-marines/worker.json';
 import soldier from '../../animations/space-marines/soldier.json';
-import structures from '../../animations/space-marines/structures.json';
+import structuresJson from '../../animations/space-marines/structures.json';
+const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/space-marines/space_marines_structures_infantries_production_list.json';
 import vehProduction from '../../animations/space-marines/space_marines_structures_vehicles_production_list.json';
+import type { ProductionItem } from './types.js';
 
-const productionList = { ...infProduction, ...vehProduction };
+const productionList: Record<string, ProductionItem[]> = { ...infProduction, ...vehProduction };
 export default {
   name: 'Space Marines',
   teamcolours: {

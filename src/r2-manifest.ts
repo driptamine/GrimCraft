@@ -4,14 +4,11 @@
 // BATTLE cache preflight: urls already in Cache Storage need no download.
 import { FACTIONS, ARENA_POSITION_FACTIONS } from './factions.js';
 import { modelUrl } from './assets.js';
-
-interface ProductionItem {
-  model?: unknown;
-}
+import type { FactionStructureEntry } from './factions/types.js';
 
 interface StructureLike {
   model?: unknown;
-  production?: ProductionItem[] | null;
+  production?: FactionStructureEntry['production'];
 }
 
 // Minimal contract this module reads from a faction config. factions.js is
@@ -29,7 +26,7 @@ function _collectVehicleModels(config: { structures?: StructureLike[] | null } |
   const seen = new Set<string>();
   for (const structure of config?.structures || []) {
     for (const item of structure.production || []) {
-      if (typeof item.model === 'string' && !seen.has(item.model)) {
+      if (typeof item !== 'string' && item.model && !seen.has(item.model)) {
         seen.add(item.model);
         models.push(item.model);
       }
