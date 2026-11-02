@@ -5,8 +5,8 @@
  * always land exactly on the micro lines skipped for them — regardless of
  * the half-extent. Requires macro to be a whole multiple of micro.
  */
-export function macroLinePositions(half, macro) {
-  const positions = [];
+export function macroLinePositions(half: number, macro: number): number[] {
+  const positions: number[] = [];
   const count = Math.floor(half / macro + 1e-9);
   for (let k = -count; k <= count; k++) {
     positions.push(k * macro);
@@ -14,8 +14,8 @@ export function macroLinePositions(half, macro) {
   return positions;
 }
 
-export function microLinePositions(half, micro, macro) {
-  const positions = [];
+export function microLinePositions(half: number, micro: number, macro: number): number[] {
+  const positions: number[] = [];
   const count = Math.floor(half / micro + 1e-9);
   const perMacro = Math.round(macro / micro);
   for (let k = -count; k <= count; k++) {

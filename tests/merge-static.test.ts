@@ -3,22 +3,24 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { mergeStaticContainer } from '../src/merge-static.js';
 
-function box(name, material, x = 0) {
+function box(name: string, material: THREE.Material | THREE.Material[], x = 0) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
   mesh.name = name;
   mesh.position.x = x;
   return mesh;
 }
 
-function containerWith(...objects) {
+function containerWith(...objects: THREE.Object3D[]) {
   const scene = new THREE.Group();
   for (const o of objects) scene.add(o);
-  return { scene, animations: [] };
+  return { scene, animations: [] as THREE.AnimationClip[] };
 }
 
-const meshCount = (scene) => {
+type MaybeMesh = THREE.Object3D & { isMesh?: unknown };
+
+const meshCount = (scene: THREE.Object3D) => {
   let n = 0;
-  scene.traverse((o) => { if (o.isMesh) n += 1; });
+  scene.traverse((o: MaybeMesh) => { if (o.isMesh) n += 1; });
   return n;
 };
 
@@ -30,10 +32,10 @@ describe('merge-static', () => {
     assert.equal(meshCount(c.scene), 1);
     assert.equal(stats.before, 3);
     assert.equal(stats.after, 1);
-    const merged = c.scene.children.find((o) => o.isMesh);
+    const merged = c.scene.children.find((o: MaybeMesh) => o.isMesh) as THREE.Mesh;
     assert.equal(merged.material, mat);
     merged.geometry.computeBoundingBox();
-    const bb = merged.geometry.boundingBox;
+    const bb = merged.geometry.boundingBox as THREE.Box3;
     assert.ok(bb.min.x <= -5.5 && bb.max.x >= 5.5);
   });
 
@@ -64,7 +66,7 @@ describe('merge-static', () => {
     wobble.name = 'Turbine';
     wobble.add(box('blade', mat, 0));
     const c = containerWith(wobble, box('wall_a', mat, 6), box('wall_b', mat, 9));
-    c.animations = [{ tracks: [{ name: 'Turbine.rotation' }] }];
+    c.animations = [{ tracks: [{ name: 'Turbine.rotation' }] }] as unknown as THREE.AnimationClip[];
     const stats = mergeStaticContainer(c, []);
     assert.equal(meshCount(c.scene), 2);
     assert.equal(stats.excludedAnimated, 1);
@@ -104,10 +106,10 @@ describe('merge-static', () => {
     assert.equal(stats.before, 4);
     assert.equal(stats.after, 2);
     assert.equal(stats.merged, 2);
-    const merged1 = c.scene.children.find((o) => o.isMesh && o.material === m1);
+    const merged1 = c.scene.children.find((o: MaybeMesh) => o.isMesh && (o as THREE.Mesh).material === m1) as THREE.Mesh;
     merged1.geometry.computeBoundingBox();
     // group half (x in [-0.5, 0.5]) plus box at x=5
-    assert.ok(merged1.geometry.boundingBox.max.x >= 5.5);
+    assert.ok((merged1.geometry.boundingBox as THREE.Box3).max.x >= 5.5);
   });
 
   it('keeps originals when geometries are incompatible', () => {
@@ -137,9 +139,9 @@ describe('merge-static', () => {
     parent.add(box('a', mat, 0));
     const c = containerWith(parent, box('b', mat, 0));
     mergeStaticContainer(c, []);
-    const merged = c.scene.children.find((o) => o.isMesh);
+    const merged = c.scene.children.find((o: MaybeMesh) => o.isMesh) as THREE.Mesh;
     merged.geometry.computeBoundingBox();
-    const bb = merged.geometry.boundingBox;
+    const bb = merged.geometry.boundingBox as THREE.Box3;
     assert.ok(bb.min.x <= -0.5 && bb.max.x >= 10.5);
     assert.deepEqual(merged.position.toArray(), [0, 0, 0]);
   });

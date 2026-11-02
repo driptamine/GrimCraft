@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 
-const _matCache = new Map();
+const _matCache = new Map<string, THREE.MeshStandardMaterial>();
 
-export function getMat(hex, alpha = 1) {
+export function getMat(hex: number, alpha = 1): THREE.MeshStandardMaterial {
   const key = hex + '_' + alpha;
-  if (_matCache.has(key)) {
-    return _matCache.get(key);
+  const hit = _matCache.get(key);
+  if (hit) {
+    return hit;
   }
   const material = new THREE.MeshStandardMaterial();
   const color = new THREE.Color('#' + hex.toString(16).padStart(6, '0'));

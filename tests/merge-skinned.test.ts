@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { mergeSkinnedContainer, SOLDIER_SWITCHED_NODES } from '../src/merge-skinned.js';
 
-function skinAttr(geo, joint) {
+function skinAttr(geo: THREE.BufferGeometry, joint: number) {
   const n = geo.getAttribute('position').count;
   const idx = new Uint16Array(n * 4);
   const wgt = new Float32Array(n * 4);
@@ -25,7 +25,7 @@ function rig() {
   return { root, skeleton: new THREE.Skeleton([root, child]) };
 }
 
-function skinnedBox(name, material, joint = 0, x = 0) {
+function skinnedBox(name: string, material: THREE.Material | THREE.Material[], joint = 0, x = 0) {
   const geo = new THREE.BoxGeometry(1, 1, 1);
   geo.translate(x, 0, 0);
   skinAttr(geo, joint);
@@ -36,20 +36,23 @@ function skinnedBox(name, material, joint = 0, x = 0) {
 
 // Bones live at scene root (shared graph); each mesh binds with its own
 // world matrix, like GLTFLoader output.
-function containerWith(skeleton, ...meshes) {
+function containerWith(skeleton: THREE.Skeleton, ...meshes: THREE.Mesh[]) {
   const scene = new THREE.Group();
   scene.add(skeleton.bones[0]);
   for (const m of meshes) scene.add(m);
   scene.updateMatrixWorld(true);
   for (const m of meshes) {
-    if (m.isSkinnedMesh) m.bind(skeleton);
+    const skinned = m as THREE.SkinnedMesh;
+    if (skinned.isSkinnedMesh) skinned.bind(skeleton);
   }
-  return { scene, animations: [] };
+  return { scene, animations: [] as THREE.AnimationClip[] };
 }
 
-const meshCount = (scene) => {
+type MaybeMesh = THREE.Object3D & { isMesh?: unknown };
+
+const meshCount = (scene: THREE.Object3D) => {
   let n = 0;
-  scene.traverse((o) => { if (o.isMesh) n += 1; });
+  scene.traverse((o: MaybeMesh) => { if (o.isMesh) n += 1; });
   return n;
 };
 
@@ -63,12 +66,12 @@ describe('merge-skinned', () => {
     assert.equal(meshCount(c.scene), 1);
     assert.equal(stats.before, 3);
     assert.equal(stats.after, 1);
-    const merged = c.scene.children.find((o) => o.isMesh);
+    const merged = c.scene.children.find((o: MaybeMesh) => o.isMesh) as THREE.SkinnedMesh;
     assert.equal(merged.isSkinnedMesh, true);
     assert.equal(merged.skeleton, skeleton);
     assert.ok(merged.bindMatrix.equals(new THREE.Matrix4()));
     merged.geometry.computeBoundingBox();
-    const bb = merged.geometry.boundingBox;
+    const bb = merged.geometry.boundingBox as THREE.Box3;
     assert.ok(bb.min.x <= -5.5 && bb.max.x >= 5.5);
     assert.ok(merged.geometry.getAttribute('skinIndex'));
   });
@@ -109,7 +112,9 @@ describe('merge-skinned', () => {
     holder.add(skinnedBox('a', mat));
     scene.add(holder, skinnedBox('b', mat));
     scene.updateMatrixWorld(true);
-    scene.traverse((o) => { if (o.isSkinnedMesh) o.bind(skeleton); });
+    scene.traverse((o: MaybeMesh & { isSkinnedMesh?: boolean; bind?: (skeleton: THREE.Skeleton) => void }) => {
+      if (o.isSkinnedMesh) o.bind!(skeleton);
+    });
     mergeSkinnedContainer({ scene, animations: [] }, []);
     assert.equal(meshCount(scene), 2);
   });
@@ -126,7 +131,7 @@ describe('merge-skinned', () => {
       skinnedBox('Turbine', mat, 0, 4),
       skinnedBox('body_a', mat, 0, 6),
       skinnedBox('body_b', mat, 0, 8));
-    c.animations = [{ tracks: [{ name: 'Turbine.rotation' }] }];
+    c.animations = [{ tracks: [{ name: 'Turbine.rotation' }] }] as unknown as THREE.AnimationClip[];
     const stats = mergeSkinnedContainer(c, ['guardsmen_head02']);
     assert.equal(meshCount(c.scene), 4);
     assert.equal(stats.excludedHidden, 1);
@@ -146,10 +151,10 @@ describe('merge-skinned', () => {
     const c = containerWith(skeleton, rigid, rigid2, skinnedBox('a', mat));
     const stats = mergeSkinnedContainer(c, []);
     assert.equal(meshCount(c.scene), 2);
-    const plain = c.scene.children.find((o) => o.isMesh && !o.isSkinnedMesh);
+    const plain = c.scene.children.find((o: MaybeMesh & { isSkinnedMesh?: unknown }) => o.isMesh && !o.isSkinnedMesh) as THREE.Mesh;
     assert.ok(plain);
     plain.geometry.computeBoundingBox();
-    assert.ok(plain.geometry.boundingBox.max.x >= 22.5);
+    assert.ok((plain.geometry.boundingBox as THREE.Box3).max.x >= 22.5);
     assert.equal(stats.after, 2);
   });
 

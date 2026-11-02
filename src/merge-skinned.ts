@@ -17,6 +17,35 @@ import { extractGroupGeometry, meshCallCount } from './merge-static.js';
 //  - animated-node subtrees (node names from clip track names);
 //  - InstancedMesh, morph geometry, skeleton-less skinned meshes;
 //  - pools whose geometries fail to merge (attribute mismatch).
+
+// three-helpers.js is still untyped, so meshes arrive as `any` there.
+// AnyMesh keeps the checked three.js surface (position, material,
+// geometry) while allowing the duck-typed flags (isSkinnedMesh, ...).
+type AnyMesh = THREE.Mesh & Record<string, any>;
+
+interface GltfContainerLike {
+  scene?: THREE.Object3D | null;
+  animations?: THREE.AnimationClip[] | null;
+}
+
+export interface SkinnedMergeStats {
+  before: number;
+  after: number;
+  merged: number;
+  excludedHidden: number;
+  excludedSwitched: number;
+  excludedAnimated: number;
+  skipped: number;
+  failed: number;
+}
+
+interface SkinnedPool {
+  geos: THREE.BufferGeometry[];
+  meshes: AnyMesh[];
+  material: THREE.Material;
+  skinned: boolean;
+}
+
 export const SOLDIER_SWITCHED_NODES = [
   'guard_banner', 'guard_banner_rod',
   'guardsmen_lasgun', 'guardsmen_plasma_pistol',
@@ -24,8 +53,8 @@ export const SOLDIER_SWITCHED_NODES = [
   'karskin_plasmagun',
 ];
 
-function _animatedNodeNames(animations) {
-  const names = new Set();
+function _animatedNodeNames(animations: THREE.AnimationClip[] | null | undefined): Set<string> {
+  const names = new Set<string>();
   for (const clip of animations || []) {
     for (const track of clip.tracks || []) {
       if (!track || typeof track.name !== 'string') continue;
@@ -40,28 +69,28 @@ function _animatedNodeNames(animations) {
   return names;
 }
 
-function _hasMorph(mesh) {
+function _hasMorph(mesh: THREE.Mesh): boolean {
   if (mesh.morphTargetInfluences !== undefined) return true;
   const morph = mesh.geometry && mesh.geometry.morphAttributes;
   return !!(morph && morph.position && morph.position.length);
 }
 
-const _mat4key = (m) => (m ? m.elements.join(',') : '');
+const _mat4key = (m: THREE.Matrix4 | null | undefined): string => (m ? m.elements.join(',') : '');
 
-export function mergeSkinnedContainer(container, hiddenNames = []) {
-  const stats = {
+export function mergeSkinnedContainer(container: GltfContainerLike | null, hiddenNames: string[] = []): SkinnedMergeStats {
+  const stats: SkinnedMergeStats = {
     before: 0, after: 0, merged: 0,
     excludedHidden: 0, excludedSwitched: 0, excludedAnimated: 0,
     skipped: 0, failed: 0,
   };
   const scene = container ? container.scene : null;
-  if (!scene) {
+  if (!container || !scene) {
     return stats;
   }
   const animatedNames = _animatedNodeNames(container.animations);
-  const hiddenRoots = new Set();
-  const switchedRoots = new Set();
-  const animatedRoots = new Set();
+  const hiddenRoots = new Set<THREE.Object3D>();
+  const switchedRoots = new Set<THREE.Object3D>();
+  const animatedRoots = new Set<THREE.Object3D>();
   for (const node of descendants(scene)) {
     const name = node.name || '';
     if ((hiddenNames || []).some((wanted) => matchHiddenNodeName(name, wanted))) {
@@ -74,8 +103,8 @@ export function mergeSkinnedContainer(container, hiddenNames = []) {
       animatedRoots.add(node);
     }
   }
-  const underAny = (node, roots) => {
-    let current = node;
+  const underAny = (node: THREE.Object3D, roots: Set<THREE.Object3D>): boolean => {
+    let current: THREE.Object3D | null = node;
     while (current) {
       if (roots.has(current)) return true;
       current = current.parent;
@@ -84,11 +113,11 @@ export function mergeSkinnedContainer(container, hiddenNames = []) {
   };
 
   scene.updateMatrixWorld(true);
-  const meshes = childMeshes(scene);
+  const meshes: AnyMesh[] = childMeshes(scene);
   // Pool key: material + (skinned ? skeleton + world + bind : 'rigid').
   // Nested maps avoid inventing composite string keys for objects.
-  const pools = new Map();
-  const poolFor = (material, mesh) => {
+  const pools = new Map<THREE.Material, Map<string, SkinnedPool>>();
+  const poolFor = (material: THREE.Material, mesh: AnyMesh): SkinnedPool => {
     let byMat = pools.get(material);
     if (!byMat) {
       byMat = new Map();
@@ -107,8 +136,8 @@ export function mergeSkinnedContainer(container, hiddenNames = []) {
   // Skeleton identity via object key path: keep a side registry so two
   // different Skeleton instances never share a pool even if their
   // matrices print identically.
-  const skeletonIds = new Map();
-  const poolsSkinnedKey = (mesh) => {
+  const skeletonIds = new Map<unknown, number>();
+  const poolsSkinnedKey = (mesh: AnyMesh): string => {
     if (!skeletonIds.has(mesh.skeleton)) {
       skeletonIds.set(mesh.skeleton, skeletonIds.size);
     }
@@ -141,11 +170,12 @@ export function mergeSkinnedContainer(container, hiddenNames = []) {
       continue;
     }
     if (Array.isArray(mesh.material)) {
-      const groups = (geo.groups && geo.groups.length) ? geo.groups : [{ start: 0, count: Infinity, materialIndex: 0 }];
+      const materials = mesh.material as THREE.Material[];
+      const groups: Array<{ start: number; count: number; materialIndex?: number }> = (geo.groups && geo.groups.length) ? geo.groups : [{ start: 0, count: Infinity, materialIndex: 0 }];
       let splittable = true;
-      const parts = [];
+      const parts: Array<{ geo: THREE.BufferGeometry; material: THREE.Material }> = [];
       for (const group of groups) {
-        const material = mesh.material[group.materialIndex] || mesh.material[0];
+        const material = materials[group.materialIndex ?? 0] || materials[0];
         if (!material) {
           splittable = false;
           break;
@@ -196,7 +226,7 @@ export function mergeSkinnedContainer(container, hiddenNames = []) {
       if (valid && geos.some((g) => !g.index)) {
         geos = geos.map((g) => (g.index ? g.toNonIndexed() : g));
       }
-      let merged = null;
+      let merged: THREE.BufferGeometry | null = null;
       if (valid) {
         try {
           merged = mergeGeometries(geos, false);
@@ -213,14 +243,15 @@ export function mergeSkinnedContainer(container, hiddenNames = []) {
         if (mesh.parent) mesh.parent.remove(mesh);
       }
       const first = sources[0];
-      let out;
+      let out: THREE.Mesh;
       if (pool.skinned) {
-        out = new THREE.SkinnedMesh(merged, pool.material);
-        out.bind(first.skeleton, first.bindMatrix);
-        out.position.copy(first.position);
-        out.quaternion.copy(first.quaternion);
-        out.scale.copy(first.scale);
-        (first.parent || scene).add(out);
+        const skinned = new THREE.SkinnedMesh(merged, pool.material);
+        skinned.bind(first.skeleton, first.bindMatrix);
+        skinned.position.copy(first.position);
+        skinned.quaternion.copy(first.quaternion);
+        skinned.scale.copy(first.scale);
+        (first.parent || scene).add(skinned);
+        out = skinned;
       } else {
         out = new THREE.Mesh(merged, pool.material);
         scene.add(out);

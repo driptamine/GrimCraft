@@ -16,8 +16,34 @@ import { childMeshes, descendants, matchHiddenNodeName } from './three-helpers.j
 //  - animated-node subtrees: node names taken from clip track names;
 //  - SkinnedMesh, InstancedMesh, multi-material meshes, morph geometry;
 //  - groups whose geometries fail to merge (attribute mismatch).
-function _animatedNodeNames(animations) {
-  const names = new Set();
+
+// three-helpers.js is still untyped, so meshes arrive as `any` there.
+// AnyMesh keeps the checked three.js surface (position, material,
+// geometry) while allowing the duck-typed flags (isSkinnedMesh, ...).
+type AnyMesh = THREE.Mesh & Record<string, any>;
+
+interface GltfContainerLike {
+  scene?: THREE.Object3D | null;
+  animations?: THREE.AnimationClip[] | null;
+}
+
+export interface MergeStats {
+  before: number;
+  after: number;
+  merged: number;
+  excludedHidden: number;
+  excludedAnimated: number;
+  skipped: number;
+  failed: number;
+}
+
+interface MergePool {
+  geos: THREE.BufferGeometry[];
+  meshes: AnyMesh[];
+}
+
+function _animatedNodeNames(animations: THREE.AnimationClip[] | null | undefined): Set<string> {
+  const names = new Set<string>();
   for (const clip of animations || []) {
     for (const track of clip.tracks || []) {
       if (!track || typeof track.name !== 'string') continue;
@@ -32,7 +58,7 @@ function _animatedNodeNames(animations) {
   return names;
 }
 
-function _hasMorph(mesh) {
+function _hasMorph(mesh: THREE.Mesh): boolean {
   if (mesh.morphTargetInfluences !== undefined) return true;
   const morph = mesh.geometry && mesh.geometry.morphAttributes;
   return !!(morph && morph.position && morph.position.length);
@@ -40,48 +66,49 @@ function _hasMorph(mesh) {
 
 // Draw calls a mesh costs: one per group with a material array,
 // otherwise one (groups are ignored for single materials).
-export function meshCallCount(mesh) {
+export function meshCallCount(mesh: THREE.Mesh): number {
   const geo = mesh.geometry;
-  if (Array.isArray(mesh.material) && geo && geo.groups && geo.groups.length) {
-    return geo.groups.length;
+  if (Array.isArray(mesh.material) && geo && (geo as THREE.BufferGeometry).groups && (geo as THREE.BufferGeometry).groups.length) {
+    return (geo as THREE.BufferGeometry).groups.length;
   }
   return 1;
 }
 
 // Extract one group's triangles as a standalone non-indexed geometry.
-export function extractGroupGeometry(geo, group) {
+export function extractGroupGeometry(geo: THREE.BufferGeometry, group: { start: number; count: number }): THREE.BufferGeometry {
   const src = geo.index ? geo.toNonIndexed() : geo;
   const out = new THREE.BufferGeometry();
   const { start, count } = group;
   for (const name of Object.keys(src.attributes)) {
-    const attr = src.attributes[name];
+    const attr = src.attributes[name] as THREE.BufferAttribute;
     const itemSize = attr.itemSize;
-    const sliced = new attr.array.constructor(count * itemSize);
-    const input = attr.array;
+    const Ctor = attr.array.constructor as new (length: number) => { [index: number]: number };
+    const sliced = new Ctor(count * itemSize);
+    const input = attr.array as unknown as { [index: number]: number };
     for (let i = 0; i < count; i += 1) {
       for (let k = 0; k < itemSize; k += 1) {
         sliced[i * itemSize + k] = input[(start + i) * itemSize + k];
       }
     }
-    const outAttr = new THREE.BufferAttribute(sliced, itemSize);
+    const outAttr = new THREE.BufferAttribute(sliced as unknown as THREE.BufferAttribute['array'], itemSize);
     if (attr.normalized) outAttr.normalized = true;
     out.setAttribute(name, outAttr);
   }
   return out;
 }
 
-export function mergeStaticContainer(container, hiddenNames = []) {
-  const stats = {
+export function mergeStaticContainer(container: GltfContainerLike | null, hiddenNames: string[] = []): MergeStats {
+  const stats: MergeStats = {
     before: 0, after: 0, merged: 0,
     excludedHidden: 0, excludedAnimated: 0, skipped: 0, failed: 0,
   };
   const scene = container ? container.scene : null;
-  if (!scene) {
+  if (!container || !scene) {
     return stats;
   }
   const animatedNames = _animatedNodeNames(container.animations);
-  const hiddenRoots = new Set();
-  const animatedRoots = new Set();
+  const hiddenRoots = new Set<THREE.Object3D>();
+  const animatedRoots = new Set<THREE.Object3D>();
   for (const node of descendants(scene)) {
     const name = node.name || '';
     if ((hiddenNames || []).some((wanted) => matchHiddenNodeName(name, wanted))) {
@@ -91,8 +118,8 @@ export function mergeStaticContainer(container, hiddenNames = []) {
       animatedRoots.add(node);
     }
   }
-  const underAny = (node, roots) => {
-    let current = node;
+  const underAny = (node: THREE.Object3D, roots: Set<THREE.Object3D>): boolean => {
+    let current: THREE.Object3D | null = node;
     while (current) {
       if (roots.has(current)) return true;
       current = current.parent;
@@ -101,11 +128,11 @@ export function mergeStaticContainer(container, hiddenNames = []) {
   };
 
   scene.updateMatrixWorld(true);
-  const meshes = childMeshes(scene);
+  const meshes: AnyMesh[] = childMeshes(scene);
   // Multi-material meshes are split per group so every primitive joins
   // its material pool; anything unmergeable keeps its original calls.
-  const pools = new Map(); // material -> { geos, meshes }
-  const poolFor = (material) => {
+  const pools = new Map<THREE.Material, MergePool>(); // material -> { geos, meshes }
+  const poolFor = (material: THREE.Material): MergePool => {
     let pool = pools.get(material);
     if (!pool) {
       pool = { geos: [], meshes: [] };
@@ -133,11 +160,12 @@ export function mergeStaticContainer(container, hiddenNames = []) {
       continue;
     }
     if (Array.isArray(mesh.material)) {
-      const groups = (geo.groups && geo.groups.length) ? geo.groups : [{ start: 0, count: Infinity, materialIndex: 0 }];
+      const materials = mesh.material as THREE.Material[];
+      const groups: Array<{ start: number; count: number; materialIndex?: number }> = (geo.groups && geo.groups.length) ? geo.groups : [{ start: 0, count: Infinity, materialIndex: 0 }];
       let splittable = true;
-      const parts = [];
+      const parts: Array<{ geo: THREE.BufferGeometry; material: THREE.Material }> = [];
       for (const group of groups) {
-        const material = mesh.material[group.materialIndex] || mesh.material[0];
+        const material = materials[group.materialIndex ?? 0] || materials[0];
         if (!material) {
           splittable = false;
           break;
@@ -183,7 +211,7 @@ export function mergeStaticContainer(container, hiddenNames = []) {
     if (valid && geos.some((g) => !g.index)) {
       geos = geos.map((g) => (g.index ? g.toNonIndexed() : g));
     }
-    let merged = null;
+    let merged: THREE.BufferGeometry | null = null;
     if (valid) {
       try {
         merged = mergeGeometries(geos, false);

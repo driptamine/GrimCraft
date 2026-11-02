@@ -13,6 +13,10 @@ Update this file every time a module is migrated: move the row from Queue to Don
 | `src/ecs.ts` | — (covered by suites using `World`) | Typed `World`: `EntityId`, `SystemFunction`, `Map<string, Map<EntityId, unknown>>` stores, generic `add<T>`. No dedicated test — behavior pinned by existing suites (touch-controls, bullet-routing, etc.). |
 | `src/camera-params.ts` | — (covered by `camera-panel.test.js`) | Pure orbit helpers; `CameraLimits` structural interface, `unknown` inputs with `num()` fallback. |
 | `src/decal-size.ts` | `tests/decal-size.test.ts` | `DecalFlatRotation` / `DrapeOptions` interfaces; test callbacks annotated (`(x: number, z: number)` etc.). |
+| `src/mat-cache.ts` | — | `Map<string, MeshStandardMaterial>`, typed `getMat`. |
+| `src/grid-helper.ts` | — (covered by grid suites) | Pure math, `number[]` returns. |
+| `src/merge-static.ts` | `tests/merge-static.test.ts` | `MergeStats`, `GltfContainerLike`, `AnyMesh` (checked surface + duck-typed flags); `materialIndex ?? 0` (three types mark it optional — same runtime fallback). |
+| `src/merge-skinned.ts` | `tests/merge-skinned.test.ts` | `SkinnedMergeStats`, `SkinnedPool`, per-branch `const skinned` for `bind` narrowing. |
 
 ## Infrastructure (done, supports all future renames)
 
@@ -32,7 +36,8 @@ Update this file every time a module is migrated: move the row from Queue to Don
 ## Queue (plan order: leaves first, hubs last)
 
 - [x] `src/camera-params.js`, `src/decal-size.js` (+ `tests/decal-size.test.js`)
-- [ ] Three.js utils: `three-helpers.js`, `merge-static.js`, `merge-skinned.js`, `gltf-models.js`, `model-upload.js`, `mat-cache.js`, `grid-helper.js`
+- [x] Three.js utils part 1: `mat-cache.js`, `grid-helper.js`, `merge-static.js` (+ test), `merge-skinned.js` (+ test)
+- [ ] Three.js utils part 2: `three-helpers.js`, `gltf-models.js`, `model-upload.js`
 - [ ] Data + config: `factions/*.js`, `factions.js`, `maps-menu.js`, `teamcolour.js`, `meshes/*` (+ shared types file)
 - [ ] Input layer: `input/camera.js`, `input/selection.js`, `input/markers.js`, `input/orders.js`, `input/events.js`, `input/touch-controls.js`, `input.js`
 - [ ] HUD: `hud/bits.jsx` → `.tsx`, `hud/primitives.jsx`, components, `hud.js`
