@@ -1,10 +1,11 @@
-import * as THREE from 'three';
+import type { JSX } from 'react';
 import React from 'react';
 import {
   world, selBuilder, selBuildings, selSquads, selListeningPost, requisition, setRequisition, energy, setEnergy, PLAYER, COSTS, PROD_TIME, SQUAD_MAX,
   researchedTech,
 } from '../../scene.js';
 import { FACTIONS, getStructureConfig } from '../../factions.js';
+import type { FactionAddonEntry, FactionIcons, FactionResearchEntry, FactionStructureEntry, ProductionItem } from '../../factions/types.js';
 import { startBuild, demolishBuilding, setBuilderCommand, setBuilderStance, clearBuilderCommand, buildAddon, armFlyTargeting } from '../../input.js';
 import { netTrainUnit, netDemolishBuilding } from '../../multiplayer.js';
 import { updateHUD } from '../../hud.js';
@@ -13,9 +14,17 @@ import { getViewKind, getAliveGroups, computeSquadData, getBarracksProduction, g
 import { ActionButton, CostGlyph } from '../bits.jsx';
 import { ActionsGridDiv, CommandGridDiv, CommandEmptySlot } from '../primitives.jsx';
 
+type ProductionObject = Exclude<ProductionItem, string>;
+
+// Production lists mix unit objects and bare model-filename strings; only
+// object entries with a name can render (legacy strings can't).
+function asProductionObject(p: ProductionItem): ProductionObject | null {
+  return p && typeof p === 'object' ? p : null;
+}
+
 /* ── Builder ─────────────────────────────────────────────────────────── */
 
-function BuilderActions() {
+function BuilderActions(): JSX.Element | null {
   const builder = world.get(selBuilder, 'builder');
   if (!builder) return null;
 
@@ -35,10 +44,10 @@ function BuilderActions() {
     updateHUD();
   };
 
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
 
   if (!isOpen) {
-    const stanceBtn = (key, icon, label) => {
+    const stanceBtn = (key: string, icon: string, label: string) => {
       const isActive = builder.stance === key;
       return (
         <ActionButton
@@ -74,8 +83,8 @@ function BuilderActions() {
   if (isOpen) {
     const PRIORITY_ORDER = ['hq', 'barracks', 'infantry_command', 'listening_post', 'plasma_generator', 'tactica_control', 'mechanized', 'mars_pattern', 'thermo_generator', 'turret', 'mines'];
     const factionStructures = (FACTIONS[builderFaction]?.structures || []).map((s) => s.type);
-    const BUILD_ORDER = FACTIONS[builderFaction]?.buildOrder || PRIORITY_ORDER.filter((t) => factionStructures.includes(t));
-    const DEFAULT_LABELS = {
+    const BUILD_ORDER: (string | null)[] = FACTIONS[builderFaction]?.buildOrder || PRIORITY_ORDER.filter((t) => factionStructures.includes(t));
+    const DEFAULT_LABELS: Record<string, string> = {
       hq: 'HQ',
       barracks: 'BARRACKS',
       infantry_command: 'INFANTRY COMMAND',
@@ -88,7 +97,7 @@ function BuilderActions() {
       turret: 'TURRET',
       mines: 'MINES',
     };
-    const FALLBACK_ICONS = {
+    const FALLBACK_ICONS: Record<string, string> = {
       hq: '🏰', barracks: '🏗', infantry_command: '🏗', listening_post: '📡', plasma_generator: '⚡', tactica_control: '🛰',
       mechanized: '🚗', mars_pattern: '🏛', thermo_generator: '⚡', turret: '🗼', mines: '💣',
     };
@@ -99,7 +108,7 @@ function BuilderActions() {
         continue;
       }
       const cfg = getStructureConfig(builderFaction, type);
-      const cost = COSTS[type] ?? cfg?.cost ?? 0;
+      const cost = COSTS[type as keyof typeof COSTS] ?? cfg?.cost ?? 0;
       const label = (cfg?.name ? cfg.name.toUpperCase() : DEFAULT_LABELS[type]).replace(/ /g, '\n');
       const btnIcon = faction?.icons?.[type] || cfg?.icon || FALLBACK_ICONS[type];
       const noReq = requisition < cost;
@@ -129,7 +138,7 @@ function BuilderActions() {
 
 /* ── Buildings ───────────────────────────────────────────────────────── */
 
-function DemolishButton({ label, confirmText, onClick }) {
+function DemolishButton({ label, confirmText, onClick }: any): JSX.Element {
   return (
     <ActionButton
       icon="💥"
@@ -144,13 +153,13 @@ function DemolishButton({ label, confirmText, onClick }) {
   );
 }
 
-function AirfieldActions() {
+function AirfieldActions(): JSX.Element | null {
   const id = selBuildings[0];
   const airfield = world.get(id, 'airfield');
   if (!airfield) return null;
   const faction = FACTIONS[entityFaction(airfield)];
 
-  const train = (count) => {
+  const train = (count: number) => {
     if (window._multiplayerMode) {
       for (let i = 0; i < count; i += 1) netTrainUnit(id, 'jet');
     } else {
@@ -164,7 +173,7 @@ function AirfieldActions() {
     updateHUD();
   };
 
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
   if (!airfield.constructing) {
     buttons.push(
       <ActionButton key="jet" icon={faction?.icons?.jet || '✈️'} label="JET" cost={`${COSTS.jet}R`} tooltip={`FIGHTER JET\nCOST ${COSTS.jet}R\nTrain 1 fighter jet`} disabled={!(requisition >= COSTS.jet && airfield.queue.length < 4)} onClick={() => train(1)} />,
@@ -186,7 +195,7 @@ function AirfieldActions() {
   return <ActionsGridDiv>{buttons}</ActionsGridDiv>;
 }
 
-function BuildingActions() {
+function BuildingActions(): JSX.Element | null {
   const id = selBuildings[0];
   const building = world.get(id, 'building');
   const structure = world.get(id, 'structure');
@@ -197,7 +206,7 @@ function BuildingActions() {
   const faction = FACTIONS[factionKey];
   const isBarracks = !!building;
   const isMechanized = building?.type === 'mechanized';
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
 
   if (isBarracks || isMechanized) {
     const squadIcon = faction?.icons?.squad || '⚔';
@@ -206,28 +215,29 @@ function BuildingActions() {
     // Buildings with no barracks list (e.g. the chaos greater circle) train
     // from their own production order instead; legacy string entries can't
     // render, so only object items reach the grid.
-    const ownProduction = ((getStructureConfig(factionKey, building?.type) || {}).production || [])
+    const structCfg: FactionStructureEntry | null = getStructureConfig(factionKey, building?.type);
+    const ownProduction = (structCfg?.production || [])
       .filter((p) => p && typeof p === 'object' && p.name);
     const useOwn = !isMechanized && barracksProduction.length === 0 && ownProduction.length > 0;
     const production = useOwn ? ownProduction : barracksProduction;
 
-    const train = (type, count) => {
+    const train = (type: string, count: number) => {
       if (window._multiplayerMode) {
         for (let i = 0; i < count; i += 1) netTrainUnit(id, type);
       } else {
         for (let i = 0; i < count; i += 1) {
-          if (requisition >= COSTS[type] && building.queue.length < 6) {
-            setRequisition(requisition - COSTS[type]);
-            building.queue.push({ type, progress: 0, total: PROD_TIME[type] });
+          if (requisition >= COSTS[type as keyof typeof COSTS] && building.queue.length < 6) {
+            setRequisition(requisition - (COSTS[type as keyof typeof COSTS]));
+            building.queue.push({ type, progress: 0, total: PROD_TIME[type as keyof typeof PROD_TIME] });
           }
         }
       }
       updateHUD();
     };
 
-    const trainProd = (item) => {
-      const cost = item.cost || COSTS[item.name] || COSTS.squad;
-      const time = item.time || PROD_TIME[item.name] || PROD_TIME.squad;
+    const trainProd = (item: any) => {
+      const cost = item.cost || COSTS[item.name as keyof typeof COSTS] || COSTS.squad;
+      const time = item.time || PROD_TIME[item.name as keyof typeof PROD_TIME] || PROD_TIME.squad;
       if (window._multiplayerMode) {
         netTrainUnit(id, item.name);
       } else if (requisition >= cost && building.queue.length < 6) {
@@ -238,16 +248,18 @@ function BuildingActions() {
     };
 
     production.forEach((item, i) => {
-      const cost = item.cost || COSTS[item.name] || COSTS.squad;
+      const prod = asProductionObject(item);
+      if (!prod) return;
+      const cost = prod.cost || COSTS[(prod.name || 'squad') as keyof typeof COSTS] || COSTS.squad;
       buttons.push(
         <ActionButton
           key={`prod_${i}`}
-          icon={item.icon}
-          label={item.name.toUpperCase().replace(/_/g, ' ')}
+          icon={prod.icon}
+          label={(prod.name || '').toUpperCase().replace(/_/g, ' ')}
           cost={`${cost}R`}
-          tooltip={unitTooltip(item, factionKey)}
+          tooltip={unitTooltip(prod, factionKey)}
           disabled={!(requisition >= cost && building.queue.length < 6)}
-          onClick={() => trainProd(item)}
+          onClick={() => trainProd(prod)}
         />,
       );
     });
@@ -276,11 +288,11 @@ function BuildingActions() {
   return <ActionsGridDiv>{buttons}</ActionsGridDiv>;
 }
 
-function MultiBuildingActions() {
+function MultiBuildingActions(): JSX.Element {
   const firstBuilding = world.get(selBuildings[0], 'building') || world.get(selBuildings[0], 'structure');
   const faction = FACTIONS[entityFaction(firstBuilding)];
-  const barracksIds = selBuildings.filter((bid) => world.has(bid, 'building'));
-  const buttons = [];
+  const barracksIds = selBuildings.filter((bid: number) => world.has(bid, 'building'));
+  const buttons: JSX.Element[] = [];
 
   if (barracksIds.length) {
     const squadIcon = faction?.icons?.squad || '⚔';
@@ -294,9 +306,9 @@ function MultiBuildingActions() {
         disabled={requisition < COSTS.squad * barracksIds.length}
         onClick={() => {
           if (window._multiplayerMode) {
-            barracksIds.forEach((bid) => netTrainUnit(bid, 'squad'));
+            barracksIds.forEach((bid: number) => netTrainUnit(bid, 'squad'));
           } else {
-            barracksIds.forEach((bid) => {
+            barracksIds.forEach((bid: number) => {
               const b = world.get(bid, 'building');
               if (b && requisition >= COSTS.squad && b.queue.length < 6) {
                 setRequisition(requisition - COSTS.squad);
@@ -317,8 +329,8 @@ function MultiBuildingActions() {
       confirmText={`Demolish ${selBuildings.length} buildings?`}
       onClick={() => {
         const ids = [...selBuildings];
-        if (window._multiplayerMode) ids.forEach((bid) => netDemolishBuilding(bid));
-        else ids.forEach((bid) => demolishBuilding(bid));
+        if (window._multiplayerMode) ids.forEach((bid: number) => netDemolishBuilding(bid));
+        else ids.forEach((bid: number) => demolishBuilding(bid));
       }}
     />,
   );
@@ -328,7 +340,7 @@ function MultiBuildingActions() {
 
 /* ── Jets ────────────────────────────────────────────────────────────── */
 
-function JetActions() {
+function JetActions(): JSX.Element | null {
   const { jets } = getAliveGroups();
   const jet = world.get(jets[0], 'jet');
   if (!jet) return null;
@@ -339,8 +351,8 @@ function JetActions() {
     { key: 'attack', icon: '⚔', label: 'ATTACK', tip: 'Circle + auto-strafe enemies' },
   ];
 
-  const setMode = (m) => {
-    jets.forEach((jid) => {
+  const setMode = (m: { key: string }) => {
+    jets.forEach((jid: number) => {
       const j = world.get(jid, 'jet');
       if (!j) return;
       j.patrolMode = m.key;
@@ -359,7 +371,7 @@ function JetActions() {
   return (
     <ActionsGridDiv>
       {modes.map((m) => {
-        const isActive = jets.every((jid) => {
+        const isActive = jets.every((jid: number) => {
           const j = world.get(jid, 'jet');
           return j && (j.waitOrders ? 'hold' : j.patrolMode) === m.key;
         });
@@ -383,7 +395,7 @@ function JetActions() {
 
 /* ── Squads ──────────────────────────────────────────────────────────── */
 
-function SquadActions() {
+function SquadActions(): JSX.Element {
   const data = computeSquadData();
   const canFlySelected = !window._multiplayerMode && data.alive.some((sqId) => {
     const sq = world.get(sqId, 'squad');
@@ -451,21 +463,21 @@ function SquadActions() {
 
 /* ── HQ command grid (Imperial Guard) ────────────────────────────────── */
 
-function HQActions() {
+function HQActions(): JSX.Element | null {
   const id = selBuildings[0];
   const building = world.get(id, 'building');
   if (!building || building.type !== 'hq') return null;
 
   const factionKey = entityFaction(building);
   const faction = FACTIONS[factionKey];
-  const structureConfig = getStructureConfig(factionKey, 'hq') || {};
+  const structureConfig: FactionStructureEntry = getStructureConfig(factionKey, 'hq') || {};
   const addons = structureConfig.addons || [];
   const production = structureConfig.production || [];
-  const factionIcons = faction?.icons || {};
+  const factionIcons: FactionIcons = faction?.icons || {};
 
-  const train = (item) => {
-    const cost = item.cost || COSTS[item.name];
-    const total = item.time || PROD_TIME[item.name] || 4;
+  const train = (item: any) => {
+    const cost = item.cost || COSTS[item.name as keyof typeof COSTS];
+    const total = item.time || PROD_TIME[item.name as keyof typeof PROD_TIME] || 4;
     if (building.queue.length >= 6 || building.constructing || requisition < cost) return;
     if (window._multiplayerMode) {
       netTrainUnit(id, item.name);
@@ -476,17 +488,17 @@ function HQActions() {
     updateHUD();
   };
 
-  const payAddon = (key) => {
+  const payAddon = (key: string) => {
     buildAddon(id, key);
     updateHUD();
   };
 
-  const prodItem = (name) => production.find((p) => p.name === name);
+  const prodItem = (name: string) => production.find((p): p is ProductionObject => typeof p === 'object' && p?.name === name);
 
-  const unitBtn = (name) => {
+  const unitBtn = (name: string) => {
     const item = prodItem(name);
     const icon = item?.icon || factionIcons[name] || '❓';
-    const cost = item?.cost || COSTS[name];
+    const cost = item?.cost || COSTS[name as keyof typeof COSTS];
     return (
       <ActionButton
         key={`unit_${name}`}
@@ -500,11 +512,11 @@ function HQActions() {
     );
   };
 
-  const addonBtn = (key, label) => {
+  const addonBtn = (key: string, label: string) => {
     const cfg = addons.find((a) => a.name === key);
     if (!cfg) return <CommandEmptySlot key={key} />;
     const built = building.addons.includes(key);
-    const blocked = building.constructing || requisition < cfg.cost || (cfg.requiresTier && building.tier < cfg.requiresTier);
+    const blocked = building.constructing || requisition < (cfg.cost || 0) || (cfg.requiresTier && building.tier < cfg.requiresTier);
     return (
       <ActionButton
         key={`addon_${key}`}
@@ -519,7 +531,7 @@ function HQActions() {
     );
   };
 
-  const templeBtn = (templeKey, unlockName) => {
+  const templeBtn = (templeKey: string, unlockName: string) => {
     if (building.addons.includes(templeKey)) {
       const item = prodItem(unlockName);
       if (item) return unitBtn(unlockName);
@@ -528,7 +540,7 @@ function HQActions() {
     return addonBtn(templeKey, `${templeKey.replace(/_/g, ' ').toUpperCase()}\n→ ${unlockName.toUpperCase()}`);
   };
 
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
   buttons.push(unitBtn('guardsmen'));
   buttons.push(unitBtn('builder'));
   buttons.push(<CommandEmptySlot key="c0" />);
@@ -547,20 +559,20 @@ function HQActions() {
 
 /* ── Infantry Command grid (Imperial Guard) ──────────────────────────── */
 
-function InfantryCommandActions() {
+function InfantryCommandActions(): JSX.Element | null {
   const id = selBuildings[0];
   const building = world.get(id, 'building');
   if (!building || building.type !== 'infantry_command') return null;
 
   const factionKey = entityFaction(building);
   const faction = FACTIONS[factionKey];
-  const structureConfig = getStructureConfig(factionKey, 'infantry_command') || {};
+  const structureConfig: FactionStructureEntry = getStructureConfig(factionKey, 'infantry_command') || {};
   const production = structureConfig.production || [];
-  const factionIcons = faction?.icons || {};
+  const factionIcons: FactionIcons = faction?.icons || {};
 
-  const train = (item) => {
-    const cost = item.cost || COSTS[item.name];
-    const total = item.time || PROD_TIME[item.name] || 4;
+  const train = (item: any) => {
+    const cost = item.cost || COSTS[item.name as keyof typeof COSTS];
+    const total = item.time || PROD_TIME[item.name as keyof typeof PROD_TIME] || 4;
     if (building.queue.length >= 6 || building.constructing || requisition < cost) return;
     if (window._multiplayerMode) {
       netTrainUnit(id, item.name);
@@ -571,12 +583,12 @@ function InfantryCommandActions() {
     updateHUD();
   };
 
-  const prodItem = (name) => production.find((p) => p.name === name);
+  const prodItem = (name: string) => production.find((p): p is ProductionObject => typeof p === 'object' && p?.name === name);
 
-  const unitBtn = (name) => {
+  const unitBtn = (name: string) => {
     const item = prodItem(name);
     if (!item) return <CommandEmptySlot key={`unit_${name}`} />;
-    const cost = item.cost || COSTS[item.name];
+    const cost = item.cost || COSTS[item.name as keyof typeof COSTS];
     return (
       <ActionButton
         key={`unit_${name}`}
@@ -590,7 +602,7 @@ function InfantryCommandActions() {
     );
   };
 
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
   buttons.push(unitBtn('guardsmen'));
   buttons.push(unitBtn('heavy_weapons_team'));
   buttons.push(unitBtn('kasrkin'));
@@ -609,22 +621,22 @@ function InfantryCommandActions() {
 
 /* ── Mechanized Command grid (Imperial Guard) ────────────────────────── */
 
-function MechanizedActions() {
+function MechanizedActions(): JSX.Element | null {
   const id = selBuildings[0];
   const building = world.get(id, 'building');
   if (!building || building.type !== 'mechanized') return null;
 
   const factionKey = entityFaction(building);
-  const cfg = getStructureConfig(factionKey, 'mechanized') || {};
+  const cfg: FactionStructureEntry = getStructureConfig(factionKey, 'mechanized') || {};
   const production = cfg.production || [];
   const researchList = cfg.research || [];
-  const byKey = {};
-  researchList.forEach((r) => { byKey[r.key] = r; });
+  const byKey: Record<string, FactionResearchEntry> = {};
+  researchList.forEach((r) => { if (r.key) byKey[r.key] = r; });
   const researchingItem = building.researchQueue?.[0] || null;
 
-  const train = (item) => {
-    const cost = item.cost || COSTS[item.name];
-    const total = item.time || PROD_TIME[item.name] || 5;
+  const train = (item: any) => {
+    const cost = item.cost || COSTS[item.name as keyof typeof COSTS];
+    const total = item.time || PROD_TIME[item.name as keyof typeof PROD_TIME] || 5;
     if (building.queue.length >= 6 || building.constructing || requisition < cost) return;
     if (window._multiplayerMode) {
       netTrainUnit(id, item.name);
@@ -635,12 +647,12 @@ function MechanizedActions() {
     updateHUD();
   };
 
-  const lockedBy = (item) => (item.requires || []).filter((req) => !researchedTech.has(req));
+  const lockedBy = (item: ProductionObject) => (item.requires || []).filter((req) => !researchedTech.has(req));
 
-  const prodBtn = (name) => {
-    const item = production.find((p) => p.name === name);
+  const prodBtn = (name: string) => {
+    const item = production.find((p): p is ProductionObject => typeof p === 'object' && p?.name === name);
     if (!item) return <CommandEmptySlot key={`mech-${name}`} />;
-    const cost = item.cost || COSTS[item.name];
+    const cost = item.cost || COSTS[item.name as keyof typeof COSTS];
     const locked = lockedBy(item);
     const disabled = building.queue.length >= 6 || building.constructing || requisition < cost || locked.length > 0;
     return (
@@ -656,24 +668,24 @@ function MechanizedActions() {
     );
   };
 
-  const startResearch = (r) => {
+  const startResearch = (r: FactionResearchEntry) => {
     if (window._multiplayerMode) return;
     if (building.constructing) return;
     if (building.researchQueue.length > 0) return;
     if (researchedTech.has(r.key)) return;
-    if (requisition < r.cost || energy < r.power) return;
-    setRequisition(requisition - r.cost);
-    setEnergy(energy - r.power);
+    if (requisition < (r.cost || 0) || energy < (r.power || 0)) return;
+    setRequisition(requisition - (r.cost || 0));
+    setEnergy(energy - (r.power || 0));
     building.researchQueue.push({ key: r.key, progress: 0, total: r.time });
     updateHUD();
   };
 
-  const researchBtn = (r) => {
+  const researchBtn = (r: FactionResearchEntry | undefined) => {
     if (!r) return <CommandEmptySlot key="mech-research-empty" />;
     const researched = researchedTech.has(r.key);
-    const researching = building.researchQueue.some((q) => q.key === r.key);
+    const researching = building.researchQueue.some((q: any) => q.key === r.key);
     const disabled = researched || researching || building.constructing
-      || building.researchQueue.length > 0 || requisition < r.cost || energy < r.power;
+      || building.researchQueue.length > 0 || requisition < (r.cost || 0) || energy < (r.power || 0);
     const pct = researchingItem && researchingItem.key === r.key ? Math.min(100, (researchingItem.progress / researchingItem.total) * 100) : 0;
     return (
       <div key={`mech-research-${r.key}`} style={{ position: 'relative' }}>
@@ -697,7 +709,7 @@ function MechanizedActions() {
     );
   };
 
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
   buttons.push(prodBtn('chimera'));
   buttons.push(prodBtn('sentinel'));
   buttons.push(prodBtn('hellhound'));
@@ -727,9 +739,9 @@ function MechanizedActions() {
 
 /* ── Tactica Control research grid (Imperial Guard) ──────────────────── */
 
-function ResearchTooltip({ r, researched, available, hovered }) {
+function ResearchTooltip({ r, researched, available, hovered }: any): JSX.Element | null {
   if (!hovered) return null;
-  const reqText = (r.requires || []).map((req) => `Requires: ${req.replace(/_/g, ' ')}`).join('\n');
+  const reqText = (r.requires || []).map((req: string) => `Requires: ${req.replace(/_/g, ' ')}`).join('\n');
   return (
     <div
       style={{
@@ -751,41 +763,41 @@ function ResearchTooltip({ r, researched, available, hovered }) {
   );
 }
 
-function TacticaActions() {
+function TacticaActions(): JSX.Element | null {
   const id = selBuildings[0];
   const structure = world.get(id, 'structure');
   if (!structure || structure.type !== 'tactica_control') return null;
-  const [hoveredKey, setHoveredKey] = React.useState(null);
+  const [hoveredKey, setHoveredKey] = React.useState<string | null>(null);
 
-  const cfg = getStructureConfig(entityFaction(structure), 'tactica_control') || {};
+  const cfg: FactionStructureEntry = getStructureConfig(entityFaction(structure), 'tactica_control') || {};
   const researchList = cfg.research || [];
-  const byKey = {};
-  researchList.forEach((r) => { byKey[r.key] = r; });
+  const byKey: Record<string, FactionResearchEntry> = {};
+  researchList.forEach((r) => { if (r.key) byKey[r.key] = r; });
 
-  const hqAddons = world.query('building').reduce((acc, bid) => {
+  const hqAddons = world.query('building').reduce((acc: Set<string>, bid: number) => {
     const b = world.get(bid, 'building');
     if (b && b.team === PLAYER) {
-      (b.addons || []).forEach((a) => acc.add(a));
+      (b.addons || []).forEach((a: string) => acc.add(a));
     }
     return acc;
-  }, new Set());
+  }, new Set<string>());
 
-  const reqMet = (r) => (r.requires || []).every((req) => {
+  const reqMet = (r: FactionResearchEntry) => (r.requires || []).every((req) => {
     if (byKey[req]) return researchedTech.has(req);
     return hqAddons.has(req);
   });
 
   const researchingItem = structure.researchQueue?.[0] || null;
 
-  const startResearch = (r) => {
+  const startResearch = (r: FactionResearchEntry) => {
     if (window._multiplayerMode) return;
     if (structure.constructing) return;
     if (structure.researchQueue.length > 0) return;
     if (researchedTech.has(r.key)) return;
-    if (requisition < r.cost || energy < r.power) return;
+    if (requisition < (r.cost || 0) || energy < (r.power || 0)) return;
     if (!reqMet(r)) return;
-    setRequisition(requisition - r.cost);
-    setEnergy(energy - r.power);
+    setRequisition(requisition - (r.cost || 0));
+    setEnergy(energy - (r.power || 0));
     structure.researchQueue.push({ key: r.key, progress: 0, total: r.time });
     updateHUD();
   };
@@ -801,17 +813,17 @@ function TacticaActions() {
     const r = byKey[slot];
     if (!r) return <CommandEmptySlot key={slot} />;
     const researched = researchedTech.has(r.key);
-    const researching = structure.researchQueue.some((q) => q.key === r.key);
+    const researching = structure.researchQueue.some((q: any) => q.key === r.key);
     const available = reqMet(r);
     const disabled = researched || researching || structure.constructing
-      || structure.researchQueue.length > 0 || requisition < r.cost || energy < r.power || !available;
+      || structure.researchQueue.length > 0 || requisition < (r.cost || 0) || energy < (r.power || 0) || !available;
     const pct = researchingItem && researchingItem.key === r.key ? Math.min(100, (researchingItem.progress / researchingItem.total) * 100) : 0;
     const hovered = hoveredKey === r.key;
     return (
       <div
         key={slot}
         style={{ position: 'relative' }}
-        onMouseEnter={() => setHoveredKey(r.key)}
+        onMouseEnter={() => setHoveredKey(r.key || null)}
         onMouseLeave={() => setHoveredKey(null)}
       >
         <ActionButton
@@ -840,41 +852,42 @@ function TacticaActions() {
 
 /* ── Listening Post upgrades (Imperial Guard) ────────────────────────── */
 
-function ListeningPostActions() {
+function ListeningPostActions(): JSX.Element | null {
   const sp = world.get(selListeningPost, 'strategicPoint');
   if (!sp) return null;
 
-  const cfg = getStructureConfig(entityFaction(sp), 'listening_post') || {};
+  const cfg: FactionStructureEntry = getStructureConfig(entityFaction(sp), 'listening_post') || {};
   const addons = cfg.addons || [];
-  const byKey = {};
-  addons.forEach((a) => { byKey[a.name] = a; });
+  const byKey: Record<string, FactionAddonEntry> = {};
+  addons.forEach((a) => { if (a.name) byKey[a.name] = a; });
 
   const researchingItem = sp.researchQueue?.[0] || null;
 
-  const startUpgrade = (a) => {
+  const startUpgrade = (a: FactionAddonEntry) => {
     if (window._multiplayerMode) return;
     if (sp.researchQueue.length > 0) return;
-    if (sp.lpTier >= a.tier) return;
+    if (a.tier !== undefined && sp.lpTier >= a.tier) return;
     if (sp.lpTier < (a.requiresTier || 1)) return;
-    if (requisition < a.cost || energy < a.power) return;
-    setRequisition(requisition - a.cost);
-    setEnergy(energy - a.power);
+    if (requisition < (a.cost || 0) || energy < (a.power || 0)) return;
+    setRequisition(requisition - (a.cost || 0));
+    setEnergy(energy - (a.power || 0));
     sp.researchQueue.push({ key: a.name, progress: 0, total: a.time });
     updateHUD();
   };
 
-  const upgradeBtn = (a, slotKey) => {
+  const upgradeBtn = (a: FactionAddonEntry | undefined, slotKey: string) => {
     if (!a) return <CommandEmptySlot key={slotKey} />;
-    const done = sp.lpTier >= a.tier;
+    const addonName = (a.name || '').replace(/_/g, ' ').toUpperCase();
+    const done = a.tier !== undefined && sp.lpTier >= a.tier;
     const researching = researchingItem && researchingItem.key === a.name;
     const disabled = done || researching || sp.researchQueue.length > 0
-      || sp.lpTier < (a.requiresTier || 1) || requisition < a.cost || energy < a.power;
+      || sp.lpTier < (a.requiresTier || 1) || requisition < (a.cost || 0) || energy < (a.power || 0);
     const pct = researching ? Math.min(100, (researchingItem.progress / researchingItem.total) * 100) : 0;
     return (
       <div key={slotKey} style={{ position: 'relative' }}>
         <ActionButton
           icon={a.icon}
-          label={done ? `${a.name.replace(/_/g, ' ').toUpperCase()}\nRESEARCHED` : a.name.replace(/_/g, ' ').toUpperCase()}
+          label={done ? `${addonName}\nRESEARCHED` : addonName}
           cost={`${a.cost}R/${a.power}P`}
           tooltip={addonTooltip(a)}
           disabled={disabled}
@@ -893,7 +906,7 @@ function ListeningPostActions() {
     );
   };
 
-  const buttons = [];
+  const buttons: JSX.Element[] = [];
   buttons.push(upgradeBtn(byKey['fortified_position'], 'lp-tier1'));
   buttons.push(upgradeBtn(byKey['heavily_fortified_position'], 'lp-tier2'));
   for (let i = buttons.length; i < 12; i += 1) {
@@ -904,7 +917,7 @@ function ListeningPostActions() {
 
 /* ── Dispatcher ──────────────────────────────────────────────────────── */
 
-export function ActionsGrid() {
+export function ActionsGrid(): JSX.Element | null {
   const view = getViewKind();
 
   if (view === 'builder') return <BuilderActions />;

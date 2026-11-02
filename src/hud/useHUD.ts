@@ -5,7 +5,7 @@ import { getTicker, subscribeChannel } from './store.js';
  * Subscribes a component to a HUD channel (hud / topbar / minimap / capture).
  * Returns a version number that changes whenever the channel is bumped.
  */
-export function useHUDVersion(channel) {
+export function useHUDVersion(channel: string): number {
   return useSyncExternalStore(
     (cb) => subscribeChannel(channel, cb),
     () => getTicker(channel),

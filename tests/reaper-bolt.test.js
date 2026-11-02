@@ -147,7 +147,7 @@ describe('dark reaper stationary fire', () => {
     const path = await import('node:path');
     const { fileURLToPath } = await import('node:url');
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const src = fs.readFileSync(path.join(root, 'src/hud/components/Portrait.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/hud/components/Portrait.tsx'), 'utf8');
     const branch = src.slice(src.indexOf("view === 'squad'"), src.indexOf("view === 'default'"));
     assert.ok(branch.includes('squadFaction?.units?.find((u) => u.name === firstSq.unitType)'), 'looks up the squad unit');
     assert.ok(branch.includes('icon = unitCfg?.icon || squadFaction?.icons?.squad'), 'unit icon first, faction fallback');

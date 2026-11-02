@@ -37,14 +37,14 @@ describe('taskbar stat icons', () => {
   });
 
   it('wires the icons onto the MEN and DPS stat rows', () => {
-    const src = readSrc('src/hud/components/InfoPanel.jsx');
+    const src = readSrc('src/hud/components/InfoPanel.tsx');
     assert.ok(src.includes("taskbarIconUrl('squadsize') || '👥'"), 'MEN rows use the squad size icon');
     assert.ok(src.includes("taskbarIconUrl('rangedamage') || '⚡'"), 'squad DPS uses the range damage icon');
     assert.ok(src.includes("taskbarIconUrl('rangedamage') || '💥'"), 'vehicle DPS uses the range damage icon');
   });
 
   it('renders image glyphs in stat rows', () => {
-    const src = readSrc('src/hud/bits.jsx');
+    const src = readSrc('src/hud/bits.tsx');
     assert.ok(src.includes("icon.startsWith('data:')"), 'data-URL icons render as img');
     assert.ok(src.includes('width: 32, height: 32'), 'icons render at native 32x32');
   });

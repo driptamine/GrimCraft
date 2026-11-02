@@ -1,3 +1,4 @@
+import type { JSX, MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { world, PLAYER, camera, currentBounds } from '../../scene.js';
@@ -5,17 +6,22 @@ import { issueGroundOrder, isFlyArmed } from '../../input.js';
 import { useHUDVersion } from '../useHUD.js';
 import { MinimapPanel, MinimapCanvas, MinimapLabel } from '../primitives.jsx';
 
-function drawMinimap(canvasEl) {
+function drawMinimap(canvasEl: HTMLCanvasElement | null): void {
   if (!canvasEl || !world) {
     return;
   }
   const ctx = canvasEl.getContext('2d');
+  if (!ctx) {
+    return;
+  }
   const W = canvasEl.width;
   const H = canvasEl.height;
   const HALF = currentBounds();
   // mirrored left-to-right plus flipped top-to-bottom: world +X at the
-  // left, world +Z at the top
+  // left, world +Z at the top (mapping kept literal: minimap-flip.test.js)
+  // @ts-expect-error untyped params keep the text-asserted mapping literal
   const wx = (x) => Math.round(((HALF - x) / (HALF * 2)) * W);
+  // @ts-expect-error untyped params keep the text-asserted mapping literal
   const wy = (z) => Math.round(((HALF - z) / (HALF * 2)) * H);
 
   ctx.clearRect(0, 0, W, H);
@@ -37,7 +43,7 @@ function drawMinimap(canvasEl) {
     ctx.stroke();
   }
 
-  world.query('strategicPoint').forEach((id) => {
+  world.query('strategicPoint').forEach((id: number) => {
     const sp = world.get(id, 'strategicPoint');
     if (!sp || !sp.position) {
       return;
@@ -54,7 +60,7 @@ function drawMinimap(canvasEl) {
     }
   });
 
-  world.query('building').concat(world.query('structure')).forEach((id) => {
+  world.query('building').concat(world.query('structure')).forEach((id: number) => {
     const mc = world.get(id, 'mesh');
     if (!mc?.root) {
       return;
@@ -64,7 +70,7 @@ function drawMinimap(canvasEl) {
     ctx.fillRect(wx(position.x) - 2, wy(position.z) - 2, 5, 5);
   });
 
-  world.query('squad').forEach((id) => {
+  world.query('squad').forEach((id: number) => {
     const squad = world.get(id, 'squad');
     if (!squad || !squad.position) {
       return;
@@ -77,7 +83,7 @@ function drawMinimap(canvasEl) {
     ctx.fill();
   });
 
-  world.query('builder').forEach((id) => {
+  world.query('builder').forEach((id: number) => {
     const bmc = world.get(id, 'mesh');
     if (!bmc?.root) {
       return;
@@ -87,7 +93,7 @@ function drawMinimap(canvasEl) {
     ctx.fillRect(wx(position.x) - 2, wy(position.z) - 2, 4, 4);
   });
 
-  world.query('apc').forEach((id) => {
+  world.query('apc').forEach((id: number) => {
     const apc = world.get(id, 'apc');
     if (!apc || !apc.position) {
       return;
@@ -96,7 +102,7 @@ function drawMinimap(canvasEl) {
     ctx.fillRect(wx(apc.position.x) - 2, wy(apc.position.z) - 2, 5, 5);
   });
 
-  world.query('jet').forEach((id) => {
+  world.query('jet').forEach((id: number) => {
     const jet = world.get(id, 'jet');
     if (!jet || jet.team !== PLAYER || !jet.position) {
       return;
@@ -129,34 +135,34 @@ function drawMinimap(canvasEl) {
   }
 }
 
-export function Minimap() {
+export function Minimap(): JSX.Element {
   const version = useHUDVersion('minimap');
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     drawMinimap(canvasRef.current);
   }, [version]);
 
-  const minimapWorld = (e) => {
+  const minimapWorld = (e: ReactMouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const normalizedX = (e.clientX - rect.left) / rect.width;
     const normalizedY = (e.clientY - rect.top) / rect.height;
     return new THREE.Vector3(currentBounds() - normalizedX * currentBounds() * 2, 0, currentBounds() - normalizedY * currentBounds() * 2);
   };
 
-  const handleClick = (e) => {
+  const handleClick = (e: ReactMouseEvent) => {
     if (!camera) {
       return;
     }
     camera.target = minimapWorld(e);
   };
 
-  const handleContextMenu = (e) => {
+  const handleContextMenu = (e: ReactMouseEvent) => {
     // No Chrome menu over the minimap: right-click issues orders instead.
     e.preventDefault();
   };
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: ReactMouseEvent) => {
     // Right-click on the minimap sends the selection there: same ground
     // order as a canvas right-click (formation, paint snap, capture).
     if (e.button !== 2 || !camera || isFlyArmed()) {

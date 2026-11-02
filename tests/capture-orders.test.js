@@ -83,7 +83,7 @@ describe('capture orders', () => {
   });
 
   it('renders the capture progress bar grey', () => {
-    const src = readSrc('src/hud/components/CaptureBars.jsx');
+    const src = readSrc('src/hud/components/CaptureBars.tsx');
     assert.ok(src.includes("linear-gradient(90deg,#5c5c5c,#9a9a9a)"), 'grey fill');
     assert.ok(!src.includes('#1155ff'), 'no blue fill left');
     assert.ok(!src.includes('#ff2200'), 'no red fill left');

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 describe('info panel production queue', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'src/hud/components/InfoPanel.jsx'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'src/hud/components/InfoPanel.tsx'), 'utf8');
   const view = src.slice(src.indexOf("view === 'building'"), src.indexOf("view === 'listening_post'"));
 
   it('shows the queue for any training building, not just IG types', () => {

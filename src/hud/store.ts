@@ -8,10 +8,10 @@
  * directly from scene.js during render.
  */
 
-const tickers = { hud: 0, topbar: 0, minimap: 0, capture: 0 };
-const listeners = { hud: new Set(), topbar: new Set(), minimap: new Set(), capture: new Set() };
+const tickers: Record<string, number> = { hud: 0, topbar: 0, minimap: 0, capture: 0 };
+const listeners: Record<string, Set<() => void>> = { hud: new Set(), topbar: new Set(), minimap: new Set(), capture: new Set() };
 
-export function bump(channel) {
+export function bump(channel: string): void {
   tickers[channel] = (tickers[channel] || 0) + 1;
   const set = listeners[channel];
   if (set) {
@@ -19,11 +19,11 @@ export function bump(channel) {
   }
 }
 
-export function getTicker(channel) {
+export function getTicker(channel: string): number {
   return tickers[channel] || 0;
 }
 
-export function subscribeChannel(channel, cb) {
+export function subscribeChannel(channel: string, cb: () => void): () => void {
   let set = listeners[channel];
   if (!set) {
     set = listeners[channel] = new Set();
@@ -42,7 +42,7 @@ export function subscribeChannel(channel, cb) {
  */
 export let buildMenuOpen = false;
 
-export function setBuildMenuOpen(value) {
+export function setBuildMenuOpen(value: boolean): void {
   if (buildMenuOpen !== value) {
     buildMenuOpen = value;
     bump('hud');
@@ -54,7 +54,7 @@ export function setBuildMenuOpen(value) {
  */
 export let infantryImmortal = false;
 
-export function setInfantryImmortal(value) {
+export function setInfantryImmortal(value: boolean): void {
   if (infantryImmortal !== value) {
     infantryImmortal = value;
     bump('topbar');
@@ -66,16 +66,16 @@ export function setInfantryImmortal(value) {
  * Recomputes over a fixed window (default 500ms) instead of per-frame
  * instantaneous values so the readout is stable.
  */
-export function createFpsMeter(windowMs = 500) {
+export function createFpsMeter(windowMs = 500): { readonly fps: number; tick(nowMs: number): number } {
   const span = Math.max(1, windowMs);
   let frames = 0;
-  let windowStart = null;
+  let windowStart: number | null = null;
   let fps = 0;
   return {
     get fps() {
       return fps;
     },
-    tick(nowMs) {
+    tick(nowMs: number) {
       if (windowStart === null) {
         windowStart = nowMs;
       }
@@ -93,17 +93,17 @@ export function createFpsMeter(windowMs = 500) {
 
 const _fpsMeter = createFpsMeter();
 
-export function tickFps(nowMs) {
+export function tickFps(nowMs: number): number {
   return _fpsMeter.tick(nowMs);
 }
 
-export function getFps() {
+export function getFps(): number {
   return _fpsMeter.fps;
 }
 
 // HUD refresh cadence: topbar/minimap/capture bars re-render every 3rd frame
 // (~20Hz) instead of every frame. Numbers and bars don't need 60Hz, and each
 // bump runs ECS queries plus a React re-render.
-export function hudDue(frameNo) {
+export function hudDue(frameNo: number): boolean {
   return frameNo % 3 === 0;
 }

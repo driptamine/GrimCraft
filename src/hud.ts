@@ -16,14 +16,14 @@ import { bump } from './hud/store.js';
 /**
  * Legacy button helper — no-op. React renders action buttons now.
  */
-export function btn() {
+export function btn(): null {
   return null;
 }
 
 /**
  * Re-renders the main HUD (portrait, info, reinforce, actions, right panel).
  */
-export function updateHUD() {
+export function updateHUD(): void {
   bump('hud');
 }
 
@@ -31,7 +31,7 @@ export function updateHUD() {
  * Re-renders the top bar and refreshes the minimap (the old updateTopBar
  * delegated to updateMinimap too).
  */
-export function updateTopBar() {
+export function updateTopBar(): void {
   bump('topbar');
   bump('minimap');
 }
@@ -39,13 +39,13 @@ export function updateTopBar() {
 /**
  * Redraws the minimap canvas.
  */
-export function updateMinimap() {
+export function updateMinimap(): void {
   bump('minimap');
 }
 
 /**
  * Repositions the 3D-projected capture progress bars.
  */
-export function updateCaptureProgressBars() {
+export function updateCaptureProgressBars(): void {
   bump('capture');
 }

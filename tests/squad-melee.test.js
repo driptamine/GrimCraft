@@ -26,7 +26,7 @@ describe('squad melee estimate', () => {
   });
 
   it('shows the MEL row with the melee icon in the squad view', () => {
-    const src = readSrc('src/hud/components/InfoPanel.jsx');
+    const src = readSrc('src/hud/components/InfoPanel.tsx');
     assert.ok(src.includes('meleeDamageEstimate('), 'squad view computes the estimate');
     assert.ok(src.includes("taskbarIconUrl('meleedamage') || '🗡️'"), 'MEL row uses the icon');
     assert.ok(src.includes("label={null} value={mel}"), 'MEL row shows the value, no label');

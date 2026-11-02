@@ -1,6 +1,8 @@
+import type { JSX } from 'react';
 import { world, PLAYER, controlBoth, canCommand, requisition, energy, kills, startTime, getPowerRate, getRequisitionRate, getRenderBackend, isBackendSwitching, supportsWebGPU, getBackendError, _gridVariant } from '../../scene.js';
 import { getFactionTeamcolor, getFactionTeamcolourScheme, getFactionTeamcolourSchemes, setFactionTeamcolourScheme, TEAMCOLOUR_SLOT } from '../../factions.js';
 import { teamcolorHex } from '../../teamcolour.js';
+import type { TeamcolourRGB } from '../../teamcolour.js';
 import { useHUDVersion } from '../useHUD.js';
 import { infantryImmortal, setInfantryImmortal, getFps } from '../store.js';
 import { backendButtonState } from '../../render-backend.js';
@@ -11,10 +13,21 @@ import {
 import { assetUrl } from '../../assets.js';
 import { R2Img } from '../bits.jsx';
 
-function TeamcolourSelect({ faction, short }) {
+declare global {
+  interface Window {
+    switchRenderBackend?: () => void;
+    toggleControlBoth?: () => void;
+    toggleGridVariant?: () => void;
+    setTerrain?: (value: string) => void;
+    resetGame?: () => void;
+    toggleInspector?: () => void;
+  }
+}
+
+function TeamcolourSelect({ faction, short }: any): JSX.Element {
   const scheme = getFactionTeamcolourScheme(faction);
   const slot = TEAMCOLOUR_SLOT[faction] || 'trim';
-  const hex = teamcolorHex(getFactionTeamcolor(faction)?.[slot]);
+  const hex = teamcolorHex(getFactionTeamcolor(faction)?.[slot] as TeamcolourRGB | null | undefined);
   return (
     <TbStat title={`${short} army scheme`}>
       {short}
@@ -30,7 +43,7 @@ function TeamcolourSelect({ faction, short }) {
   );
 }
 
-export function TopBar() {
+export function TopBar(): JSX.Element {
   useHUDVersion('topbar');
 
   const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -39,16 +52,17 @@ export function TopBar() {
   const timer = `${minutes}:${seconds}`;
 
   const bldCount = world ? world.query('building').length + world.query('structure').length : 0;
-  const squadCount = world ? world.query('squad').filter((id) => canCommand(world.get(id, 'squad')?.team)).length : 0;
+  const squadCount = world ? world.query('squad').filter((id: number) => canCommand(world.get(id, 'squad')?.team)).length : 0;
   const builderCount = world ? world.query('builder').length : 0;
   const spIds = world ? world.query('strategicPoint') : [];
-  const capCount = spIds.filter((id) => canCommand(world.get(id, 'strategicPoint')?.owner)).length;
-  const backendUi = backendButtonState({
+  const capCount = spIds.filter((id: number) => canCommand(world.get(id, 'strategicPoint')?.owner)).length;
+  const backendArgs: { backend?: any; supportsWebGPU?: any; switching?: any; error?: any } = {
     backend: getRenderBackend(),
     supportsWebGPU: supportsWebGPU(),
     switching: isBackendSwitching(),
     error: getBackendError(),
-  });
+  };
+  const backendUi = backendButtonState(backendArgs);
 
   return (
     <TopBarDiv>

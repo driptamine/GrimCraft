@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { world, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad, SQUAD_MAX, JET_ATTACK_RANGE, PLAYER, LP_REQUISITION_RATES } from '../../scene.js';
 import { getStructureConfig } from '../../factions.js';
 import { getViewKind, getAliveGroups, computeSquadData, entityFaction, workerDisplayName } from '../data.js';
@@ -8,7 +9,7 @@ import {
   InfoPanel as InfoPanelCss, InfoTitle, InfoStats, QueueWrap, QueueLabel, QueueItemsRow, QueueItem,
 } from '../primitives.jsx';
 
-function queueIcon(item) {
+function queueIcon(item: any): string {
   if (item.type === 'squad') return '⚔';
   if (item.type === 'jet') return '✈️';
   if (item.type === 'vehicle') return '🚜';
@@ -16,7 +17,7 @@ function queueIcon(item) {
   return '👤';
 }
 
-function ProductionQueue({ items }) {
+function ProductionQueue({ items }: any): JSX.Element | null {
   if (!items || items.length === 0) {
     return null;
   }
@@ -24,7 +25,7 @@ function ProductionQueue({ items }) {
     <QueueWrap>
       <QueueLabel>PRODUCTION QUEUE</QueueLabel>
       <QueueItemsRow>
-        {items.map((item, i) => (
+        {items.map((item: any, i: number) => (
           <QueueItem key={i} title={`${String(item.type).replace(/_/g, ' ').toUpperCase()} — ${Math.round((item.progress / item.total) * 100)}%`}>
             {queueIcon(item)}
             <div className="q-prog" style={{ width: `${(item.progress / item.total) * 100}%` }} />
@@ -35,7 +36,7 @@ function ProductionQueue({ items }) {
   );
 }
 
-function ResearchQueue({ items }) {
+function ResearchQueue({ items }: any): JSX.Element | null {
   if (!items || items.length === 0) {
     return null;
   }
@@ -43,7 +44,7 @@ function ResearchQueue({ items }) {
     <QueueWrap>
       <QueueLabel>RESEARCH</QueueLabel>
       <QueueItemsRow>
-        {items.map((item, i) => (
+        {items.map((item: any, i: number) => (
           <QueueItem key={i} title={`RESEARCH — ${Math.round((item.progress / item.total) * 100)}%`}>
             🔬
             <div className="q-prog" style={{ width: `${(item.progress / item.total) * 100}%` }} />
@@ -54,12 +55,12 @@ function ResearchQueue({ items }) {
   );
 }
 
-export function InfoPanel() {
+export function InfoPanel(): JSX.Element {
   const view = getViewKind();
 
   let title = 'SELECT A UNIT OR BUILDING';
-  let stats = null;
-  let queue = null;
+  let stats: any = null;
+  let queue: any = null;
 
   if (view === 'builder') {
     const builder = world.get(selBuilder, 'builder');
@@ -68,7 +69,7 @@ export function InfoPanel() {
   } else if (view === 'airfield') {
     const airfield = world.get(selBuildings[0], 'airfield');
     if (airfield) {
-      const jets = world.query('jet').filter((jid) => world.get(jid, 'jet')?.team === PLAYER);
+      const jets = world.query('jet').filter((jid: number) => world.get(jid, 'jet')?.team === PLAYER);
       title = 'AIRFIELD';
       stats = (
         <>
@@ -129,9 +130,9 @@ export function InfoPanel() {
     }
   } else if (view === 'buildings') {
     title = `${selBuildings.length} BUILDINGS SELECTED`;
-    const barracksIds = selBuildings.filter((bid) => world.has(bid, 'building'));
+    const barracksIds = selBuildings.filter((bid: number) => world.has(bid, 'building'));
     if (barracksIds.length) {
-      const totalQ = barracksIds.reduce((sum, bid) => sum + (world.get(bid, 'building')?.queue.length || 0), 0);
+      const totalQ = barracksIds.reduce((sum: number, bid: number) => sum + (world.get(bid, 'building')?.queue.length || 0), 0);
       stats = <span>TOTAL QUEUE:<b>{totalQ}</b></span>;
     }
   } else if (view === 'jet') {
@@ -185,15 +186,15 @@ export function InfoPanel() {
     const sq = data.alive.length === 1 ? world.get(data.alive[0], 'squad') : null;
     if (sq) {
       title = 'SOLDIER SQUAD';
-      const aliveSols = sq.soldiers.filter((sid) => sid !== null && world.has(sid, 'soldier'));
-      const avgRate = aliveSols.length ? aliveSols.reduce((sum, sid) => {
+      const aliveSols = sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier'));
+      const avgRate = aliveSols.length ? aliveSols.reduce((sum: number, sid: any) => {
         const sol = world.get(sid, 'soldier');
         return sum + (sol ? sol.attackRate : 0);
       }, 0) / aliveSols.length : 0;
       const dps = (10.5 * avgRate).toFixed(1);
-      const mel = meleeDamageEstimate(aliveSols.map((sid) => world.get(sid, 'soldier'))).toFixed(1);
+      const mel = meleeDamageEstimate(aliveSols.map((sid: any) => world.get(sid, 'soldier'))).toFixed(1);
       const upgrades = numberOfUpgrades(
-        aliveSols.map((sid) => world.get(sid, 'soldier')),
+        aliveSols.map((sid: any) => world.get(sid, 'soldier')),
         sq.projectileType,
       );
       const menMax = sq.soldiers[0] !== null && world.has(sq.soldiers[0], 'soldier') ? SQUAD_MAX : SQUAD_MAX - 1;
@@ -209,11 +210,11 @@ export function InfoPanel() {
   } else if (view === 'squads') {
     const data = computeSquadData();
     title = `${data.alive.length} SQUADS SELECTED`;
-    const avgRange = (data.alive.reduce((sum, sqId) => {
+    const avgRange = (data.alive.reduce((sum: number, sqId: number) => {
       const sq = world.get(sqId, 'squad');
       return sum + (sq ? sq.attackRange : 0);
     }, 0) / data.alive.length).toFixed(0);
-    const avgSpd = (data.alive.reduce((sum, sqId) => {
+    const avgSpd = (data.alive.reduce((sum: number, sqId: number) => {
       const sq = world.get(sqId, 'squad');
       return sum + (sq ? sq.speed : 0);
     }, 0) / data.alive.length).toFixed(1);
@@ -229,10 +230,10 @@ export function InfoPanel() {
     title = 'SELECT A UNIT OR BUILDING';
     if (hoveredEnemySquad && world.has(hoveredEnemySquad, 'squad')) {
       const sq = world.get(hoveredEnemySquad, 'squad');
-      const aliveSols = sq.soldiers.filter((sid) => sid !== null && world.has(sid, 'soldier'));
+      const aliveSols = sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier'));
       let hp = 0;
       let mhp = 0;
-      aliveSols.forEach((sid) => {
+      aliveSols.forEach((sid: any) => {
         const sol = world.get(sid, 'soldier');
         if (sol) {
           hp += sol.hp;

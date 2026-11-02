@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { world, requisition, setRequisition, SQUAD_MAX, COSTS } from '../../scene.js';
 import { updateHUD } from '../../hud.js';
 import { applySquadWeaponVisuals } from '../../entities.js';
@@ -10,7 +11,7 @@ import {
 import { assetUrl } from '../../assets.js';
 import { R2Img } from '../bits.jsx';
 
-function SergeantSlotView({ data }) {
+function SergeantSlotView({ data }: any): JSX.Element {
   const sgtCost = COSTS.reinforce;
   const canAddSgt = requisition >= sgtCost && !data.sgtSoldier && !data.sgtQueued;
 
@@ -32,7 +33,7 @@ function SergeantSlotView({ data }) {
     for (let i = 0; i < data.alive.length; i += 1) {
       const sqId = data.alive[i];
       const sq = world.get(sqId, 'squad');
-      if (sq && !sq.reinforceQueue.some((q) => q.formIdx === 0)) {
+      if (sq && !sq.reinforceQueue.some((q: any) => q.formIdx === 0)) {
         setRequisition(requisition - sgtCost);
         sq.reinforceQueue.unshift({ formIdx: 0 });
         break;
@@ -60,7 +61,7 @@ function SergeantSlotView({ data }) {
   );
 }
 
-function AmmoSubPanel({ data }) {
+function AmmoSubPanel({ data }: any): JSX.Element | null {
   if (data.alive.length === 0) {
     return null;
   }
@@ -70,9 +71,9 @@ function AmmoSubPanel({ data }) {
       const sqId = data.alive[i];
       const sq = world.get(sqId, 'squad');
       if (!sq) continue;
-      const grenadierCount = sq.soldiers.filter((sid) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').isGrenadier).length;
+      const grenadierCount = sq.soldiers.filter((sid: any) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').isGrenadier).length;
       if (grenadierCount + sq.grenadeQueue.length < 5) {
-        const target = sq.soldiers.find((sid) => sid && world.has(sid, 'soldier') && !world.get(sid, 'soldier').isGrenadier && !sq.grenadeQueue.some((q) => q.solId === sid));
+        const target = sq.soldiers.find((sid: any) => sid && world.has(sid, 'soldier') && !world.get(sid, 'soldier').isGrenadier && !sq.grenadeQueue.some((q: any) => q.solId === sid));
         if (target) {
           setRequisition(requisition - data.glCost);
           sq.grenadeQueue.push({ solId: target });
@@ -83,8 +84,8 @@ function AmmoSubPanel({ data }) {
     updateHUD();
   };
 
-  const setProjectile = (pt) => {
-    data.alive.forEach((sqId) => {
+  const setProjectile = (pt: string) => {
+    data.alive.forEach((sqId: number) => {
       const sq = world.get(sqId, 'squad');
       if (sq) {
         sq.projectileType = pt;
@@ -146,7 +147,7 @@ function AmmoSubPanel({ data }) {
   );
 }
 
-export function ReinforceButtonsPanel() {
+export function ReinforceButtonsPanel(): JSX.Element {
   const data = computeSquadData();
 
   const reinforceAdd = () => {
@@ -156,13 +157,13 @@ export function ReinforceButtonsPanel() {
       const sqId = data.alive[j];
       const sq = world.get(sqId, 'squad');
       if (!sq) continue;
-      const aliveSols = sq.soldiers.filter((sid) => sid !== null && world.has(sid, 'soldier'));
+      const aliveSols = sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier'));
       const occupied = new Set([
-        ...aliveSols.map((sid) => {
+        ...aliveSols.map((sid: any) => {
           const sol = world.get(sid, 'soldier');
           return sol ? sol.formIdx : -1;
         }),
-        ...sq.reinforceQueue.map((q) => q.formIdx),
+        ...sq.reinforceQueue.map((q: any) => q.formIdx),
       ]);
       for (let i = 1; i < SQUAD_MAX; i += 1) {
         if (!occupied.has(i)) {
@@ -179,7 +180,7 @@ export function ReinforceButtonsPanel() {
 
   const toggleAuto = () => {
     const newVal = !data.autoOn;
-    data.alive.forEach((sqId) => {
+    data.alive.forEach((sqId: number) => {
       const sq = world.get(sqId, 'squad');
       if (sq) sq.autoReinforce = newVal;
     });

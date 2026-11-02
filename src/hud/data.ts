@@ -1,7 +1,24 @@
 import { world, selBuilder, selSquads, selBuildings, selListeningPost, requisition, SQUAD_MAX, COSTS, PROD_TIME } from '../scene.js';
 import { FACTIONS, playerFaction, getStructureConfig, ARENA_POSITION_FACTIONS } from '../factions.js';
+import type { ProductionItem } from '../factions/types.js';
 
-function entityFocusPosition(worldLike, id) {
+export interface FocusPosition {
+  x: number;
+  z: number;
+}
+
+export interface SelectionIds {
+  builderId?: number | null;
+  buildingIds?: number[];
+  squads?: number[];
+  apcs?: number[];
+  vehicles?: number[];
+  jets?: number[];
+  hoveredEnemySquad?: number | null;
+  listeningPostId?: number | null;
+}
+
+function entityFocusPosition(worldLike: any, id: any): FocusPosition | null {
   if (id === null || id === undefined) {
     return null;
   }
@@ -19,7 +36,7 @@ function entityFocusPosition(worldLike, id) {
   return null;
 }
 
-function firstFocusPosition(worldLike, ids) {
+function firstFocusPosition(worldLike: any, ids: any): FocusPosition | null {
   for (const id of ids || []) {
     const pos = entityFocusPosition(worldLike, id);
     if (pos) {
@@ -34,7 +51,7 @@ function firstFocusPosition(worldLike, ids) {
  * selection view. Returns { x, z } or null when there is nothing meaningful
  * to focus. Pure except for the injected world-like object.
  */
-export function getPortraitFocusPosition(worldLike, view, selection) {
+export function getPortraitFocusPosition(worldLike: any, view: string, selection: SelectionIds | null | undefined): FocusPosition | null {
   if (!worldLike || !selection) {
     return null;
   }
@@ -74,33 +91,33 @@ export function getPortraitFocusPosition(worldLike, view, selection) {
  * bindings from scene.js, so they must only be called during render.
  */
 
-export function entityFaction(entity, fallback = playerFaction) {
+export function entityFaction(entity: any, fallback: string = playerFaction): string {
   const faction = entity?.faction;
   return faction && FACTIONS[faction] ? faction : fallback;
 }
 
-export function workerDisplayName(factionKey) {
+export function workerDisplayName(factionKey: string): string {
   return FACTIONS[factionKey]?.infantry?.[0]?.name?.toUpperCase() || 'BUILDER';
 }
 
-export function getAliveGroups() {
-  const squads = selSquads.filter((id) => world.has(id, 'squad'));
-  const apcs = selSquads.filter((id) => world.has(id, 'apc'));
-  const vehicles = selSquads.filter((id) => world.has(id, 'vehicle'));
-  const jets = selSquads.filter((id) => world.has(id, 'jet'));
+export function getAliveGroups(): { squads: number[]; apcs: number[]; vehicles: number[]; jets: number[] } {
+  const squads: number[] = selSquads.filter((id: number) => world.has(id, 'squad'));
+  const apcs: number[] = selSquads.filter((id: number) => world.has(id, 'apc'));
+  const vehicles: number[] = selSquads.filter((id: number) => world.has(id, 'vehicle'));
+  const jets: number[] = selSquads.filter((id: number) => world.has(id, 'jet'));
   return { squads, apcs, vehicles, jets };
 }
 
-export function getAnimList() {
+export function getAnimList(): { isCustom: boolean; slots: { slot: string; name: string }[] } | null {
   if (!world) {
     return null;
   }
-  const squads = selSquads.filter((id) => world.has(id, 'squad'));
+  const squads = selSquads.filter((id: number) => world.has(id, 'squad'));
   if (squads.length === 0) {
     return null;
   }
   const squad = world.get(squads[0], 'squad');
-  const soldierId = squad?.soldiers?.find((sid) => sid !== null && world.has(sid, 'soldier'));
+  const soldierId = squad?.soldiers?.find((sid: any) => sid !== null && world.has(sid, 'soldier'));
   if (soldierId === undefined) {
     return null;
   }
@@ -117,7 +134,7 @@ export function getAnimList() {
   return { isCustom: !!root._isCustomModel, slots };
 }
 
-export function getStructureProduction(type, factionKey = playerFaction) {
+export function getStructureProduction(type: string, factionKey: string = playerFaction): ProductionItem[] {
   if (!world) {
     return [];
   }
@@ -127,7 +144,7 @@ export function getStructureProduction(type, factionKey = playerFaction) {
 }
 
 // Position of a faction's HQ building (null when none stands).
-export function hqPositionForFaction(factionKey) {
+export function hqPositionForFaction(factionKey: string): any {
   if (!world) {
     return null;
   }
@@ -141,11 +158,11 @@ export function hqPositionForFaction(factionKey) {
 }
 
 // Factions with a standing HQ, in canonical cycle order.
-export function factionsWithHQ() {
+export function factionsWithHQ(): string[] {
   if (!world) {
     return [];
   }
-  const present = new Set();
+  const present = new Set<string>();
   for (const id of world.query('building')) {
     const b = world.get(id, 'building');
     if (b?.type === 'hq' && b.faction) {
@@ -156,7 +173,7 @@ export function factionsWithHQ() {
 }
 
 // Team of a faction's HQ building (null when none stands).
-export function hqTeamForFaction(factionKey) {
+export function hqTeamForFaction(factionKey: string): any {
   if (!world) {
     return null;
   }
@@ -169,15 +186,15 @@ export function hqTeamForFaction(factionKey) {
   return null;
 }
 
-function displayName(name) {
+function displayName(name: any): string {
   return String(name).replace(/_/g, ' ').toUpperCase();
 }
 
-export function unitTooltip(item, factionKey = playerFaction) {
+export function unitTooltip(item: any, factionKey: string = playerFaction): string {
   const faction = FACTIONS[factionKey];
   const unit = (faction?.units || []).find((u) => u.name === item.name);
-  const cost = item.cost || unit?.cost || COSTS[item.name];
-  const time = item.time || unit?.time || PROD_TIME[item.name];
+  const cost = item.cost || unit?.cost || COSTS[item.name as keyof typeof COSTS];
+  const time = item.time || unit?.time || PROD_TIME[item.name as keyof typeof PROD_TIME];
   const lines = [displayName(item.name)];
   lines.push(`COST ${cost}R · TIME ${time}s`);
   if (unit) {
@@ -191,16 +208,16 @@ export function unitTooltip(item, factionKey = playerFaction) {
   return lines.join('\n');
 }
 
-export function structureTooltip(type, factionKey = playerFaction) {
+export function structureTooltip(type: string, factionKey: string = playerFaction): string {
   const cfg = getStructureConfig(factionKey, type);
   const name = cfg?.name || type;
-  const cost = cfg?.cost || COSTS[type];
+  const cost = cfg?.cost || COSTS[type as keyof typeof COSTS];
   const time = cfg?.time;
   const lines = [displayName(name)];
   lines.push(`COST ${cost}R${time ? ` · TIME ${time}s` : ''}`);
   const prod = cfg?.production || [];
   if (prod.length) {
-    lines.push(`PRODUCES: ${prod.map((p) => displayName(p.name)).join(', ')}`);
+    lines.push(`PRODUCES: ${prod.map((p) => displayName(typeof p === 'object' ? p?.name : p)).join(', ')}`);
   }
   const addons = cfg?.addons || [];
   if (addons.length) {
@@ -209,7 +226,7 @@ export function structureTooltip(type, factionKey = playerFaction) {
   return lines.join('\n');
 }
 
-export function addonTooltip(addon) {
+export function addonTooltip(addon: any): string {
   const lines = [displayName(addon.name)];
   lines.push(`COST ${addon.cost}R${addon.power ? ` / ${addon.power}P` : ''}`);
   if (addon.time) lines.push(`TIME ${addon.time}s`);
@@ -220,11 +237,11 @@ export function addonTooltip(addon) {
   return lines.join('\n');
 }
 
-export function getBarracksProduction(factionKey = playerFaction) {
+export function getBarracksProduction(factionKey: string = playerFaction): ProductionItem[] {
   return getStructureProduction('infantry_command', factionKey) || getStructureProduction('barracks', factionKey);
 }
 
-export function getViewKind() {
+export function getViewKind(): string {
   if (!world) {
     return 'none';
   }
@@ -265,12 +282,31 @@ export function getViewKind() {
   return 'default';
 }
 
-export function computeSquadData() {
-  const alive = selSquads.filter((id) => world.has(id, 'squad'));
+export function computeSquadData(): {
+  alive: number[];
+  totalMen: number;
+  totalMax: number;
+  totalHp: number;
+  totalMaxHp: number;
+  avgHpPct: number;
+  hpColor: string;
+  allQueued: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number }[];
+  active: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number } | undefined;
+  rest: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number }[];
+  reinCost: number;
+  autoOn: boolean;
+  sgtSoldier: any;
+  sgtQueued: boolean;
+  glCost: number;
+  canAddGL: boolean;
+  chaseActive: boolean;
+  curPtSq: string;
+} {
+  const alive: number[] = selSquads.filter((id: number) => world.has(id, 'squad'));
 
   const totalMen = alive.reduce((sum, sqId) => {
     const sq = world.get(sqId, 'squad');
-    return sum + (sq ? sq.soldiers.filter((sid) => sid !== null && world.has(sid, 'soldier')).length : 0);
+    return sum + (sq ? sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier')).length : 0);
   }, 0);
   const totalMax = alive.length * SQUAD_MAX;
 
@@ -279,7 +315,7 @@ export function computeSquadData() {
   alive.forEach((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (!sq) return;
-    sq.soldiers.filter((sid) => sid !== null && world.has(sid, 'soldier')).forEach((sid) => {
+    sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier')).forEach((sid: any) => {
       const sol = world.get(sid, 'soldier');
       if (!sol) return;
       totalHp += sol.hp;
@@ -293,7 +329,7 @@ export function computeSquadData() {
   const allReinforceQueued = alive.flatMap((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (!sq) return [];
-    return sq.reinforceQueue.map((q, i) => ({
+    return sq.reinforceQueue.map((q: any, i: number) => ({
       type: 'reinforce',
       sqId,
       formIdx: q.formIdx,
@@ -306,7 +342,7 @@ export function computeSquadData() {
   const allGrenadeQueued = alive.flatMap((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (!sq) return [];
-    return sq.grenadeQueue.map((q, i) => ({
+    return sq.grenadeQueue.map((q: any, i: number) => ({
       type: 'grenade',
       sqId,
       solId: q.solId,
@@ -323,13 +359,13 @@ export function computeSquadData() {
   const reinCost = COSTS.reinforce;
   const autoOn = alive.some((sqId) => world.get(sqId, 'squad')?.autoReinforce);
 
-  let sgtSoldier = null;
+  let sgtSoldier: any = null;
   let sgtQueued = false;
   for (let i = 0; i < alive.length; i += 1) {
     const sqId = alive[i];
     const sq = world.get(sqId, 'squad');
     if (!sq) continue;
-    if (sq.reinforceQueue.some((q) => q.formIdx === 0)) {
+    if (sq.reinforceQueue.some((q: any) => q.formIdx === 0)) {
       sgtQueued = true;
       break;
     }
@@ -349,13 +385,13 @@ export function computeSquadData() {
   const glCost = COSTS.grenadeUpgrade;
   const canAddGL = requisition >= glCost && alive.some((sqId) => {
     const sq = world.get(sqId, 'squad');
-    return sq && sq.soldiers.filter((sid) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').isGrenadier).length + sq.grenadeQueue.length < 5;
+    return sq && sq.soldiers.filter((sid: any) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').isGrenadier).length + sq.grenadeQueue.length < 5;
   });
 
   const chaseOnCount = alive.filter((sqId) => world.get(sqId, 'squad')?.autoChase).length;
   const chaseActive = chaseOnCount > (alive.length / 2);
 
-  const ptCounts = { bullet: 0, beam: 0, plasma: 0, 'plasma-final': 0 };
+  const ptCounts: Record<string, number> = { bullet: 0, beam: 0, plasma: 0, 'plasma-final': 0 };
   alive.forEach((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (sq) {

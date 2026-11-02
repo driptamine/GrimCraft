@@ -66,7 +66,7 @@ describe('grid variants', () => {
   });
 
   it('top bar labels the third mode NO-GRID', () => {
-    const src = fs.readFileSync(path.join(root, 'src/hud/components/TopBar.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/hud/components/TopBar.tsx'), 'utf8');
     assert.ok(src.includes("_gridVariant === 3 ? '▦ GRID: NO-GRID'"), 'no-grid label for variant 3');
   });
 

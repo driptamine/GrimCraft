@@ -49,13 +49,13 @@ describe('asset url', () => {
   it('routes HUD image points through assetUrl', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
-    assert.ok(read('src/hud/bits.jsx').includes("import { assetUrl } from '../assets.js'"), 'bits imports assetUrl');
-    assert.ok(read('src/hud/bits.jsx').includes('<R2Img src={assetUrl(src)}'), 'Icon renders through assetUrl');
-    assert.ok(read('src/hud/bits.jsx').includes('<R2Img src={assetUrl(icon)}'), 'StatRow renders through assetUrl');
-    assert.ok(read('src/hud/components/Portrait.jsx').includes('<R2Img src={assetUrl(icon)}'), 'portrait renders through assetUrl');
-    assert.ok(read('src/hud/components/TopBar.jsx').includes("assetUrl('assets/Resource_requisition.gif')"), 'topbar req glyph routed');
-    assert.ok(read('src/hud/components/ReinforceBtnPanel.jsx').includes('assetUrl('), 'reinforce icon routed');
-    for (const rel of ['src/hud/bits.jsx', 'src/hud/components/Portrait.jsx', 'src/hud/components/TopBar.jsx', 'src/hud/components/ReinforceBtnPanel.jsx']) {
+    assert.ok(read('src/hud/bits.tsx').includes("import { assetUrl } from '../assets.js'"), 'bits imports assetUrl');
+    assert.ok(read('src/hud/bits.tsx').includes('<R2Img src={assetUrl(src)}'), 'Icon renders through assetUrl');
+    assert.ok(read('src/hud/bits.tsx').includes('<R2Img src={assetUrl(icon)}'), 'StatRow renders through assetUrl');
+    assert.ok(read('src/hud/components/Portrait.tsx').includes('<R2Img src={assetUrl(icon)}'), 'portrait renders through assetUrl');
+    assert.ok(read('src/hud/components/TopBar.tsx').includes("assetUrl('assets/Resource_requisition.gif')"), 'topbar req glyph routed');
+    assert.ok(read('src/hud/components/ReinforceBtnPanel.tsx').includes('assetUrl('), 'reinforce icon routed');
+    for (const rel of ['src/hud/bits.tsx', 'src/hud/components/Portrait.tsx', 'src/hud/components/TopBar.tsx', 'src/hud/components/ReinforceBtnPanel.tsx']) {
       assert.ok(read(rel).includes('<R2Img'), `${rel} renders cached R2 images`);
     }
     const vite = read('vite.config.js');

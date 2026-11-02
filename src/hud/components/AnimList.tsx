@@ -1,16 +1,17 @@
+import type { JSX } from 'react';
 import { getAnimList } from '../data.js';
 import {
   AnimListWrap, AnimListLabel, AnimChips, AnimChip, AnimChipSlot, AnimChipName,
 } from '../primitives.jsx';
 
-const SLOT_LABEL = {
+const SLOT_LABEL: Record<string, string> = {
   idle: 'IDLE',
   run: 'RUN',
   shoot: 'SHOOT',
   shootMove: 'MOVE-FIRE',
 };
 
-export function AnimList() {
+export function AnimList(): JSX.Element | null {
   const list = getAnimList();
   if (!list) {
     return null;

@@ -45,7 +45,7 @@ describe('squad numberOfUpgrades', () => {
   });
 
   it('shows the UPG row with the upgrades icon in the squad view', () => {
-    const src = readSrc('src/hud/components/InfoPanel.jsx');
+    const src = readSrc('src/hud/components/InfoPanel.tsx');
     assert.ok(src.includes('numberOfUpgrades('), 'squad view computes upgrades');
     assert.ok(src.includes("taskbarIconUrl('numberofupgrades') || '⬆️'"), 'UPG row uses the icon');
     assert.ok(src.includes('label={null} value={`${upgrades}'), 'UPG row shows the value, no label');

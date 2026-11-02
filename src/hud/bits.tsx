@@ -10,8 +10,8 @@ import { r2ImageUrl } from '../r2-image.js';
  * the fetch fails (no worse than a plain <img>). Renders without src until
  * the blob URL is ready, so nothing downloads twice.
  */
-export function R2Img({ src, ...rest }) {
-  const [resolved, setResolved] = React.useState(null);
+export function R2Img({ src, ...rest }: any): React.JSX.Element {
+  const [resolved, setResolved] = React.useState<string | null>(null);
   React.useEffect(() => {
     let live = true;
     setResolved(null);
@@ -30,7 +30,7 @@ export function R2Img({ src, ...rest }) {
 /**
  * Renders an icon that is either an emoji glyph or an image path.
  */
-export function Icon({ icon, fallback = '❓' }) {
+export function Icon({ icon, fallback = '❓' }: any): React.JSX.Element {
   const src = icon || fallback;
   if (typeof src === 'string' && src.includes('/')) {
     return <R2Img src={assetUrl(src)} className="action-icon" alt="" style={{ width: 36, height: 36, objectFit: 'contain', marginBottom: 2 }} />;
@@ -41,7 +41,7 @@ export function Icon({ icon, fallback = '❓' }) {
 export const REQ_ICON = 'assets/Resource_requisition.gif';
 export const POWER_ICON = 'assets/Resource_power.gif';
 
-export function CostGlyph({ req }) {
+export function CostGlyph({ req }: any): React.JSX.Element {
   return (
     <R2Img
       src={assetUrl(req ? REQ_ICON : POWER_ICON)}
@@ -55,11 +55,11 @@ export function CostGlyph({ req }) {
  * Renders tooltip text, swapping `100R` / `50P` cost tokens for the DoW
  * resource glyphs. Non-string content passes through untouched.
  */
-export function TooltipText({ text }) {
+export function TooltipText({ text }: any): any {
   if (typeof text !== 'string') {
     return text;
   }
-  return text.split(/(\d+[RP])/g).map((part, i) => {
+  return text.split(/(\d+[RP])/g).map((part: string, i: number) => {
     const m = /^(\d+)([RP])$/.exec(part);
     if (!m) {
       return part;
@@ -77,7 +77,7 @@ export function TooltipText({ text }) {
  * Generic hover tooltip. Renders `content` in an absolutely-positioned popup
  * above the wrapped element while hovered. Disabled children still show it.
  */
-export function Tooltip({ content, children, width = 190 }) {
+export function Tooltip({ content, children, width = 190 }: any): React.JSX.Element {
   const [hovered, setHovered] = React.useState(false);
   return (
     <span
@@ -108,7 +108,7 @@ export function ActionButton({
   title,
   tooltip,
   style,
-}) {
+}: any): React.JSX.Element {
   const [hovered, setHovered] = React.useState(false);
   return (
     <ActionBtn
@@ -146,7 +146,7 @@ export function CompactReinforceButton({
   onRightClick,
   tooltip,
   style,
-}) {
+}: any): React.JSX.Element {
   const [hovered, setHovered] = React.useState(false);
   return (
     <ActionBtn
@@ -183,7 +183,7 @@ export function AmmoButton({
   tooltip,
   title,
   style,
-}) {
+}: any): React.JSX.Element {
   const [hovered, setHovered] = React.useState(false);
   return (
     <AmmoActionBtn
@@ -205,7 +205,7 @@ export function AmmoButton({
 /**
  * One stat row: icon + label + value, with optional warn/good coloring.
  */
-export function StatRow({ icon, label, value, cls = '' }) {
+export function StatRow({ icon, label, value, cls = '' }: any): React.JSX.Element {
   const glyph = typeof icon === 'string' && (icon.includes('/') || icon.startsWith('data:'))
     ? <R2Img src={assetUrl(icon)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', display: 'block' }} />
     : icon;

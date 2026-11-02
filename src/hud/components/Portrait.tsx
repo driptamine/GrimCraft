@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import * as THREE from 'three';
 import { world, camera, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad } from '../../scene.js';
 import { FACTIONS, getStructureConfig } from '../../factions.js';
@@ -8,14 +9,14 @@ import {
 import { assetUrl } from '../../assets.js';
 import { R2Img } from '../bits.jsx';
 
-function portraitIconEl(icon) {
+function portraitIconEl(icon: any): any {
   if (icon && icon.includes('/')) {
     return <R2Img src={assetUrl(icon)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
   }
   return icon || '❓';
 }
 
-function computeSingleBuilding() {
+function computeSingleBuilding(): { icon: any; name: string; entity: any } | null {
   const id = selBuildings[0];
   const building = world.get(id, 'building');
   const structure = world.get(id, 'structure');
@@ -30,8 +31,8 @@ function computeSingleBuilding() {
   const faction = FACTIONS[factionKey];
   const cfg = structure ? getStructureConfig(factionKey, structure.type) : (building ? getStructureConfig(factionKey, building.type) : null);
 
-  let icon;
-  let name;
+  let icon: any;
+  let name: string;
   if (isHQ) {
     icon = faction?.icons?.hq || '🏰';
     name = 'HQ';
@@ -52,10 +53,10 @@ function computeSingleBuilding() {
   return { icon, name, entity };
 }
 
-export function Portrait() {
+export function Portrait(): JSX.Element {
   const view = getViewKind();
 
-  let icon = '❓';
+  let icon: any = '❓';
   let name = 'NOTHING';
   let hpPct = 0;
   let hpColor = '#44ff88';
@@ -125,7 +126,7 @@ export function Portrait() {
       const firstSq = world.get(data.alive[0], 'squad');
       const unitCfg = firstSq?.unitType ? squadFaction?.units?.find((u) => u.name === firstSq.unitType) : null;
       icon = unitCfg?.icon || squadFaction?.icons?.squad || '⚔';
-      name = unitCfg ? unitCfg.name.toUpperCase().replace(/_/g, ' ') : 'SQUAD';
+      name = unitCfg?.name ? unitCfg.name.toUpperCase().replace(/_/g, ' ') : 'SQUAD';
     } else {
       icon = '⚔⚔';
       name = `${data.alive.length} SQUADS`;
@@ -136,10 +137,10 @@ export function Portrait() {
   } else if (view === 'default') {
     if (hoveredEnemySquad && world.has(hoveredEnemySquad, 'squad')) {
       const sq = world.get(hoveredEnemySquad, 'squad');
-      const aliveSols = sq.soldiers.filter((sid) => sid !== null && world.has(sid, 'soldier'));
+      const aliveSols = sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier'));
       let hp = 0;
       let mhp = 0;
-      aliveSols.forEach((sid) => {
+      aliveSols.forEach((sid: any) => {
         const sol = world.get(sid, 'soldier');
         if (sol) {
           hp += sol.hp;

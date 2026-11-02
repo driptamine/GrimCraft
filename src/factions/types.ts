@@ -19,24 +19,49 @@ export interface FactionUnitEntry {
   model?: string;
   hiddenNodes?: string[];
   canFly?: boolean;
+  icon?: string;
+  cost?: number;
+  time?: number;
+  hp?: number;
+  damage?: number;
+  attackRange?: number;
+  size?: number;
 }
 
 export interface FactionAddonEntry {
   name?: string;
   icon?: string;
   cost?: number;
+  power?: number;
+  time?: number;
   unlocks?: string;
   requiresTier?: number;
   tier?: number;
   scanner?: boolean;
 }
 
+export interface FactionResearchEntry {
+  key?: string;
+  name?: string;
+  desc?: string;
+  icon?: string;
+  cost?: number;
+  power?: number;
+  time?: number;
+  requires?: string[];
+}
+
 export interface FactionStructureEntry {
   type?: string;
   model?: string;
+  name?: string;
+  icon?: string;
+  cost?: number;
+  time?: number;
   hiddenNodes?: string[];
   production?: ProductionItem[];
   addons?: FactionAddonEntry[];
+  research?: FactionResearchEntry[];
 }
 
 // Structure production lists mix two shapes: unit objects
@@ -45,13 +70,21 @@ export interface FactionStructureEntry {
 export type ProductionItem = string | {
   model?: string;
   name?: string;
+  icon?: string;
   cost?: number;
   time?: number;
+  requires?: string[];
 };
+
+export interface FactionIcons {
+  [key: string]: string | FactionIcons;
+}
 
 export interface FactionConfig {
   name?: string;
   hq?: string;
+  icons?: FactionIcons;
+  buildOrder?: (string | null)[];
   infantry?: FactionInfantryEntry[];
   units?: FactionUnitEntry[];
   structures?: FactionStructureEntry[];

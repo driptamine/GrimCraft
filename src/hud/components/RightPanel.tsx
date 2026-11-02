@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { world, PLAYER, attackMode, SQUAD_SCATTER, setAttackMode, onScatterInput } from '../../scene.js';
 import { getViewKind, getAliveGroups } from '../data.js';
 import { updateHUD } from '../../hud.js';
@@ -5,7 +6,7 @@ import {
   RightPanel, RightBtn, AttackModeToggle, AtkModeLabel, AtkModeBtn, ScatterRow, ScatterVal,
 } from '../primitives.jsx';
 
-function stopSelected() {
+function stopSelected(): void {
   const view = getViewKind();
   const { squads, apcs, vehicles, jets } = getAliveGroups();
   if (view === 'jet') {
@@ -39,14 +40,14 @@ function stopSelected() {
   updateHUD();
 }
 
-function attackSelected() {
+function attackSelected(): void {
   const { squads } = getAliveGroups();
   squads.forEach((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (!sq) return;
-    let nearest = null;
+    let nearest: any = null;
     let nDist = Infinity;
-    world.query('squad').forEach((eid) => {
+    world.query('squad').forEach((eid: number) => {
       const esq = world.get(eid, 'squad');
       if (!esq || esq.team === PLAYER) return;
       const dist = sq.position.distanceTo(esq.position);
@@ -63,7 +64,7 @@ function attackSelected() {
   updateHUD();
 }
 
-export function RightPanelCmp() {
+export function RightPanelCmp(): JSX.Element {
   const view = getViewKind();
   const hasUnits = view === 'squad' || view === 'squads' || view === 'jet' || view === 'apc' || view === 'vehicle';
 

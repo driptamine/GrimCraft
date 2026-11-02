@@ -32,7 +32,7 @@ describe('listening post placement', () => {
   });
 
   it('keeps the r1c3 button clickable whenever affordable', () => {
-    const src = readSrc('src/hud/components/ActionsGrid.jsx');
+    const src = readSrc('src/hud/components/ActionsGrid.tsx');
     assert.ok(!src.includes('lpTargetExists'), 'no owned-target gate on the button');
     assert.ok(!src.includes("type === 'listening_post'"), 'no listening-post-only branch');
   });

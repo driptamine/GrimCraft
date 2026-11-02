@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useHUDVersion } from './useHUD.js';
 import { HudContainer } from './primitives.jsx';
@@ -10,7 +11,7 @@ import { ReinforceButtonsPanel } from './components/ReinforceBtnPanel.jsx';
 import { ActionsGrid } from './components/ActionsGrid.jsx';
 import { CaptureBars } from './components/CaptureBars.jsx';
 
-function HUDApp() {
+function HUDApp(): JSX.Element {
   useHUDVersion('hud');
   return (
     <HudContainer>
@@ -24,7 +25,7 @@ function HUDApp() {
   );
 }
 
-function mount() {
+function mount(): void {
   const topbarRootEl = document.getElementById('topbar-root');
   if (topbarRootEl) {
     createRoot(topbarRootEl).render(<TopBar />);

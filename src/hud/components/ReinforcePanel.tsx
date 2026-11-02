@@ -1,9 +1,10 @@
+import type { JSX } from 'react';
 import { world, requisition, setRequisition, COSTS } from '../../scene.js';
 import { updateHUD } from '../../hud.js';
 import { computeSquadData } from '../data.js';
 import { ReinforcePanel as ReinforcePanelCss, ReinforcePanelLabel, RpWrap, RpBar, RpFill, RpIcon, RpLabel, RpQueue, RqSlot } from '../primitives.jsx';
 
-export function ReinforceProgressPanel() {
+export function ReinforceProgressPanel(): JSX.Element {
   const data = computeSquadData();
 
   if (data.allQueued.length === 0) {
@@ -18,6 +19,7 @@ export function ReinforceProgressPanel() {
   const { active, rest } = data;
 
   const cancelActive = () => {
+    if (!active) return;
     const sq = world.get(active.sqId, 'squad');
     if (!sq) return;
     if (active.type === 'reinforce') {
@@ -32,17 +34,17 @@ export function ReinforceProgressPanel() {
     updateHUD();
   };
 
-  const cancelSlot = (q) => {
+  const cancelSlot = (q: NonNullable<typeof active>) => {
     const sq = world.get(q.sqId, 'squad');
     if (!sq) return;
     if (q.type === 'reinforce') {
-      const idx = sq.reinforceQueue.findIndex((r) => r.formIdx === q.formIdx);
+      const idx = sq.reinforceQueue.findIndex((r: any) => r.formIdx === q.formIdx);
       if (idx !== -1) {
         sq.reinforceQueue.splice(idx, 1);
         setRequisition(requisition + COSTS.reinforce);
       }
     } else {
-      const idx = sq.grenadeQueue.findIndex((r) => r.solId === q.solId);
+      const idx = sq.grenadeQueue.findIndex((r: any) => r.solId === q.solId);
       if (idx !== -1) {
         sq.grenadeQueue.splice(idx, 1);
         setRequisition(requisition + COSTS.grenadeUpgrade);
@@ -54,17 +56,17 @@ export function ReinforceProgressPanel() {
   return (
     <ReinforcePanelCss>
       <ReinforcePanelLabel>REINFORCING</ReinforcePanelLabel>
-      <RpWrap onClick={cancelActive} title={active.isGrenadier ? 'GRENADIER UPGRADE — click to cancel' : 'REINFORCE — click to cancel'}>
-        <RpIcon>{active.isGrenadier ? '💥' : '🪖'}</RpIcon>
+      <RpWrap onClick={cancelActive} title={active?.isGrenadier ? 'GRENADIER UPGRADE — click to cancel' : 'REINFORCE — click to cancel'}>
+        <RpIcon>{active?.isGrenadier ? '💥' : '🪖'}</RpIcon>
         <RpBar>
           <RpFill
             style={{
-              width: `${Math.round(active.progress * 100)}%`,
-              background: active.isGrenadier ? '#ff8c14' : '#50c8ff',
+              width: `${Math.round((active?.progress || 0) * 100)}%`,
+              background: active?.isGrenadier ? '#ff8c14' : '#50c8ff',
             }}
           />
         </RpBar>
-        <RpLabel>{`${active.isGrenadier ? 'UPGRADING' : 'TRAINING'} ${Math.round(active.progress * 100)}%`}</RpLabel>
+        <RpLabel>{`${active?.isGrenadier ? 'UPGRADING' : 'TRAINING'} ${Math.round((active?.progress || 0) * 100)}%`}</RpLabel>
       </RpWrap>
       <RpQueue>
         {rest.map((q, i) => (

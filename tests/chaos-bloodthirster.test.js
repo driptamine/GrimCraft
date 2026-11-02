@@ -81,7 +81,7 @@ describe('chaos bloodthirster', () => {
   });
 
   it('building grid falls back to the own production order', () => {
-    const jsx = fs.readFileSync(path.join(ROOT, 'src/hud/components/ActionsGrid.jsx'), 'utf8');
+    const jsx = fs.readFileSync(path.join(ROOT, 'src/hud/components/ActionsGrid.tsx'), 'utf8');
     const grid = jsx.slice(jsx.indexOf('function BuildingActions'), jsx.indexOf('function MultiBuildingActions'));
     assert.ok(grid.includes('getStructureConfig(factionKey, building?.type)'), 'reads the own order');
     assert.ok(grid.includes('.filter((p) => p && typeof p === \'object\' && p.name)'), 'skips legacy strings');
@@ -242,7 +242,7 @@ describe('bloodthirster flight', () => {
   });
 
   it('FLY button arms targeting; RMB/Q/ESC wire the order lifecycle', () => {
-    const jsx = fs.readFileSync(path.join(ROOT, 'src/hud/components/ActionsGrid.jsx'), 'utf8');
+    const jsx = fs.readFileSync(path.join(ROOT, 'src/hud/components/ActionsGrid.tsx'), 'utf8');
     const squadView = jsx.slice(jsx.indexOf('function SquadActions'), jsx.indexOf('function HQActions'));
     assert.ok(squadView.includes('cfg?.canFly'), 'button shows for fly-capable squads');
     assert.ok(squadView.includes('label="FLY"'), 'FLY button exists');

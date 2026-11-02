@@ -141,14 +141,14 @@ describe('plasma final projectile', () => {
   });
 
   it('has a HUD slot wired to the projectile switch', () => {
-    const src = readSrc('src/hud/components/ReinforceBtnPanel.jsx');
+    const src = readSrc('src/hud/components/ReinforceBtnPanel.tsx');
     assert.ok(src.includes('label="PLASMA FINAL"'), 'slot labeled');
     assert.ok(src.includes("setProjectile('plasma-final')"), 'slot switches type');
     assert.ok(src.includes("curPtSq === 'plasma-final'"), 'slot highlights when active');
   });
 
   it('wins the data.js projectile highlight priority', () => {
-    const src = readSrc('src/hud/data.js');
+    const src = readSrc('src/hud/data.ts');
     assert.ok(src.includes("if (ptCounts['plasma-final'] > 0) curPtSq = 'plasma-final'"), 'final first');
   });
 });

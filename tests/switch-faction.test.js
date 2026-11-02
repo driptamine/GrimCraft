@@ -15,7 +15,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const factions = await import('../src/factions.js');
 const scene = await import('../src/scene.js');
 const { setWorld } = scene;
-const { factionsWithHQ, hqPositionForFaction, hqTeamForFaction } = await import('../src/hud/data.js');
+const { factionsWithHQ, hqPositionForFaction, hqTeamForFaction } = await import('../src/hud/data.ts');
 const { World } = await import('../src/ecs.js');
 
 describe('switch faction', () => {
@@ -68,7 +68,7 @@ describe('switch faction', () => {
       html.indexOf('id="switch-faction-btn"') > html.indexOf('id="camera-reset-btn"'),
       'below the camera buttons',
     );
-    const jsx = fs.readFileSync(path.join(root, 'src/hud/components/ActionsGrid.jsx'), 'utf8');
+    const jsx = fs.readFileSync(path.join(root, 'src/hud/components/ActionsGrid.tsx'), 'utf8');
     assert.ok(!jsx.includes('SWITCH FACTION'), 'not inside the action grid');
   });
 
@@ -129,7 +129,7 @@ describe('switch faction', () => {
   });
 
   it('top bar names the commanded side', () => {
-    const top = fs.readFileSync(path.join(root, 'src/hud/components/TopBar.jsx'), 'utf8');
+    const top = fs.readFileSync(path.join(root, 'src/hud/components/TopBar.tsx'), 'utf8');
     assert.ok(top.includes('`⚔ CONTROL: ${PLAYER.toUpperCase()}`'), 'label follows PLAYER');
     assert.ok(!top.includes('CONTROL: BLUE'), 'no hardcoded side');
   });

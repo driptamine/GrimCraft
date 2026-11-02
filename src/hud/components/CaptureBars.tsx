@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { world, scene, camera, PLAYER, projectToScreen } from '../../scene.js';
 import { useHUDVersion } from '../useHUD.js';
 import { CapWrap, CapLabel, CapBar, CapFill } from '../primitives.jsx';
@@ -5,15 +6,15 @@ import { CapWrap, CapLabel, CapBar, CapFill } from '../primitives.jsx';
 /**
  * Projects 3D-to-2D capture progress bars above each strategic point.
  */
-export function CaptureBars() {
+export function CaptureBars(): JSX.Element[] | null {
   useHUDVersion('capture');
 
   if (!world || !scene || !camera) {
     return null;
   }
 
-  const rows = [];
-  world.query('strategicPoint').forEach((spId) => {
+  const rows: { id: number; x: number; y: number; progress: number; owner: string }[] = [];
+  world.query('strategicPoint').forEach((spId: number) => {
     const sp = world.get(spId, 'strategicPoint');
     const meshComponent = world.get(spId, 'mesh');
     if (!sp || !meshComponent) {
