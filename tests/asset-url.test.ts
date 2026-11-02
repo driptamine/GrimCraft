@@ -27,11 +27,11 @@ describe('asset url', () => {
   it('fetches icons once and reuses the blob URL', async () => {
     _resetR2ImageCacheForTests();
     let fetchCalls = 0;
-    const stubFetch = async (url) => {
+    const stubFetch = (async (url: unknown) => {
       fetchCalls += 1;
       assert.ok(String(url).includes('assets/icons/x.png'));
       return { ok: true, blob: async () => new Blob(['fake-png'], { type: 'image/png' }) };
-    };
+    }) as unknown as typeof fetch;
     const first = await r2ImageUrl('assets/icons/x.png', stubFetch);
     const second = await r2ImageUrl('assets/icons/x.png', stubFetch);
     assert.ok(first.startsWith('blob:'), 'resolves to a blob URL');
@@ -41,14 +41,14 @@ describe('asset url', () => {
 
   it('falls back to the raw URL when the fetch fails', async () => {
     _resetR2ImageCacheForTests();
-    const failingFetch = async () => ({ ok: false, status: 404 });
+    const failingFetch = (async () => ({ ok: false, status: 404 })) as unknown as typeof fetch;
     const url = await r2ImageUrl('assets/icons/missing.png', failingFetch);
     assert.equal(url, 'assets/icons/missing.png');
   });
 
   it('routes HUD image points through assetUrl', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
+    const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
     assert.ok(read('src/hud/bits.jsx').includes("import { assetUrl } from '../assets.js'"), 'bits imports assetUrl');
     assert.ok(read('src/hud/bits.jsx').includes('<R2Img src={assetUrl(src)}'), 'Icon renders through assetUrl');
     assert.ok(read('src/hud/bits.jsx').includes('<R2Img src={assetUrl(icon)}'), 'StatRow renders through assetUrl');

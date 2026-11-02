@@ -54,21 +54,29 @@ export async function load(url, context, next) {
       shortCircuit: true,
     };
   }
-  if (url.endsWith('/src/assets.js')) {
-    // src/assets.js reads import.meta.env (Vite-only). Serve the real source
+  if (url.endsWith('/src/assets.js') || url.endsWith('/src/assets.ts')) {
+    // src/assets reads import.meta.env (Vite-only). Serve the real source
     // with just those expressions neutralized so modelUrl()/assetUrl() are
-    // identity here.
-    const source = await readFile(new URL(url), 'utf8');
-    if (!source.includes('import.meta.env.VITE_MODEL_BASE') || !source.includes('import.meta.env.VITE_ASSET_BASE')) {
-      throw new Error('node-esm-hooks: src/assets.js drifted, update the shim');
+    // identity here. The .ts source still carries type annotations, so run
+    // it through the transpiler below instead of serving it raw.
+    const raw = await readFile(new URL(url), 'utf8');
+    if (!raw.includes('import.meta.env.VITE_MODEL_BASE') || !raw.includes('import.meta.env.VITE_ASSET_BASE')) {
+      throw new Error('node-esm-hooks: src/assets drifted, update the shim');
     }
-    return {
-      format: 'module',
-      source: source
-        .replace('import.meta.env.VITE_MODEL_BASE', 'undefined')
-        .replace('import.meta.env.VITE_ASSET_BASE', 'undefined'),
-      shortCircuit: true,
-    };
+    const neutralized = raw
+      .replace('import.meta.env.VITE_MODEL_BASE', 'undefined')
+      .replace('import.meta.env.VITE_ASSET_BASE', 'undefined');
+    if (url.endsWith('.ts')) {
+      const out = ts.transpileModule(neutralized, {
+        compilerOptions: {
+          module: ts.ModuleKind.ESNext,
+          target: ts.ScriptTarget.ES2022,
+          jsx: ts.JsxEmit.ReactJSX,
+        },
+      });
+      return { format: 'module', source: out.outputText, shortCircuit: true };
+    }
+    return { format: 'module', source: neutralized, shortCircuit: true };
   }
   if ((url.includes('/src/') || url.includes('/tests/')) && (url.endsWith('.ts') || url.endsWith('.tsx'))) {
     // Migrated TypeScript sources: strip types with the repo's own

@@ -1,6 +1,6 @@
-const MODEL_BASE = (import.meta.env.VITE_MODEL_BASE || '').replace(/\/+$/, '');
+const MODEL_BASE: string = (import.meta.env.VITE_MODEL_BASE || '').replace(/\/+$/, '');
 
-export function modelUrl(path) {
+export function modelUrl(path: string): string {
   if (!path) {
     return path;
   }
@@ -14,9 +14,9 @@ export function modelUrl(path) {
 // UI images (HUD portraits, build-menu and command icons) are referenced as
 // relative `assets/...` paths and are NOT bundled by vite (no glob covers
 // them), so production serves them from R2 while dev keeps local files.
-const ASSET_BASE = (import.meta.env.VITE_ASSET_BASE || '').replace(/\/+$/, '');
+const ASSET_BASE: string = (import.meta.env.VITE_ASSET_BASE || '').replace(/\/+$/, '');
 
-export function assetUrl(path) {
+export function assetUrl(path: string | null): string | null {
   if (!path || typeof path !== 'string' || !path.includes('/')) {
     return path;
   }
