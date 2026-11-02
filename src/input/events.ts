@@ -91,9 +91,7 @@ export function _updateHoverCursor(hit: { meta?: any } | null): void {
       && !hoverApc.passengers.includes(sid)
       && squad.position.distanceTo(hoverApc.position) <= 10;
   });
-  // resolveCursor's JS defaults infer null-only option types; the runtime
-  // contract takes the real cursor state, so call it opaquely.
-  const name = (resolveCursor as (...args: any[]) => string | null)({
+  const name = resolveCursor({
     modal: getModalCursor(),
     buildMode,
     pendingCommand: _pendingBuilderCommand,

@@ -24,7 +24,7 @@ describe('startup main menu', () => {
   it('renders each credits name on its own line', () => {
     assert.deepEqual(creditNames, ['Driptamine', 'Alexander Morgun']);
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const src = fs.readFileSync(path.join(root, 'src/main-menu.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/main-menu.ts'), 'utf8');
     assert.ok(src.includes('for (const name of creditNames)'), 'render uses creditNames');
     assert.ok(src.includes("line.className = 'main-menu-stub-note'"), 'each name gets its own line element');
     assert.ok(src.includes("item.id === 'credits'"), 'credits opens its own screen, not the stub');

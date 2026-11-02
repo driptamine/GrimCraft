@@ -76,7 +76,7 @@ describe('switch faction', () => {
     const game = fs.readFileSync(path.join(root, 'src/game.js'), 'utf8');
     assert.ok(game.includes('window.switchFaction'), 'global bound');
     assert.ok(game.includes("import('./switch-faction.js')"), 'lazy import used');
-    const mod = fs.readFileSync(path.join(root, 'src/switch-faction.js'), 'utf8');
+    const mod = fs.readFileSync(path.join(root, 'src/switch-faction.ts'), 'utf8');
     assert.ok(mod.includes('factionsWithHQ()'), 'cycles HQ factions');
     assert.ok(mod.includes('setPlayerFaction(next)'), 'advances the player side');
     assert.ok(mod.includes('hqTeamForFaction(next)'), 'reads the new side team');

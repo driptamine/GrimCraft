@@ -23,7 +23,7 @@ describe('decal x/y/z sliders', () => {
     assert.match(html, /id="decal-pos-x"/);
     assert.match(html, /id="decal-pos-y"/);
     assert.match(html, /id="decal-pos-z"/);
-    const panelSrc = fs.readFileSync(path.join(root, 'src/decals-panel.js'), 'utf8');
+    const panelSrc = fs.readFileSync(path.join(root, 'src/decals-panel.ts'), 'utf8');
     assert.match(panelSrc, /syncPosControls/);
     assert.match(panelSrc, /ensureSliders/);
     assert.match(panelSrc, /setSelectedDecalPosition/);

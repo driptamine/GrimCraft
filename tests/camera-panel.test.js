@@ -126,7 +126,7 @@ describe('camera panel wiring', () => {
   });
 
   it('camera-panel.js drives the orbit rig, not a copy', () => {
-    const panel = fs.readFileSync(path.join(root, 'src/camera-panel.js'), 'utf8');
+    const panel = fs.readFileSync(path.join(root, 'src/camera-panel.ts'), 'utf8');
     assert.ok(panel.includes("from './scene.js'"), 'imports live camera binding');
     assert.ok(panel.includes('camera.alpha ='), 'writes yaw');
     assert.ok(panel.includes('camera.beta ='), 'writes pitch');

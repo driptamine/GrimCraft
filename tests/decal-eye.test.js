@@ -13,7 +13,7 @@ describe('decal-group eye toggle', () => {
     assert.match(src, /_hiddenGroups/);
   });
   it('decals-panel renders eye icon per group', () => {
-    const src = fs.readFileSync(path.join(root, 'src/decals-panel.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/decals-panel.ts'), 'utf8');
     assert.match(src, /decal-group-eye/);
     assert.match(src, /toggleDecalGroup/);
     assert.match(src, /isDecalGroupVisible/);
