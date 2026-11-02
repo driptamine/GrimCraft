@@ -50,7 +50,7 @@ describe('taskbar stat icons', () => {
   });
 
   it('preloads the icons at input boot', () => {
-    const src = readSrc('src/input/events.js');
+    const src = readSrc('src/input/events.ts');
     assert.ok(src.includes('preloadTaskbarIcons();'), 'preloaded next to the cursors');
   });
 

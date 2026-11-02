@@ -185,7 +185,7 @@ export function ghostHitboxMaterial(): THREE.MeshBasicMaterial {
 
 // Meshes carry untyped runtime fields (selection discs, anim groups), so the
 // collector returns the codebase-wide AnyMesh alias instead of bare Mesh.
-export function childMeshes(root: THREE.Object3D | null): AnyMesh[] {
+export function childMeshes(root: THREE.Object3D | null | undefined): AnyMesh[] {
   const out: AnyMesh[] = [];
   if (!root) {
     return out;

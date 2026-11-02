@@ -23,18 +23,19 @@ import {
   mkGroup,
   mkLines,
 } from '../three-helpers.js';
+import type { MaybeMesh } from '../three-helpers.js';
 import { pickMesh } from './selection.js';
 
 
-export let _buildGhost = null;
+export let _buildGhost: THREE.Group | null | undefined = null;
 
-export let _buildGhostObserver = null;
+export let _buildGhostObserver: unknown = null;
 
 export let _buildGhostT = 0;
 
-export let _buildFootprint = null;
+export let _buildFootprint: THREE.Mesh | null = null;
 
-export let _buildGhostMeshes = null;
+export let _buildGhostMeshes: THREE.Mesh[] = [];
 
 // Deferred ghost placement: mousemove only stores coords, the per-frame
 // observer applies them, so high-frequency mice can't fire several
@@ -49,17 +50,17 @@ export const _ghostNdc = new THREE.Vector2();
 
 export const _ghostHit = new THREE.Vector3();
 
-export function _disposeGhostMeshTree(node) {
+export function _disposeGhostMeshTree(node: THREE.Object3D | null | undefined): void {
   if (!node) return;
   childMeshes(node).forEach((mesh) => {
-    if (mesh.material) mesh.material.dispose();
+    if (mesh.material) (mesh.material as THREE.Material).dispose();
     disposeObj(mesh);
   });
   disposeObj(node);
 }
 
 
-export function _getFootprintDiameter(type) {
+export function _getFootprintDiameter(type: string): number {
   return (type === 'thermoGen' || type === 'thermo_generator' || type === 'plasma_generator') ? 7
     : (type === 'barracks' || type === 'infantry_command' || type === 'mechanized' || type === 'mars_pattern' || type === 'tactica_control') ? 7
     : (type === 'towerBase') ? 6
@@ -69,7 +70,7 @@ export function _getFootprintDiameter(type) {
 }
 
 
-export function _stopBuildGhost() {
+export function _stopBuildGhost(): void {
   if (_buildGhostObserver) {
     removeBeforeRender(_buildGhostObserver);
     _buildGhostObserver = null;
@@ -80,18 +81,18 @@ export function _stopBuildGhost() {
   }
   if (_buildFootprint) {
     childMeshes(_buildFootprint).forEach((mesh) => {
-      if (mesh.material) mesh.material.dispose();
+      if (mesh.material) (mesh.material as THREE.Material).dispose();
     });
-    disposeObj(_buildFootprint.material);
+    disposeObj(_buildFootprint.material as unknown as MaybeMesh);
     disposeObj(_buildFootprint);
     _buildFootprint = null;
   }
-  _buildGhostMeshes = null;
+  _buildGhostMeshes = [];
   _ghostPending = false;
 }
 
 
-export function _startBuildGhost(type) {
+export function _startBuildGhost(type: string): void {
   _stopBuildGhost();
   const dummy = new THREE.Vector3(0, -999, 0);
   const builder = selBuilder !== null && world ? world.get(selBuilder, 'builder') : null;
@@ -120,7 +121,7 @@ export function _startBuildGhost(type) {
   const half = (footprintDiameter * 1.15) / 2;
   const yBot = -2.75;
   const yTop = 2.75;
-  const seg = (ax, ay, az, bx, by, bz) => {
+  const seg = (ax: number, ay: number, az: number, bx: number, by: number, bz: number): void => {
     const line = mkLines('bfp_wire_seg', [new THREE.Vector3(ax, ay, az), new THREE.Vector3(bx, by, bz)], new THREE.Color(0.15, 0.75, 1), 0.2);
     line.userData.pickable = false;
     wireGroup.add(line);
@@ -132,7 +133,7 @@ export function _startBuildGhost(type) {
   seg(-half, yTop, -half, half, yTop, -half);
   seg(half, yTop, -half, half, yTop, half);
   seg(half, yTop, half, -half, yTop, half);
-  seg(-half, yTop, half, -half, yTop, -half);
+  seg(-half, yTop, half, -half, yTop, half);
   seg(-half, yBot, -half, -half, yTop, -half);
   seg(half, yBot, -half, half, yTop, -half);
   seg(half, yBot, half, half, yTop, half);
@@ -148,6 +149,7 @@ export function _startBuildGhost(type) {
     const alpha = 0.18 + 0.06 * Math.sin(_buildGhostT * 3.5);
     // Materials are already transparent (see makeGhostMesh); only opacity pulses.
     for (let i = 0; i < _buildGhostMeshes.length; i++) {
+      // @ts-expect-error ghost materials are single (see makeGhostMesh); the union type can't see that
       _buildGhostMeshes[i].material.opacity = alpha;
     }
     if (_buildFootprint) {
@@ -158,7 +160,7 @@ export function _startBuildGhost(type) {
 }
 
 
-export function _moveBuildGhost(sx, sy) {
+export function _moveBuildGhost(sx: number, sy: number): void {
   if (!_buildGhost) return;
   if (buildMode === 'listening_post') {
     const hit = pickMesh(sx, sy);
@@ -180,23 +182,23 @@ export function _moveBuildGhost(sx, sy) {
 }
 
 
-export function startBuild(type) {
-  if (requisition < COSTS[type]) return;
+export function startBuild(type: string): void {
+  if (requisition < COSTS[type as keyof typeof COSTS]) return;
   setBuildMode(type);
-  canvas.style.cursor = 'crosshair';
+  canvas!.style.cursor = 'crosshair';
   _startBuildGhost(type);
 }
 
 
-export function cancelBuild() {
+export function cancelBuild(): void {
   setBuildMode(null);
-  canvas.style.cursor = '';
+  canvas!.style.cursor = '';
   _stopBuildGhost();
 }
 
 // Deferred ghost placement: the pointer handler stores coords through
 // this instead of assigning the module lets directly (read-only imports).
-export function setGhostPending(x, y) {
+export function setGhostPending(x: number, y: number): void {
   _ghostPendingX = x;
   _ghostPendingY = y;
   _ghostPending = true;

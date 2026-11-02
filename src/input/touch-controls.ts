@@ -15,7 +15,7 @@ const STICK_ENGAGE = 0.35;
 
 // Pure mapping: normalized stick deflection (-1..1, y down) -> WASD state.
 // Tested headless; the live stick writes the result into `keys`.
-export function stickToKeys(nx, ny) {
+export function stickToKeys(nx: number, ny: number): { KeyW: boolean; KeyS: boolean; KeyA: boolean; KeyD: boolean } {
   const mag = Math.hypot(nx || 0, ny || 0);
   if (!(mag > STICK_DEADZONE)) {
     return { KeyW: false, KeyS: false, KeyA: false, KeyD: false };
@@ -28,7 +28,7 @@ export function stickToKeys(nx, ny) {
   };
 }
 
-export function isTouchDevice() {
+export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') {
     return false;
   }
@@ -42,24 +42,24 @@ export function isTouchDevice() {
   return 'ontouchstart' in window || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
 }
 
-let _root = null;
-let _base = null;
-let _knob = null;
-let _fireBtn = null;
-let _stickTouchId = null;
-let _stickOrigin = null;
-let _lookTouchId = null;
-let _lookLast = null;
-let _visibleShooter = null;
+let _root: HTMLElement | null = null;
+let _base: HTMLElement | null = null;
+let _knob: HTMLElement | null = null;
+let _fireBtn: HTMLElement | null = null;
+let _stickTouchId: number | null = null;
+let _stickOrigin: { x: number; y: number } | null = null;
+let _lookTouchId: number | null = null;
+let _lookLast: { x: number; y: number } | null = null;
+let _visibleShooter: boolean | null = null;
 
-function _el(tag, id, css) {
+function _el(tag: string, id: string, css: string): HTMLElement {
   const el = document.createElement(tag);
   el.id = id;
   el.style.cssText = css;
   return el;
 }
 
-function _setStickKeys(nx, ny) {
+function _setStickKeys(nx: number, ny: number): void {
   const state = stickToKeys(nx, ny);
   keys.KeyW = state.KeyW;
   keys.KeyS = state.KeyS;
@@ -67,35 +67,35 @@ function _setStickKeys(nx, ny) {
   keys.KeyD = state.KeyD;
 }
 
-function _clearStickKeys() {
+function _clearStickKeys(): void {
   keys.KeyW = false;
   keys.KeyS = false;
   keys.KeyA = false;
   keys.KeyD = false;
 }
 
-function _moveKnob(dx, dy) {
+function _moveKnob(dx: number, dy: number): void {
   if (!_knob) {
     return;
   }
   _knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 }
 
-function _onTouchStart(event) {
+function _onTouchStart(event: TouchEvent): void {
   if (!isShooterMode()) {
     return;
   }
   for (const touch of event.changedTouches) {
     // Touches starting on the fire button are owned by the button.
-    if (_fireBtn && _fireBtn.contains(touch.target)) {
+    if (_fireBtn && _fireBtn.contains(touch.target as Node | null)) {
       continue;
     }
     if (touch.clientX < window.innerWidth * 0.45 && _stickTouchId === null) {
       _stickTouchId = touch.identifier;
       _stickOrigin = { x: touch.clientX, y: touch.clientY };
-      _base.style.left = `${touch.clientX}px`;
-      _base.style.top = `${touch.clientY}px`;
-      _base.style.display = 'block';
+      _base!.style.left = `${touch.clientX}px`;
+      _base!.style.top = `${touch.clientY}px`;
+      _base!.style.display = 'block';
       _moveKnob(0, 0);
       _setStickKeys(0, 0);
     } else if (_lookTouchId === null) {
@@ -108,7 +108,7 @@ function _onTouchStart(event) {
   }
 }
 
-function _onTouchMove(event) {
+function _onTouchMove(event: TouchEvent): void {
   if (!isShooterMode()) {
     return;
   }
@@ -135,7 +135,7 @@ function _onTouchMove(event) {
   }
 }
 
-function _onTouchEnd(event) {
+function _onTouchEnd(event: TouchEvent): void {
   for (const touch of event.changedTouches) {
     if (touch.identifier === _stickTouchId) {
       _stickTouchId = null;
@@ -153,7 +153,7 @@ function _onTouchEnd(event) {
   }
 }
 
-function _onFire(event) {
+function _onFire(event: TouchEvent): void {
   if (event.cancelable) {
     event.preventDefault();
   }
@@ -166,7 +166,7 @@ function _onFire(event) {
 }
 
 // Builds the overlay once. Safe to call on desktop (no-op without touch).
-export function initTouchControls() {
+export function initTouchControls(): HTMLElement | null {
   if (!isTouchDevice() || typeof document === 'undefined' || _root) {
     return _root;
   }
@@ -210,7 +210,7 @@ export function initTouchControls() {
 }
 
 // Called every frame; only touches the DOM when visibility flips.
-export function syncTouchControls() {
+export function syncTouchControls(): void {
   if (!_root) {
     return;
   }

@@ -3,15 +3,17 @@ import { addBeforeRender, getDeltaTime, removeBeforeRender, world } from '../sce
 import { childMeshes, disposeObj, mkCylinder, mkTorus, spPingFrame } from '../three-helpers.js';
 import { _groundAt } from '../systems/terrain.js';
 import { raycastGround } from './selection.js';
+import type { AnyMesh } from '../meshes/types.js';
 
 
-export function spawnMoveMarker(sx, sy) {
+export function spawnMoveMarker(sx: number, sy: number): void {
   const point = raycastGround(sx, sy);
   if (!point) return;
   spawnMoveMarkerAt(point);
 }
 
-export function spawnMoveMarkerAt(point) {
+
+export function spawnMoveMarkerAt(point: THREE.Vector3): void {
   if (!point) return;
   const ping = mkTorus('moveping', 1.4, 0.12, 32);
   ping.position.set(point.x, _groundAt(point.x, point.z) + 0.08, point.z);
@@ -35,7 +37,7 @@ export function spawnMoveMarkerAt(point) {
 }
 
 
-export function spawnAttackMarker(sx, sy) {
+export function spawnAttackMarker(sx: number, sy: number): void {
   const point = raycastGround(sx, sy);
   if (!point) return;
   const ping = mkTorus('attackping', 1.8, 0.15, 32);
@@ -64,7 +66,7 @@ export function spawnAttackMarker(sx, sy) {
 // muzzle to any world point (ground, sky, scenery). Visual only — damage is
 // handled by createBeamEntity for enemy hits. Auto-attached to the scene by
 // the mk helper, faded out on the render loop like the other pings.
-export function spawnBeamTracer(fromPos, toPos) {
+export function spawnBeamTracer(fromPos: THREE.Vector3, toPos: THREE.Vector3): void {
   if (!fromPos || !toPos) return;
   const dir = toPos.clone().sub(fromPos);
   const length = dir.length() || 1;
@@ -91,18 +93,21 @@ export function spawnBeamTracer(fromPos, toPos) {
 
 // Hitmarker X flashed over the crosshair on every enemy hit, CoD-style.
 // Hidden again after a beat so spam-clicking strobes it instead of sticking.
-export function flashHitmarker(durationMs = 140) {
+export function flashHitmarker(durationMs = 140): boolean {
   if (typeof document === 'undefined' || !document.getElementById) return false;
   const el = document.getElementById('fps-hitmarker');
   if (!el || !el.style) return false;
   el.style.display = 'block';
-  if (flashHitmarker._timer) clearTimeout(flashHitmarker._timer);
-  flashHitmarker._timer = setTimeout(() => {
+  if (_flashTimer._timer) clearTimeout(_flashTimer._timer as ReturnType<typeof setTimeout>);
+  _flashTimer._timer = setTimeout(() => {
     el.style.display = 'none';
-    flashHitmarker._timer = 0;
+    _flashTimer._timer = 0;
   }, Math.max(0, durationMs));
   return true;
 }
+
+// setTimeout handle stash (a function property in the JS original).
+const _flashTimer: { _timer?: unknown } = flashHitmarker as unknown as { _timer?: unknown };
 
 export const SP_PING_DURATION = 0.9;
 
@@ -116,7 +121,7 @@ export let _spPingToken = 0;
 // Right-click ping on a strategic point / relic: a red torus expands from
 // the center and fades as it reaches full radius, while the point model
 // glows red and fades back with the same easing.
-export function spawnSpPing(spId) {
+export function spawnSpPing(spId: number): void {
   const strategicPoint = world.get(spId, 'strategicPoint');
   const meshComponent = world.get(spId, 'mesh');
   if (!strategicPoint || !meshComponent?.root) {
@@ -132,9 +137,13 @@ export function spawnSpPing(spId) {
   ping.userData.pickable = false;
   // Instances share materials, so tint clones and restore the originals at
   // the end; the token keeps overlapping pings from restoring early.
-  const tinted = [];
+  const tinted: AnyMesh[] = [];
   childMeshes(meshComponent.root).forEach((mesh) => {
-    if (!mesh.visible || !mesh.material || Array.isArray(mesh.material) || !mesh.material.emissive) {
+    if (!mesh.visible || !mesh.material || Array.isArray(mesh.material)) {
+      return;
+    }
+    const mat = mesh.material as THREE.MeshStandardMaterial;
+    if (!mat.emissive) {
       return;
     }
     if (!mesh.userData._pingOrig) {
@@ -142,8 +151,8 @@ export function spawnSpPing(spId) {
       mesh.material = mesh.material.clone();
     }
     mesh.userData._pingToken = token;
-    mesh.material.emissive.setRGB(1, 0.06, 0.04);
-    mesh.material.emissiveIntensity = SP_PING_PEAK_GLOW;
+    (mesh.material as THREE.MeshStandardMaterial).emissive.setRGB(1, 0.06, 0.04);
+    (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = SP_PING_PEAK_GLOW;
     tinted.push(mesh);
   });
   let time = 0;
@@ -154,7 +163,7 @@ export function spawnSpPing(spId) {
     material.opacity = frame.opacity;
     for (const mesh of tinted) {
       if (mesh.userData._pingToken === token) {
-        mesh.material.emissiveIntensity = SP_PING_PEAK_GLOW * frame.opacity;
+        (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = SP_PING_PEAK_GLOW * frame.opacity;
       }
     }
     if (time >= SP_PING_DURATION) {
@@ -162,7 +171,7 @@ export function spawnSpPing(spId) {
       material.dispose();
       for (const mesh of tinted) {
         if (mesh.userData._pingToken === token) {
-          mesh.material.dispose();
+          (mesh.material as THREE.Material).dispose();
           mesh.material = mesh.userData._pingOrig;
           mesh.userData._pingOrig = null;
           mesh.userData._pingToken = 0;
@@ -176,7 +185,7 @@ export function spawnSpPing(spId) {
 
 // Strategic point whose capture radius contains (x, z), or null. Click-time
 // only — point counts are tiny, no caching needed.
-export function _spIdAt(x, z) {
+export function _spIdAt(x: number, z: number): number | null {
   for (const spId of world.query('strategicPoint')) {
     const sp = world.get(spId, 'strategicPoint');
     if (sp && Math.hypot(x - sp.position.x, z - sp.position.z) < sp.captureRadius) {

@@ -85,14 +85,14 @@ describe('touch controls', () => {
   it('wires stick, look and fire without touching desktop paths', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
-    const touch = read('src/input/touch-controls.js');
+    const touch = read('src/input/touch-controls.ts');
     assert.ok(touch.includes("touch-stick-base"), 'stick base overlay exists');
     assert.ok(touch.includes("touch-fire-btn"), 'fire button exists');
     assert.ok(touch.includes("keys.KeyW = state.KeyW"), 'stick writes the shared WASD key state');
     assert.ok(touch.includes('applyLookDelta('), 'look drag drives the camera');
     assert.ok(touch.includes('issueFpsShot('), 'fire button shoots through the fps pipeline');
     assert.ok(touch.includes('setInterval') === false, 'no timers; visibility syncs from the frame loop');
-    const events = read('src/input/events.js');
+    const events = read('src/input/events.ts');
     assert.ok(events.includes("event.pointerType === 'touch' && isShooterMode()"), 'touch taps skip the mouse fire path in shooter mode');
     const game = read('src/game.js');
     assert.ok(game.includes('syncTouchControls();'), 'frame loop syncs touch UI visibility');

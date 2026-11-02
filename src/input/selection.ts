@@ -29,22 +29,24 @@ import {
 import { selEnd, selStart } from './camera.js';
 
 
-export function raycastGround(sx, sy) {
+export function raycastGround(sx: number, sy: number): THREE.Vector3 | null {
   if (!scene || !camera) return null;
-  const hit = pickAt(sx, sy, (m) => isGroundMesh(m, scene._ground));
-  return hit.hit ? hit.pickedPoint.clone() : null;
+  const hit = pickAt(sx, sy, (m: THREE.Object3D) => isGroundMesh(m, scene._ground));
+  if (!hit.hit || !hit.pickedPoint) return null;
+  return hit.pickedPoint.clone();
 }
 
 
-export function pickMesh(sx, sy) {
+export function pickMesh(sx: number, sy: number): { mesh: THREE.Object3D; meta: any } | null {
   if (!scene || !camera) return null;
-  const hit = pickAt(sx, sy, (m) => {
+  const hit = pickAt(sx, sy, (m: THREE.Object3D) => {
     if (m === scene._ground || m.name === 'grid' || m.name.startsWith('hp') || m.name.startsWith('capring') || m.name.startsWith('sel')) {
       return false;
     }
     return true;
   });
-  return hit.hit ? { mesh: hit.pickedMesh, meta: hit.pickedMesh?.userData } : null;
+  if (!hit.hit || !hit.pickedMesh) return null;
+  return { mesh: hit.pickedMesh, meta: hit.pickedMesh.userData };
 }
 
 // First-person target pick: the FPS eye sits inside/near the ridden
@@ -55,10 +57,10 @@ export const FPS_PICK_OFFSETS = [
   [0, 0], [7, 0], [-7, 0], [0, 7], [0, -7], [13, 0], [-13, 0], [0, 13], [0, -13],
 ];
 
-export function pickFpsTargetMesh(sx, sy, mySquadId, scope = null) {
+export function pickFpsTargetMesh(sx: number, sy: number, mySquadId: number, scope: any = null): { mesh: THREE.Object3D; meta: any } | null {
   const scopeScene = scope?.scene ?? scene;
   for (const [dx, dy] of FPS_PICK_OFFSETS) {
-    const hit = pickAt(sx + dx, sy + dy, (m) => {
+    const hit = pickAt(sx + dx, sy + dy, (m: THREE.Object3D) => {
       if (m === scopeScene?._ground || m.name === 'grid' || m.name.startsWith('hp') || m.name.startsWith('capring') || m.name.startsWith('sel')) {
         return false;
       }
@@ -74,19 +76,20 @@ export function pickFpsTargetMesh(sx, sy, mySquadId, scope = null) {
       }
       return true;
     }, scope);
-    if (hit.hit) {
-      return { mesh: hit.pickedMesh, meta: hit.pickedMesh?.userData };
+    if (!hit.hit || !hit.pickedMesh) {
+      continue;
     }
+    return { mesh: hit.pickedMesh, meta: hit.pickedMesh.userData };
   }
   return null;
 }
 
 
-export function clearEnemySelection() {
+export function clearEnemySelection(): void {
   _stopTargetPulse();
   if (hoveredEnemySquad !== null && world.has(hoveredEnemySquad, 'squad')) {
     const squad = world.get(hoveredEnemySquad, 'squad');
-    squad?.soldiers.forEach((sid) => {
+    squad?.soldiers.forEach((sid: number) => {
       if (sid === null) return;
       const mesh = world.get(sid, 'mesh');
       if (mesh?.root?._selMat) mesh.root._selMat.opacity = 0; mesh.root._selMat.transparent = true;
@@ -100,7 +103,7 @@ export function clearEnemySelection() {
 }
 
 
-export function clearSelection() {
+export function clearSelection(): void {
   if (selBuilder !== null) {
     const builderMesh = world.get(selBuilder, 'mesh');
     if (builderMesh?.root?._selMat) builderMesh.root._selMat.opacity = 0; builderMesh.root._selMat.transparent = true;
@@ -111,13 +114,13 @@ export function clearSelection() {
   }
   setSelBuilder(null);
 
-  selBuildings.forEach((id) => {
+  selBuildings.forEach((id: number) => {
     if (world.has(id, 'airfield')) _setAirfieldSelected(world, id, false);
     else setBuildingSelected(world, id, false);
   });
   setSelBuildings([]);
 
-  selSquads.forEach((sid) => {
+  selSquads.forEach((sid: number) => {
     if (world.has(sid, 'squad')) setSquadSelected(world, sid, false);
     if (world.has(sid, 'apc')) setApcSelected(world, sid, false);
     if (world.has(sid, 'vehicle')) setVehicleSelected(world, sid, false);
@@ -130,11 +133,11 @@ export function clearSelection() {
 }
 
 
-export function setSquadSelected(worldRef, sid, value) {
+export function setSquadSelected(worldRef: any, sid: number, value: boolean): void {
   const squad = worldRef.get(sid, 'squad');
   if (!squad) return;
   squad.selected = value;
-  squad.soldiers.forEach((sid2) => {
+  squad.soldiers.forEach((sid2: number) => {
     if (sid2) {
       const smc = worldRef.get(sid2, 'mesh');
       if (smc) {
@@ -150,7 +153,7 @@ export function setSquadSelected(worldRef, sid, value) {
 }
 
 
-export function setBuildingSelected(worldRef, id, value) {
+export function setBuildingSelected(worldRef: any, id: number, value: boolean): void {
   const building = worldRef.get(id, 'building') || worldRef.get(id, 'structure');
   if (!building) return;
   building.selected = value;
@@ -170,7 +173,7 @@ export function setBuildingSelected(worldRef, id, value) {
 }
 
 
-export function setApcSelected(worldRef, id, value) {
+export function setApcSelected(worldRef: any, id: number, value: boolean): void {
   const apc = worldRef.get(id, 'apc');
   if (!apc) return;
   apc.selected = value;
@@ -186,7 +189,7 @@ export function setApcSelected(worldRef, id, value) {
 }
 
 
-export function setVehicleSelected(worldRef, id, value) {
+export function setVehicleSelected(worldRef: any, id: number, value: boolean): void {
   const vehicle = worldRef.get(id, 'vehicle');
   if (!vehicle) return;
   vehicle.selected = value;
@@ -202,7 +205,7 @@ export function setVehicleSelected(worldRef, id, value) {
 }
 
 
-export function setJetSelected(worldRef, id, value) {
+export function setJetSelected(worldRef: any, id: number, value: boolean): void {
   const jet = worldRef.get(id, 'jet');
   if (!jet) return;
   jet.selected = value;
@@ -218,7 +221,7 @@ export function setJetSelected(worldRef, id, value) {
 }
 
 
-export function _setAirfieldSelected(worldRef, id, value) {
+export function _setAirfieldSelected(worldRef: any, id: number, value: boolean): void {
   const airfield = worldRef.get(id, 'airfield');
   if (!airfield) return;
   airfield.selected = value;
@@ -238,11 +241,11 @@ export function _setAirfieldSelected(worldRef, id, value) {
 }
 
 
-export const _rallyMeshes = new Map();
+export const _rallyMeshes = new Map<number, { pole: THREE.Mesh; flag: THREE.Mesh; line: THREE.LineSegments }>();
 
-export function updateRallyMarker(bid, building) {
-  if (_rallyMeshes.has(bid)) {
-    const old = _rallyMeshes.get(bid);
+export function updateRallyMarker(bid: number, building: any): void {
+  const old = _rallyMeshes.get(bid);
+  if (old) {
     disposeObj(old.flag);
     disposeObj(old.line);
   }
@@ -264,8 +267,8 @@ export function updateRallyMarker(bid, building) {
   flagMat.color = new THREE.Color(0, 0.6, 0.15);
   flag.material = flagMat;
   flag.userData.pickable = false;
-  const lines = [];
-  const cols = [];
+  const lines: THREE.Vector3[][] = [];
+  const cols: THREE.Color[][] = [];
   const dashColor = new THREE.Color(0.1, 0.9, 0.3);
   for (let i = 0; i < 12; i += 1) {
     const t0 = (i + 0.1) / 12;
@@ -282,9 +285,9 @@ export function updateRallyMarker(bid, building) {
 }
 
 
-export function clearRallyMarker(bid) {
-  if (_rallyMeshes.has(bid)) {
-    const m = _rallyMeshes.get(bid);
+export function clearRallyMarker(bid: number): void {
+  const m = _rallyMeshes.get(bid);
+  if (m) {
     disposeObj(m.pole);
     disposeObj(m.flag);
     disposeObj(m.line);
@@ -293,11 +296,11 @@ export function clearRallyMarker(bid) {
 }
 
 
-export const _afRallyMeshes = new Map();
+export const _afRallyMeshes = new Map<number, { pole: THREE.Mesh; flag: THREE.Mesh; line: THREE.LineSegments }>();
 
-export function updateAirfieldRallyMarker(afid, airfield) {
-  if (_afRallyMeshes.has(afid)) {
-    const old = _afRallyMeshes.get(afid);
+export function updateAirfieldRallyMarker(afid: number, airfield: any): void {
+  const old = _afRallyMeshes.get(afid);
+  if (old) {
     disposeObj(old.pole);
     disposeObj(old.flag);
     disposeObj(old.line);
@@ -321,8 +324,8 @@ export function updateAirfieldRallyMarker(afid, airfield) {
   flag.material = flagMat;
   flag.userData.pickable = false;
   const dashColor = new THREE.Color(0.1, 0.6, 1);
-  const lines = [];
-  const cols = [];
+  const lines: THREE.Vector3[][] = [];
+  const cols: THREE.Color[][] = [];
   for (let i = 0; i < 12; i += 1) {
     const t0 = (i + 0.1) / 12;
     const t1 = (i + 0.6) / 12;
@@ -338,9 +341,9 @@ export function updateAirfieldRallyMarker(afid, airfield) {
 }
 
 
-export function clearAirfieldRallyMarker(afid) {
-  if (_afRallyMeshes.has(afid)) {
-    const m = _afRallyMeshes.get(afid);
+export function clearAirfieldRallyMarker(afid: number): void {
+  const m = _afRallyMeshes.get(afid);
+  if (m) {
     disposeObj(m.pole);
     disposeObj(m.flag);
     disposeObj(m.line);
@@ -349,7 +352,7 @@ export function clearAirfieldRallyMarker(afid) {
 }
 
 
-export function doClickSelect(sx, sy, additive) {
+export function doClickSelect(sx: number, sy: number, additive: boolean): void {
   const hit = pickMesh(sx, sy);
   if (!additive) clearSelection();
 
@@ -459,7 +462,7 @@ export function doClickSelect(sx, sy, additive) {
         // Enemy squad selection (only squads for now)
         clearEnemySelection();
         setHoveredEnemySquad(sid);
-        entity.soldiers.forEach((soldierId) => {
+        entity.soldiers.forEach((soldierId: number) => {
           if (!soldierId) return;
           const mc = world.get(soldierId, 'mesh');
           if (mc?.root?._selMat) mc.root._selMat.opacity = 0.85; mc.root._selMat.transparent = true;
@@ -502,7 +505,7 @@ export function doClickSelect(sx, sy, additive) {
 }
 
 
-export function doBoxSelect() {
+export function doBoxSelect(): void {
   if (!world) return;
   const x0 = Math.min(selStart.x, selEnd.x);
   const x1 = Math.max(selStart.x, selEnd.x);
@@ -510,25 +513,25 @@ export function doBoxSelect() {
   const y1 = Math.max(selStart.y, selEnd.y);
   clearSelection();
 
-  const proj = (wpos, yoff = 1) => projectToScreen(wpos.x, wpos.y + yoff, wpos.z);
+  const proj = (wpos: { x: number; y: number; z: number }, yoff = 1): any => projectToScreen(wpos.x, wpos.y + yoff, wpos.z);
 
-  const foundBuilders = [];
-  world.query('builder', 'mesh').forEach((id) => {
+  const foundBuilders: number[] = [];
+  world.query('builder', 'mesh').forEach((id: number) => {
     const mc = world.get(id, 'mesh');
     if (!mc) return;
     const { sx, sy } = proj(mc.root.position);
     if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) foundBuilders.push(id);
   });
 
-  const foundSquads = [];
-  world.query('squad', 'mesh').forEach((sid) => {
+  const foundSquads: number[] = [];
+  world.query('squad', 'mesh').forEach((sid: number) => {
     const squad = world.get(sid, 'squad');
     if (!squad || !canCommand(squad.team)) return;
-    const inApc = world.query('apc').some((aid) => world.get(aid, 'apc')?.passengers.includes(sid));
+    const inApc = world.query('apc').some((aid: number) => world.get(aid, 'apc')?.passengers.includes(sid));
     if (inApc) return;
 
     let hit = false;
-    const alive = squad.soldiers.filter((sid2) => sid2 !== null && world.has(sid2, 'soldier'));
+    const alive = squad.soldiers.filter((sid2: number) => sid2 !== null && world.has(sid2, 'soldier'));
     if (alive.length > 0) {
       for (let i = 0; i < alive.length; i += 1) {
         const sid2 = alive[i];
@@ -548,8 +551,8 @@ export function doBoxSelect() {
     if (hit) foundSquads.push(sid);
   });
 
-  const foundApcs = [];
-  world.query('apc', 'mesh').forEach((id) => {
+  const foundApcs: number[] = [];
+  world.query('apc', 'mesh').forEach((id: number) => {
     const apc = world.get(id, 'apc');
     const mc = world.get(id, 'mesh');
     if (!apc || !canCommand(apc.team) || !mc) return;
@@ -557,8 +560,8 @@ export function doBoxSelect() {
     if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) foundApcs.push(id);
   });
 
-  const foundVehicles = [];
-  world.query('vehicle', 'mesh').forEach((id) => {
+  const foundVehicles: number[] = [];
+  world.query('vehicle', 'mesh').forEach((id: number) => {
     const vehicle = world.get(id, 'vehicle');
     const mc = world.get(id, 'mesh');
     if (!vehicle || !canCommand(vehicle.team) || !mc) return;
@@ -566,8 +569,8 @@ export function doBoxSelect() {
     if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) foundVehicles.push(id);
   });
 
-  const foundJets = [];
-  world.query('jet', 'mesh').forEach((id) => {
+  const foundJets: number[] = [];
+  world.query('jet', 'mesh').forEach((id: number) => {
     const jet = world.get(id, 'jet');
     const mc = world.get(id, 'mesh');
     if (!jet || !canCommand(jet.team) || !mc) return;
@@ -619,7 +622,7 @@ export function doBoxSelect() {
   }
 
   // If no units, look for buildings/structures
-  world.query('building', 'mesh').forEach((id) => {
+  world.query('building', 'mesh').forEach((id: number) => {
     const bld = world.get(id, 'building');
     if (!bld) return;
     const { sx, sy } = proj(bld.position, 2);
@@ -629,7 +632,7 @@ export function doBoxSelect() {
     }
   });
 
-  world.query('structure', 'mesh').forEach((id) => {
+  world.query('structure', 'mesh').forEach((id: number) => {
     const str = world.get(id, 'structure');
     if (!str) return;
     const { sx, sy } = proj(str.position, 2);

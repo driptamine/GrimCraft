@@ -33,7 +33,7 @@ import { snapOrderToFree } from '../../pathfinding/astar-integrated.js';
 import { _setAirfieldSelected, clearAirfieldRallyMarker, clearEnemySelection, clearRallyMarker, pickFpsTargetMesh, pickMesh, raycastGround, setBuildingSelected, updateAirfieldRallyMarker, updateRallyMarker } from './selection.js';
 
 
-export function issueRightClick(sx, sy) {
+export function issueRightClick(sx: number, sy: number): void {
   if (_flyArmed) {
     if (_issueFlyOrder(sx, sy)) {
       spawnMoveMarker(sx, sy);
@@ -58,8 +58,8 @@ export function issueRightClick(sx, sy) {
         // Attackers: selected units whose team differs from the clicked
         // squad. In normal play this is exactly the PLAYER selection vs an
         // enemy squad; in control-both mode each side attacks the other.
-        const teamOf = (id) => (world.get(id, 'jet') ?? world.get(id, 'apc') ?? world.get(id, 'vehicle') ?? world.get(id, 'squad'))?.team;
-        const attackers = selSquads.filter((id) => {
+        const teamOf = (id: number): string | undefined => (world.get(id, 'jet') ?? world.get(id, 'apc') ?? world.get(id, 'vehicle') ?? world.get(id, 'squad'))?.team;
+        const attackers = selSquads.filter((id: number) => {
           const t = teamOf(id);
           return t && t !== squad.team;
         });
@@ -68,7 +68,7 @@ export function issueRightClick(sx, sy) {
           clearEnemySelection();
           setHoveredEnemySquad(sid);
           if (targetSoldierId) {
-            squad.soldiers.forEach((soldierId) => {
+            squad.soldiers.forEach((soldierId: number) => {
               if (soldierId === null) return;
               const mc = world.get(soldierId, 'mesh');
               if (mc?.root?._selMat) {
@@ -78,13 +78,13 @@ export function issueRightClick(sx, sy) {
             });
             _startTargetPulse(targetSoldierId);
           } else {
-            squad.soldiers.forEach((soldierId) => {
+            squad.soldiers.forEach((soldierId: number) => {
               if (soldierId === null) return;
               const mc = world.get(soldierId, 'mesh');
               if (mc?.root?._selMat) mc.root._selMat.opacity = 0.85; mc.root._selMat.transparent = true;
             });
           }
-          const attackerJets = attackers.filter((id) => world.get(id, 'jet') != null);
+          const attackerJets = attackers.filter((id: number) => world.get(id, 'jet') != null);
           attackerJets.forEach((id) => {
             const jet = world.get(id, 'jet');
             if (jet) {
@@ -107,7 +107,7 @@ export function issueRightClick(sx, sy) {
               psq.stopped = false;
             }
           });
-          const attackerVehicles = attackers.filter((id) => world.get(id, 'vehicle') != null);
+          const attackerVehicles = attackers.filter((id: number) => world.get(id, 'vehicle') != null);
           attackerVehicles.forEach((id) => {
             const vehicle = world.get(id, 'vehicle');
             if (vehicle) {
@@ -193,7 +193,7 @@ export function issueRightClick(sx, sy) {
 // never moves: every click is exactly one shot from the ridden soldier.
 // Enemy hits deal damage through the beam pipeline; anything else gets a
 // visual tracer plus impact particles. Returns true when a shot was fired.
-export function issueFpsShot(sx, sy) {
+export function issueFpsShot(sx: number, sy: number): boolean {
   const target = resolveFpsTarget(world, selSquads);
   if (!target) return false;
   const shooterRoot = world.get(target.soldierId, 'mesh')?.root;
@@ -219,7 +219,7 @@ export function issueFpsShot(sx, sy) {
 
 // Aim-ray endpoint for crosshair shots at the sky: 60 units out along the
 // camera ray through the given screen point. Null without a live camera.
-function _fpsSkyPoint(sx, sy) {
+function _fpsSkyPoint(sx: number, sy: number): THREE.Vector3 | null {
   if (!camera || !canvas?.getBoundingClientRect) return null;
   const rect = canvas.getBoundingClientRect();
   if (!rect || !rect.width || !rect.height) return null;
@@ -241,13 +241,13 @@ const _fpsRay = new THREE.Raycaster();
 // null and the radius check still applies. markerSx/markerSy keep the
 // click marker on the canvas click; without them the marker drops at
 // the destination.
-export function issueGroundOrder(point, opts = {}) {
+export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEntityId?: unknown; markerSx?: number | null; markerSy?: number | null } = {}): void {
   const { strategicPointEntityId = null, markerSx = null, markerSy = null } = opts;
-  const mark = () => {
+  const mark = (): void => {
     if (markerSx !== null && markerSy !== null) spawnMoveMarker(markerSx, markerSy);
     else spawnMoveMarkerAt(point);
   };
-  const selectedApcs = selSquads.filter((id) => world.get(id, 'apc') != null);
+  const selectedApcs = selSquads.filter((id: number) => world.get(id, 'apc') != null);
   if (selectedApcs.length) {
     selectedApcs.forEach((id) => {
       const apc = world.get(id, 'apc');
@@ -256,7 +256,7 @@ export function issueGroundOrder(point, opts = {}) {
     mark();
     return;
   }
-  const selectedVehicles = selSquads.filter((id) => world.get(id, 'vehicle') != null);
+  const selectedVehicles = selSquads.filter((id: number) => world.get(id, 'vehicle') != null);
   if (selectedVehicles.length) {
     selectedVehicles.forEach((id) => {
       const vehicle = world.get(id, 'vehicle');
@@ -265,7 +265,7 @@ export function issueGroundOrder(point, opts = {}) {
     mark();
     return;
   }
-  const selectedJets = selSquads.filter((id) => world.get(id, 'jet') != null);
+  const selectedJets = selSquads.filter((id: number) => world.get(id, 'jet') != null);
   if (selectedJets.length) {
     selectedJets.forEach((id, i) => {
       const jet = world.get(id, 'jet');
@@ -280,7 +280,7 @@ export function issueGroundOrder(point, opts = {}) {
     mark();
     return;
   }
-  const selectedBarracks = selBuildings.filter((id) => world.has(id, 'building'));
+  const selectedBarracks = selBuildings.filter((id: number) => world.has(id, 'building'));
   if (selectedBarracks.length && selSquads.length === 0 && selBuilder === null) {
     selectedBarracks.forEach((id) => {
       const bld = world.get(id, 'building');
@@ -290,7 +290,7 @@ export function issueGroundOrder(point, opts = {}) {
     mark();
     return;
   }
-  const selectedAirfields = selBuildings.filter((id) => world.has(id, 'airfield'));
+  const selectedAirfields = selBuildings.filter((id: number) => world.has(id, 'airfield'));
   if (selectedAirfields.length && selSquads.length === 0 && selBuilder === null) {
     selectedAirfields.forEach((id) => {
       const airfield = world.get(id, 'airfield');
@@ -309,7 +309,7 @@ export function issueGroundOrder(point, opts = {}) {
     builder.moveTarget = new THREE.Vector3(point.x, 0, point.z);
     builder.isBuilding = false;
   }
-  const active = selSquads.filter((sid) => world.has(sid, 'squad'));
+  const active = selSquads.filter((sid: number) => world.has(sid, 'squad'));
   if (active.length) {
     const cols = Math.ceil(Math.sqrt(active.length));
     // Explicit capture request: right-click landed on a point mesh, or the
@@ -339,7 +339,7 @@ export function issueGroundOrder(point, opts = {}) {
       squad.forcedSoldierId = null;
     });
   }
-  const activeApcs = selSquads.filter((sid) => world.has(sid, 'apc'));
+  const activeApcs = selSquads.filter((sid: number) => world.has(sid, 'apc'));
   activeApcs.forEach((id, i) => {
     const apc = world.get(id, 'apc');
     if (apc) {
@@ -356,7 +356,7 @@ export function issueGroundOrder(point, opts = {}) {
       apc.moveOrder = destination;
     }
   });
-  const activeVehicles = selSquads.filter((sid) => world.has(sid, 'vehicle'));
+  const activeVehicles = selSquads.filter((sid: number) => world.has(sid, 'vehicle'));
   activeVehicles.forEach((id, i) => {
     const vehicle = world.get(id, 'vehicle');
     if (vehicle) {
@@ -376,7 +376,7 @@ export function issueGroundOrder(point, opts = {}) {
 }
 
 
-export function demolishBuilding(id) {
+export function demolishBuilding(id: number): void {
   if (world.has(id, 'airfield')) {
     _setAirfieldSelected(world, id, false);
   } else {
@@ -401,7 +401,7 @@ export function demolishBuilding(id) {
 }
 
 
-export function buildAddon(buildingId, addonKey) {
+export function buildAddon(buildingId: number, addonKey: string): boolean {
   const building = world.get(buildingId, 'building');
   if (!building || !canCommand(building.team)) return false;
   const factionKey = resolveFactionKey(building.faction, playerFaction);
@@ -411,8 +411,8 @@ export function buildAddon(buildingId, addonKey) {
   if (building.addons.includes(addonKey)) return false;
   if (building.constructing) return false;
   if (addonConfig.requiresTier && building.tier < addonConfig.requiresTier) return false;
-  if (requisition < addonConfig.cost) return false;
-  setRequisition(requisition - addonConfig.cost);
+  if (requisition < addonConfig.cost!) return false;
+  setRequisition(requisition - addonConfig.cost!);
   building.addons.push(addonKey);
   if (addonConfig.tier) building.tier = Math.max(building.tier, addonConfig.tier);
   if (addonConfig.scanner) setMapRevealed(true);
@@ -423,38 +423,38 @@ export function buildAddon(buildingId, addonKey) {
 
 /* ── Builder command mode (Tech-Priest control grid) ────────────────── */
 
-export let _pendingBuilderCommand = null;
+export let _pendingBuilderCommand: string | null = null;
 
 
-export function setBuilderCommand(cmd) {
+export function setBuilderCommand(cmd: string): void {
   _pendingBuilderCommand = cmd;
-  canvas.style.cursor = cmd ? 'crosshair' : '';
+  canvas!.style.cursor = cmd ? 'crosshair' : '';
 }
 
 
-export function clearBuilderCommand() {
+export function clearBuilderCommand(): void {
   _pendingBuilderCommand = null;
-  canvas.style.cursor = '';
+  canvas!.style.cursor = '';
 }
 
 
 /* ── Fly targeting mode (bloodthirster FLY button) ─────────────────── */
 
-export let _flyArmed = null;
+export let _flyArmed: number[] | null = null;
 
 
-export function isFlyArmed() {
+export function isFlyArmed(): boolean {
   return !!_flyArmed;
 }
 
 
 // Arms RMB fly targeting for the selected fly-capable squads.
 // Single-player only: no net order exists for flight.
-export function armFlyTargeting() {
+export function armFlyTargeting(): boolean {
   if (window._multiplayerMode) {
     return false;
   }
-  const flyers = selSquads.filter((sid) => {
+  const flyers = selSquads.filter((sid: number) => {
     const squad = world.get(sid, 'squad');
     if (!squad || !canCommand(squad.team)) {
       return false;
@@ -469,23 +469,23 @@ export function armFlyTargeting() {
     cancelBuild();
   }
   _flyArmed = flyers;
-  canvas.style.cursor = 'crosshair';
+  canvas!.style.cursor = 'crosshair';
   return true;
 }
 
 
-export function cancelFlyTargeting() {
+export function cancelFlyTargeting(): void {
   _flyArmed = null;
-  canvas.style.cursor = '';
+  canvas!.style.cursor = '';
 }
 
 
-export function _issueFlyOrder(sx, sy) {
+export function _issueFlyOrder(sx: number, sy: number): boolean {
   const point = raycastGround(sx, sy);
   if (!point) {
     return false;
   }
-  const armed = (_flyArmed || []).filter((sid) => world.has(sid, 'squad'));
+  const armed = (_flyArmed || []).filter((sid: number) => world.has(sid, 'squad'));
   if (!armed.length) {
     return false;
   }
@@ -511,7 +511,7 @@ export function _issueFlyOrder(sx, sy) {
 }
 
 
-export function setBuilderStance(stance) {
+export function setBuilderStance(stance: string): void {
   if (selBuilder === null || !world.has(selBuilder, 'builder')) {
     return;
   }
@@ -523,7 +523,7 @@ export function setBuilderStance(stance) {
 }
 
 
-export function _issueBuilderCommand(cmd, sx, sy, point, hit) {
+export function _issueBuilderCommand(cmd: string, sx: number, sy: number, point: THREE.Vector3, hit: { meta?: any } | null): void {
   if (selBuilder === null || !world.has(selBuilder, 'builder')) {
     return;
   }
@@ -577,7 +577,7 @@ export function _issueBuilderCommand(cmd, sx, sy, point, hit) {
 }
 
 
-export function _tryBuilderCommandClick(sx, sy) {
+export function _tryBuilderCommandClick(sx: number, sy: number): boolean {
   if (_pendingBuilderCommand === null) {
     return false;
   }
@@ -595,7 +595,7 @@ export function _tryBuilderCommandClick(sx, sy) {
 }
 
 
-export function placeListeningPost(sx, sy) {
+export function placeListeningPost(sx: number, sy: number): void {
   const hit = pickMesh(sx, sy);
   const spId = hit?.meta?.strategicPointEntityId;
   const sp = spId !== undefined ? world.get(spId, 'strategicPoint') : null;
@@ -613,15 +613,15 @@ export function placeListeningPost(sx, sy) {
 }
 
 
-export function placeBuild(pt) {
+export function placeBuild(pt: THREE.Vector3): void {
   if (!buildMode) return;
   const type = buildMode;
   _stopBuildGhost();
   setBuildMode(null);
-  canvas.style.cursor = '';
+  canvas!.style.cursor = '';
 
   if (window._multiplayerMode) {
-    const typeMap = {
+    const typeMap: Record<string, string> = {
       barracks: 'Barracks',
       infantry_command: 'InfantryCommand',
       hq: 'HQ',
@@ -646,7 +646,7 @@ export function placeBuild(pt) {
     return;
   }
 
-  if (requisition < COSTS[type] || selBuilder === null || !world.has(selBuilder, 'builder')) return;
+  if (requisition < COSTS[type as keyof typeof COSTS] || selBuilder === null || !world.has(selBuilder, 'builder')) return;
   const point = pt.clone();
   point.x = Math.max(-currentBounds() + 4, Math.min(currentBounds() - 4, point.x));
   point.z = Math.max(-currentBounds() + 4, Math.min(currentBounds() - 4, point.z));
@@ -687,7 +687,7 @@ export function placeBuild(pt) {
 }
 
 
-export function _boardSquadOntoApc(apc, sid) {
+export function _boardSquadOntoApc(apc: any, sid: number): boolean {
   const squad = world.get(sid, 'squad');
   if (!squad || !canCommand(squad.team) || squad.team !== apc?.team || world.has(sid, 'apc') || world.has(sid, 'vehicle')) {
     return false;
@@ -702,7 +702,7 @@ export function _boardSquadOntoApc(apc, sid) {
     return false;
   }
   apc.passengers.push(sid);
-  squad.soldiers.forEach((soldierId) => {
+  squad.soldiers.forEach((soldierId: number) => {
     if (soldierId) {
       const mc = world.get(soldierId, 'mesh');
       if (mc) mc.root.visible = false;

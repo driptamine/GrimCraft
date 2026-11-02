@@ -8,6 +8,7 @@ import type { SgbMapData } from './sgb-parser.js';
 
 declare global {
   interface Window {
+    _multiplayerMode?: unknown;
     __sgbPassGrid?: unknown;
     __sgbSampleHeight?: ((x: number, z: number) => number) | null;
     __sgbTerrainRoot?: THREE.Object3D | null;

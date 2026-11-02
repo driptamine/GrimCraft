@@ -25,13 +25,13 @@ export const POINT_HOVER_SEGMENTS = 48;
 // ══════════════════════════════════════════════════════════════════════════════
 export let _rangeCirclesVisible = false;
 
-export const _rangeCircles = [];
+export const _rangeCircles: THREE.Mesh[] = [];
 
 
-export function _hideRangeCircles() {
+export function _hideRangeCircles(): void {
   _rangeCircles.forEach((circle) => {
     if (circle.material) {
-      circle.material.dispose();
+      (circle.material as THREE.Material).dispose();
     }
     disposeObj(circle);
   });
@@ -39,9 +39,9 @@ export function _hideRangeCircles() {
 }
 
 
-export function _showRangeCircles() {
+export function _showRangeCircles(): void {
   _hideRangeCircles();
-  const addCircle = (position, radius, r, g, b) => {
+  const addCircle = (position: { x: number; z: number }, radius: number, r: number, g: number, b: number): void => {
     const ring = mkTorus('rangecircle', radius * 2, 0.18, 64);
     ring.position.set(position.x, 0.12, position.z);
     ring.userData.pickable = false;
@@ -51,28 +51,28 @@ export function _showRangeCircles() {
     _rangeCircles.push(ring);
   };
 
-  selSquads.forEach((sid) => {
+  selSquads.forEach((sid: number) => {
     const squad = world.get(sid, 'squad');
     if (squad) {
       addCircle(squad.position, squad.attackRange, 0.3, 0.8, 1);
     }
   });
 
-  selBuildings.forEach((id) => {
+  selBuildings.forEach((id: number) => {
     const structure = world.get(id, 'structure');
     if (structure && structure.attackRange > 0) {
       addCircle(structure.position, structure.attackRange, 1, 0.8, 0.2);
     }
   });
 
-  world.query('apc').forEach((id) => {
+  world.query('apc').forEach((id: number) => {
     const apc = world.get(id, 'apc');
     if (apc && apc.selected) {
       addCircle(apc.position, apc.attackRange, 0.2, 1, 0.4);
     }
   });
 
-  world.query('jet').forEach((id) => {
+  world.query('jet').forEach((id: number) => {
     const jet = world.get(id, 'jet');
     if (jet && canCommand(jet.team) && jet.selected) {
       addCircle(jet.position, JET_ATTACK_RANGE, 0.9, 0.5, 1.0);
@@ -84,7 +84,7 @@ export function _showRangeCircles() {
 // ══════════════════════════════════════════════════════════════════════════════
 //  CAMERA CONTROL
 // ══════════════════════════════════════════════════════════════════════════════
-export const keys = {};
+export const keys: Record<string, boolean> = {};
 
 export let rightDown = false;
 
@@ -125,7 +125,7 @@ export const CAM_SPD = 64;
 export const EDGE_ZONE = 40;
 
 
-export function tickCamera(deltaTime) {
+export function tickCamera(deltaTime: number): void {
   // First-person mode rides the soldier: edge pan and arrow keys stay on
   // the orbit rig, look-around is ALT+drag (alpha/beta).
   if (getCameraMode() === 'fps') {
@@ -196,18 +196,18 @@ export function tickCamera(deltaTime) {
 // Mutators for the pointer/camera state above. Sibling input modules
 // must go through these: ESM imports are read-only bindings, so a direct
 // cross-module assignment is a build error (rollup rejects it).
-export function setRangeCirclesVisible(value) { _rangeCirclesVisible = value; }
-export function setRightDown(value) { rightDown = value; }
-export function setRightDragStartPos(value) { rightDragStartPos = value; }
-export function setRightLastPos(value) { rightLastPos = value; }
-export function setIsOrbiting(value) { isOrbiting = value; }
-export function setIsSelecting(value) { isSelecting = value; }
-export function setSelStart(value) { selStart = value; }
-export function setSelEnd(value) { selEnd = value; }
-export function setAltDown(value) { altDown = value; }
-export function setAltOrbitLast(value) { altOrbitLast = value; }
-export function setIsAltOrbiting(value) { isAltOrbiting = value; }
-export function setMouseX(value) { _mouseX = value; }
-export function setMouseY(value) { _mouseY = value; }
-export function setMouseEntered(value) { _mouseEntered = value; }
-export function setLastHoverPickT(value) { _lastHoverPickT = value; }
+export function setRangeCirclesVisible(value: boolean): void { _rangeCirclesVisible = value; }
+export function setRightDown(value: boolean): void { rightDown = value; }
+export function setRightDragStartPos(value: { x: number; y: number }): void { rightDragStartPos = value; }
+export function setRightLastPos(value: { x: number; y: number }): void { rightLastPos = value; }
+export function setIsOrbiting(value: boolean): void { isOrbiting = value; }
+export function setIsSelecting(value: boolean): void { isSelecting = value; }
+export function setSelStart(value: { x: number; y: number }): void { selStart = value; }
+export function setSelEnd(value: { x: number; y: number }): void { selEnd = value; }
+export function setAltDown(value: boolean): void { altDown = value; }
+export function setAltOrbitLast(value: { x: number; y: number }): void { altOrbitLast = value; }
+export function setIsAltOrbiting(value: boolean): void { isAltOrbiting = value; }
+export function setMouseX(value: number): void { _mouseX = value; }
+export function setMouseY(value: number): void { _mouseY = value; }
+export function setMouseEntered(value: boolean): void { _mouseEntered = value; }
+export function setLastHoverPickT(value: number): void { _lastHoverPickT = value; }

@@ -18,6 +18,17 @@ export interface FactionUnitEntry {
   name?: string;
   model?: string;
   hiddenNodes?: string[];
+  canFly?: boolean;
+}
+
+export interface FactionAddonEntry {
+  name?: string;
+  icon?: string;
+  cost?: number;
+  unlocks?: string;
+  requiresTier?: number;
+  tier?: number;
+  scanner?: boolean;
 }
 
 export interface FactionStructureEntry {
@@ -25,6 +36,7 @@ export interface FactionStructureEntry {
   model?: string;
   hiddenNodes?: string[];
   production?: ProductionItem[];
+  addons?: FactionAddonEntry[];
 }
 
 // Structure production lists mix two shapes: unit objects

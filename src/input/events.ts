@@ -38,9 +38,9 @@ import { copyGunPose, fpsAimPoint, fpsLook, initGunPosePanel, isGunEditMode, isS
 import { clearSelection, doBoxSelect, doClickSelect, pickMesh, raycastGround } from './selection.js';
 
 
-export const selBoxEl = document.getElementById('selBox');
+export const selBoxEl = document.getElementById('selBox') as HTMLElement;
 
-export function updateSelBoxCSS() {
+export function updateSelBoxCSS(): void {
   const x = Math.min(selStart.x, selEnd.x);
   const y = Math.min(selStart.y, selEnd.y);
   selBoxEl.style.left = `${x}px`;
@@ -50,10 +50,10 @@ export function updateSelBoxCSS() {
 }
 
 
-export function _updateHoverCursor(hit) {
+export function _updateHoverCursor(hit: { meta?: any } | null): void {
   const meta = hit?.meta;
   const repairMode = _pendingBuilderCommand === 'repair';
-  let hover = null;
+  let hover: { kind: string; damaged?: boolean } | null = null;
   let hoverApc = null;
   if (meta) {
     if (repairMode) {
@@ -84,45 +84,49 @@ export function _updateHoverCursor(hit) {
       }
     }
   }
-  const infantrySelected = !!hoverApc && selSquads.some((sid) => {
+  const infantrySelected = !!hoverApc && selSquads.some((sid: number) => {
     const squad = world.get(sid, 'squad');
     return squad && canCommand(squad.team) && squad.team === hoverApc.team
       && !world.has(sid, 'apc') && !world.has(sid, 'vehicle')
       && !hoverApc.passengers.includes(sid)
       && squad.position.distanceTo(hoverApc.position) <= 10;
   });
-  const name = resolveCursor({
+  // resolveCursor's JS defaults infer null-only option types; the runtime
+  // contract takes the real cursor state, so call it opaquely.
+  const name = (resolveCursor as (...args: any[]) => string | null)({
     modal: getModalCursor(),
     buildMode,
     pendingCommand: _pendingBuilderCommand,
     hover,
     infantrySelected,
   });
-  canvas.style.cursor = name ? cursorCss(name, 'auto') : ((buildMode || _pendingBuilderCommand || _flyArmed) ? 'crosshair' : cursorCss('default', ''));
+  canvas!.style.cursor = name ? cursorCss(name, 'auto') : ((buildMode || _pendingBuilderCommand || _flyArmed) ? 'crosshair' : cursorCss('default', ''));
 }
 
 
 // Enemy hover highlight relative to the current selection: a hovered squad
 // counts as hostile when at least one selected unit sits on another team.
 // With no selection this is exactly the non-commandable teams.
-export function isHostileToSelection(world, hoveredId, hoveredTeam) {
+export function isHostileToSelection(world: any, hoveredId: number, hoveredTeam: string): boolean {
   if (selSquads.length === 0) {
     return !canCommand(hoveredTeam);
   }
   if (selSquads.includes(hoveredId)) {
     return false;
   }
-  return selSquads.some((id) => {
+  return selSquads.some((id: number) => {
     const t = (world.get(id, 'jet') ?? world.get(id, 'apc') ?? world.get(id, 'vehicle') ?? world.get(id, 'squad'))?.team;
     return t && t !== hoveredTeam;
   });
 }
 
 
-export function setupPointerEvents() {
+export function setupPointerEvents(): void {
   initGunPosePanel();
+  if (!canvas) return;
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   canvas.addEventListener('pointerdown', (event) => {
+    if (!canvas) return;
     // Touch in shooter mode is owned by the touch controls (left stick for
     // movement, right-side drag for look, FIRE button to shoot): letting the
     // mouse path run would fire a shot on every look-drag start.
@@ -171,7 +175,7 @@ export function setupPointerEvents() {
       setIsOrbiting(false);
       setRightDragStartPos({ x: event.clientX, y: event.clientY });
       setRightLastPos({ x: event.clientX, y: event.clientY });
-      const selectedApcs = selSquads.filter((id) => world.get(id, 'apc') != null);
+      const selectedApcs = selSquads.filter((id: number) => world.get(id, 'apc') != null);
       if (selectedApcs.length) {
         const point = raycastGround(event.clientX, event.clientY);
         if (point) {
@@ -181,7 +185,7 @@ export function setupPointerEvents() {
           });
         }
       }
-      const selectedVehicles = selSquads.filter((id) => world.get(id, 'vehicle') != null);
+      const selectedVehicles = selSquads.filter((id: number) => world.get(id, 'vehicle') != null);
       if (selectedVehicles.length) {
         const point = raycastGround(event.clientX, event.clientY);
         if (point) {
@@ -193,7 +197,7 @@ export function setupPointerEvents() {
       }
     }
   });
-  function _updateCursorCoords(sx, sy) {
+  function _updateCursorCoords(sx: number, sy: number): void {
     const pt = raycastGround(sx, sy);
     _lastGroundPt.valid = !!pt;
     if (pt) {
@@ -208,14 +212,14 @@ export function setupPointerEvents() {
       el.textContent = 'x: –  z: –';
     }
   }
-  let _decalHoverEl = null;
-  function _decalHoverTip() {
+  let _decalHoverEl: HTMLElement | null = null;
+  function _decalHoverTip(): HTMLElement | null {
     if (!_decalHoverEl) {
       _decalHoverEl = document.getElementById('decalHoverTip');
     }
     return _decalHoverEl;
   }
-  function _updateDecalHover(hit, sx, sy) {
+  function _updateDecalHover(hit: { mesh?: THREE.Object3D; meta?: any } | null, sx: number, sy: number): void {
     const tip = _decalHoverTip();
     if (!tip) return;
     if (!isDecalHoverEnabled()) {
@@ -238,16 +242,16 @@ export function setupPointerEvents() {
     tip.style.left = (sx + 14) + 'px';
     tip.style.top = (sy + 14) + 'px';
   }
-  let _pointBaseTarget = null;
-  let _pointBaseOutline = null;
-  function _clearPointBaseOutline() {
+  let _pointBaseTarget: number | null = null;
+  let _pointBaseOutline: THREE.Line | null = null;
+  function _clearPointBaseOutline(): void {
     if (_pointBaseOutline) {
       disposeObj(_pointBaseOutline);
       _pointBaseOutline = null;
     }
     _pointBaseTarget = null;
   }
-  function _makeHoverRing() {
+  function _makeHoverRing(): THREE.Line {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((POINT_HOVER_SEGMENTS + 1) * 3), 3));
     const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffffff }));
@@ -255,8 +259,8 @@ export function setupPointerEvents() {
     line.frustumCulled = false;
     return line;
   }
-  function _updateHoverRing(line, cx, cy, cz) {
-    const p = line.geometry.attributes.position;
+  function _updateHoverRing(line: THREE.Line, cx: number, cy: number, cz: number): void {
+    const p = line.geometry.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i <= POINT_HOVER_SEGMENTS; i += 1) {
       const a = (i / POINT_HOVER_SEGMENTS) * Math.PI * 2;
       p.setXYZ(i, cx + Math.cos(a) * POINT_HOVER_RADIUS, cy, cz + Math.sin(a) * POINT_HOVER_RADIUS);
@@ -267,7 +271,7 @@ export function setupPointerEvents() {
   // the ground point under the cursor is inside POINT_HOVER_RADIUS of the
   // entity root. Direct hits on tall point meshes (poles, post, console)
   // outside the circle must NOT draw the ring. Centered on the entity root.
-  function _updatePointBaseHover() {
+  function _updatePointBaseHover(): void {
     let target = null;
     let center = null;
     if (world && _lastGroundPt.valid) {
@@ -294,10 +298,10 @@ export function setupPointerEvents() {
       scene.add(_pointBaseOutline);
     }
   }
-  let _hoverBuildingRoot = null;
-  let _hoverBuildingOutline = null;
+  let _hoverBuildingRoot: THREE.Object3D | null = null;
+  let _hoverBuildingOutline: THREE.Line | null = null;
   const _hoverFootBox = new THREE.Box3();
-  function _makeFootRect() {
+  function _makeFootRect(): THREE.Line {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(15), 3));
     const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x00ff00 }));
@@ -305,11 +309,11 @@ export function setupPointerEvents() {
     line.frustumCulled = false;
     return line;
   }
-  function _updateFootRect(line, target) {
+  function _updateFootRect(line: THREE.Line, target: THREE.Object3D): void {
     _hoverFootBox.setFromObject(target);
     // flat XZ footprint at the snapped base height + lift (above decal sheets)
     const y = target.position.y + 0.1;
-    const p = line.geometry.attributes.position;
+    const p = line.geometry.attributes.position as THREE.BufferAttribute;
     const x0 = _hoverFootBox.min.x, x1 = _hoverFootBox.max.x;
     const z0 = _hoverFootBox.min.z, z1 = _hoverFootBox.max.z;
     p.setXYZ(0, x0, y, z0);
@@ -319,7 +323,7 @@ export function setupPointerEvents() {
     p.setXYZ(4, x0, y, z0);
     p.needsUpdate = true;
   }
-  function _clearBuildingOutline() {
+  function _clearBuildingOutline(): void {
     if (_hoverBuildingOutline) {
       disposeObj(_hoverBuildingOutline);
       _hoverBuildingOutline = null;
@@ -328,7 +332,7 @@ export function setupPointerEvents() {
   }
   // Green flat 2D footprint rectangle on the whole hovered
   // building/structure/airfield (entity mesh root, not the hit child mesh).
-  function _updateBuildingHover(hit) {
+  function _updateBuildingHover(hit: { mesh?: THREE.Object3D; meta?: any } | null): void {
     let target = null;
     const meta = hit?.meta;
     const id = meta?.buildingEntityId ?? meta?.structureEntityId ?? meta?.airfieldEntityId;
@@ -397,7 +401,7 @@ export function setupPointerEvents() {
       if (hoveredSquadId !== _hoverEnemySquad) {
         if (_hoverEnemySquad !== null && _hoverEnemySquad !== hoveredEnemySquad && world.has(_hoverEnemySquad, 'squad')) {
           const previousSquad = world.get(_hoverEnemySquad, 'squad');
-          previousSquad?.soldiers.forEach((sid) => {
+          previousSquad?.soldiers.forEach((sid: number) => {
             if (!sid) return;
             const mc = world.get(sid, 'mesh');
             if (mc?.root?._selMat) mc.root._selMat.opacity = 0; mc.root._selMat.transparent = true;
@@ -406,7 +410,7 @@ export function setupPointerEvents() {
         set_hoverEnemySquad(hoveredSquadId);
         if (hoveredSquadId !== null && hoveredSquadId !== hoveredEnemySquad) {
           const hsq = world.get(hoveredSquadId, 'squad');
-          hsq?.soldiers.forEach((sid) => {
+          hsq?.soldiers.forEach((sid: number) => {
             if (!sid) return;
             const mc = world.get(sid, 'mesh');
             if (mc?.root?._selMat) mc.root._selMat.opacity = 0.4; mc.root._selMat.transparent = true;
@@ -416,6 +420,7 @@ export function setupPointerEvents() {
     }
   });
   canvas.addEventListener('pointerup', (event) => {
+    if (!canvas) return;
     if (event.pointerId !== undefined) {
       try { canvas.releasePointerCapture(event.pointerId); } catch (_) {}
     }
@@ -461,7 +466,7 @@ export function setupPointerEvents() {
 }
 
 
-export function initInput() {
+export function initInput(): void {
   preloadCursors();
   preloadTaskbarIcons();
   window.addEventListener('keydown', (event) => {
@@ -482,10 +487,10 @@ export function initInput() {
     if (event.code === 'AltLeft' || event.code === 'AltRight') {
       setAltDown(true);
       event.preventDefault();
-      if (!buildMode) canvas.style.cursor = 'grab';
+      if (!buildMode) canvas!.style.cursor = 'grab';
     }
     if (event.code === 'KeyQ') {
-      selSquads.forEach((sid) => {
+      selSquads.forEach((sid: number) => {
         const squad = world.get(sid, 'squad');
         if (squad) {
           squad.moveOrder = null;
@@ -496,17 +501,17 @@ export function initInput() {
       });
     }
     if (event.code === 'KeyL') {
-      selSquads.filter((id) => world.has(id, 'apc')).forEach((apcId) => {
+      selSquads.filter((id: number) => world.has(id, 'apc')).forEach((apcId) => {
         const apc = world.get(apcId, 'apc');
         if (!apc) return;
-        world.query('squad').forEach((sid) => {
+        world.query('squad').forEach((sid: number) => {
           _boardSquadOntoApc(apc, sid);
         });
         updateHUD();
       });
     }
     if (event.code === 'KeyU') {
-      selSquads.filter((id) => world.has(id, 'apc')).forEach((apcId) => {
+      selSquads.filter((id: number) => world.has(id, 'apc')).forEach((apcId) => {
         const apc = world.get(apcId, 'apc');
         if (apc) {
           _apcEjectPassengers(world, apc);
@@ -519,7 +524,7 @@ export function initInput() {
       if (!_rangeCirclesVisible) _hideRangeCircles();
     }
     if (event.code === 'Backspace') {
-      const tag = event.target?.tagName;
+      const tag = (event.target as HTMLElement | null)?.tagName;
       if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
         camera.radius = DEFAULT_CAMERA_RADIUS;
         camera.alpha = DEFAULT_CAMERA_ALPHA;
@@ -528,20 +533,20 @@ export function initInput() {
       }
     }
     if (event.code === 'Tab') {
-      const tag = event.target?.tagName;
+      const tag = (event.target as HTMLElement | null)?.tagName;
       if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
         event.preventDefault();
         toggleCameraFps();
       }
     }
     if (event.code === 'KeyP') {
-      const tag = event.target?.tagName;
+      const tag = (event.target as HTMLElement | null)?.tagName;
       if (tag !== 'INPUT' && tag !== 'TEXTAREA' && toggleGunEditMode()) {
         event.preventDefault();
       }
     }
     if (event.code === 'KeyC' && isGunEditMode()) {
-      const tag = event.target?.tagName;
+      const tag = (event.target as HTMLElement | null)?.tagName;
       if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
         event.preventDefault();
         copyGunPose();
@@ -551,7 +556,7 @@ export function initInput() {
       event.preventDefault();
       const prevBuilder = selBuilder;
       clearSelection();
-      const builders = world.query('builder', 'mesh').filter((id) => canCommand(world.get(id, 'builder')?.team));
+      const builders = world.query('builder', 'mesh').filter((id: number) => canCommand(world.get(id, 'builder')?.team));
       if (builders.length > 0) {
         const curIdx = prevBuilder !== null ? builders.indexOf(prevBuilder) : -1;
         const builderId = builders[(curIdx + 1) % builders.length];
@@ -586,7 +591,7 @@ export function initInput() {
     if (event.code === 'AltLeft' || event.code === 'AltRight') {
       setAltDown(false);
       setIsAltOrbiting(false);
-      if (!buildMode) canvas.style.cursor = '';
+      if (!buildMode) canvas!.style.cursor = '';
     }
   });
   window.addEventListener('blur', () => {
@@ -594,7 +599,7 @@ export function initInput() {
     setRightDown(false);
     setIsAltOrbiting(false);
     setAltDown(false);
-    canvas.style.cursor = '';
+    canvas!.style.cursor = '';
     selBoxEl.style.display = 'none';
   });
   // Losing pointer lock (ESC) drops out of first person: without a captured

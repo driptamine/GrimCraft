@@ -84,7 +84,7 @@ describe('camera panel wiring', () => {
     for (const id of ['gunPosX', 'gunPosY', 'gunPosZ', 'gunRotX', 'gunRotY', 'gunRotZ', 'gunScale']) {
       assert.ok(html.includes(`id="${id}"`), `slider ${id} exists`);
     }
-    const events = fs.readFileSync(path.join(root, 'src/input/events.js'), 'utf8');
+    const events = fs.readFileSync(path.join(root, 'src/input/events.ts'), 'utf8');
     assert.ok(events.includes("event.code === 'KeyP'"), 'P toggles gun posing');
     assert.ok(events.includes('toggleGunEditMode()'), 'P wired to gun edit');
     assert.ok(events.includes('copyGunPose()'), 'C copies the gun pose');
@@ -109,10 +109,10 @@ describe('camera panel wiring', () => {
   });
 
   it('TAB toggles the camera and LMB free-fires a beam in fps', () => {
-    const events = fs.readFileSync(path.join(root, 'src/input/events.js'), 'utf8');
+    const events = fs.readFileSync(path.join(root, 'src/input/events.ts'), 'utf8');
     assert.ok(events.includes("event.code === 'Tab'"), 'TAB hotkey handled');
     assert.ok(events.includes('toggleCameraFps()'), 'TAB flips the camera');
-    const orders = fs.readFileSync(path.join(root, 'src/input/orders.js'), 'utf8');
+    const orders = fs.readFileSync(path.join(root, 'src/input/orders.ts'), 'utf8');
     assert.ok(orders.includes('pickFpsTargetMesh(sx, sy, target.squadId)'), 'fps shot skips the ridden squad');
     assert.ok(orders.includes('createBeamEntity(world, from, target.squad.team'), 'enemy clicks fire a damaging beam');
     assert.ok(orders.includes('spawnBeamTracer(from, point)'), 'anywhere else fires a free tracer');
