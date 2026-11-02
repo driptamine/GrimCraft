@@ -10,7 +10,7 @@ export const DataType = Object.freeze({
   NO_DATA: 254,
 });
 
-const DEFAULT_HASH_DICT_PATH = "src/parsers/RGD_DIC.TXT";
+const DEFAULT_HASH_DICT_PATH = "src/parsers-reference/RGD_DIC.TXT";
 
 export function buildHashDict(text) {
   const dict = new Map();
