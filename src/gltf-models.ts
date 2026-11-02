@@ -14,9 +14,34 @@ import { reportR2Progress } from './r2-progress.js';
 //  with loop + on-ended callbacks) keeps working unchanged.
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Loaded model container: scene root, clips, flat mesh list, optional
+// hidden-node names applied at instantiate, explicit GPU dispose.
+export interface GltfContainer {
+  scene: THREE.Object3D;
+  animations: THREE.AnimationClip[];
+  meshes: THREE.Object3D[];
+  _hiddenNodes: string[] | null;
+  dispose(): void;
+}
+
+// Per-instance playback state returned by instantiateGltf.
+export interface GltfInstance {
+  rootNodes: THREE.Object3D[];
+  animationGroups: AnimGroup[];
+  mixer: THREE.AnimationMixer;
+  dispose(): void;
+}
+
+// Mixer bookkeeping: how many live AnimGroups share the mixer (the last
+// one out unregisters it).
+export interface MixerRecord {
+  mixer: THREE.AnimationMixer;
+  alive: number;
+}
+
 const _gltfLoader = new GLTFLoader();
 const _fbxLoader = new FBXLoader();
-const _mixers = new Set();
+const _mixers = new Set<THREE.AnimationMixer>();
 
 // Mixer distance throttle: mixers whose root sits outside the camera
 // frustum update every MIXER_THROTTLE_EVERY-th frame with a scaled delta,
@@ -26,7 +51,7 @@ const _mixers = new Set();
 export const MIXER_THROTTLE_EVERY = 4;
 export const MIXER_SPHERE_RADIUS = 10;
 
-const _mixerPhase = new Map();
+const _mixerPhase = new Map<THREE.AnimationMixer, number>();
 let _mixerPhaseNext = 0;
 let _mixerTick = 0;
 const _throttleFrustum = new THREE.Frustum();
@@ -34,16 +59,16 @@ const _throttleMatrix = new THREE.Matrix4();
 const _throttleCenter = new THREE.Vector3();
 const _throttleSphere = new THREE.Sphere();
 
-export function mixerThrottleStep(visible, tick, phase, every = MIXER_THROTTLE_EVERY) {
+export function mixerThrottleStep(visible: boolean, tick: number, phase: number, every = MIXER_THROTTLE_EVERY): number {
   if (visible) {
     return 1;
   }
   return (tick + phase) % every === 0 ? every : 0;
 }
 
-export function updateMixers(deltaTime, camera = null) {
+export function updateMixers(deltaTime: number, camera: THREE.Camera | null = null): void {
   _mixerTick += 1;
-  let frustum = null;
+  let frustum: THREE.Frustum | null = null;
   if (camera && camera.projectionMatrix) {
     camera.updateMatrixWorld();
     _throttleMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -54,7 +79,9 @@ export function updateMixers(deltaTime, camera = null) {
     try {
       let scale = 1;
       if (frustum) {
-        const root = typeof mixer.getRoot === 'function' ? mixer.getRoot() : null;
+        const anyMixer = mixer as unknown as { getRoot?: () => unknown };
+        const maybeRoot = typeof anyMixer.getRoot === 'function' ? anyMixer.getRoot() : null;
+        const root = maybeRoot as { getWorldPosition?: (target: THREE.Vector3) => void } | null;
         let visible = true;
         if (root && typeof root.getWorldPosition === 'function') {
           root.getWorldPosition(_throttleCenter);
@@ -66,7 +93,7 @@ export function updateMixers(deltaTime, camera = null) {
           _mixerPhase.set(mixer, _mixerPhaseNext);
           _mixerPhaseNext = (_mixerPhaseNext + 1) % MIXER_THROTTLE_EVERY;
         }
-        scale = mixerThrottleStep(visible, _mixerTick, _mixerPhase.get(mixer));
+        scale = mixerThrottleStep(visible, _mixerTick, _mixerPhase.get(mixer) as number);
       }
       if (scale !== 0) {
         mixer.update(deltaTime * scale);
@@ -77,20 +104,20 @@ export function updateMixers(deltaTime, camera = null) {
   });
 }
 
-function _registerMixer(mixer) {
+function _registerMixer(mixer: THREE.AnimationMixer): void {
   _mixers.add(mixer);
 }
 
-function _unregisterMixer(mixer) {
+function _unregisterMixer(mixer: THREE.AnimationMixer): void {
   _mixers.delete(mixer);
   _mixerPhase.delete(mixer);
 }
 
-export async function loadGltf(url, extension = '') {
+export async function loadGltf(url: string, extension = ''): Promise<GltfContainer> {
   const ext = String(extension || url || '').split('?')[0].split('#')[0].toLowerCase();
   // Byte-level R2 progress for the START BATTLE bar (R2 sends
   // Content-Length, so lengthComputable is true and totals are real).
-  const onByteProgress = (event) => {
+  const onByteProgress = (event: ProgressEvent): void => {
     if (!event) {
       return;
     }
@@ -99,8 +126,8 @@ export async function loadGltf(url, extension = '') {
       total: event.lengthComputable && event.total > 0 ? event.total : null,
     });
   };
-  let root;
-  let animations;
+  let root: THREE.Object3D;
+  let animations: THREE.AnimationClip[];
   try {
     if (ext.endsWith('.fbx')) {
       root = await _fbxLoader.loadAsync(url, onByteProgress);
@@ -117,19 +144,19 @@ export async function loadGltf(url, extension = '') {
     throw error;
   }
   reportR2Progress(url, { done: true });
-  const meshes = [];
-  root.traverse((child) => {
+  const meshes: THREE.Object3D[] = [];
+  root.traverse((child: THREE.Object3D & { isMesh?: unknown }) => {
     if (child.isMesh) {
       meshes.push(child);
     }
   });
-  const container = {
+  const container: GltfContainer = {
     scene: root,
     animations,
     meshes,
     _hiddenNodes: null,
     dispose() {
-      root.traverse((child) => {
+      root.traverse((child: THREE.Object3D & { geometry?: THREE.BufferGeometry; material?: THREE.Material | THREE.Material[] }) => {
         if (child.geometry) {
           child.geometry.dispose();
         }
@@ -138,8 +165,8 @@ export async function loadGltf(url, extension = '') {
           : (child.material ? [child.material] : []);
         materials.forEach((material) => {
           Object.values(material).forEach((value) => {
-            if (value && value.isTexture) {
-              value.dispose();
+            if (value && (value as { isTexture?: unknown }).isTexture) {
+              (value as THREE.Texture).dispose();
             }
           });
           material.dispose();
@@ -156,7 +183,21 @@ export async function loadGltf(url, extension = '') {
 // ── Per-clip playback wrapper ───────────────────────────────────────────────
 
 export class AnimGroup {
-  constructor(clip, mixer, record) {
+  name: string;
+  onAnimationGroupEndObservable: {
+    addOnce: (callback: () => void) => void;
+    clear: () => void;
+  };
+  private _clip: THREE.AnimationClip;
+  private _mixer: THREE.AnimationMixer;
+  private _record: MixerRecord;
+  private _action: THREE.AnimationAction | null = null;
+  private _loop = true;
+  private _endCallbacks: Array<() => void> = [];
+  private _disposed = false;
+  private _finishedListener: (event: { action: unknown }) => void;
+
+  constructor(clip: THREE.AnimationClip, mixer: THREE.AnimationMixer, record: MixerRecord) {
     this.name = clip.name || '';
     this._clip = clip;
     this._mixer = mixer;
@@ -188,14 +229,14 @@ export class AnimGroup {
     };
   }
 
-  _ensureAction() {
+  _ensureAction(): THREE.AnimationAction {
     if (!this._action) {
       this._action = this._mixer.clipAction(this._clip);
     }
     return this._action;
   }
 
-  set loopAnimation(value) {
+  set loopAnimation(value: boolean) {
     this._loop = !!value;
     if (this._action) {
       this._action.setLoop(this._loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
@@ -203,11 +244,11 @@ export class AnimGroup {
     }
   }
 
-  get loopAnimation() {
+  get loopAnimation(): boolean {
     return this._loop;
   }
 
-  start(loop = true, speed = 1.0) {
+  start(loop = true, speed = 1.0): void {
     if (this._disposed) {
       return;
     }
@@ -224,14 +265,14 @@ export class AnimGroup {
     action.play();
   }
 
-  stop() {
+  stop(): void {
     if (this._action) {
       this._mixer.removeEventListener('finished', this._finishedListener);
       this._action.stop();
     }
   }
 
-  reset() {
+  reset(): void {
     if (this._action) {
       this._action.reset();
     }
@@ -240,7 +281,7 @@ export class AnimGroup {
   // Freeze the clip at a progress point (0..1): the paused action keeps
   // contributing its pose on mixer.update, so each frame can re-scrub it.
   // start()/stop() take over cleanly afterwards (reset() unpauses).
-  scrub(progress01) {
+  scrub(progress01: number): void {
     if (this._disposed) {
       return;
     }
@@ -259,11 +300,11 @@ export class AnimGroup {
     action.time = p * this.getDuration();
   }
 
-  getDuration() {
+  getDuration(): number {
     return this._clip.duration || 0;
   }
 
-  dispose() {
+  dispose(): void {
     if (this._disposed) {
       return;
     }
@@ -290,11 +331,11 @@ export class AnimGroup {
 
 // ── Instancing ──────────────────────────────────────────────────────────────
 
-export function instantiateGltf(container) {
+export function instantiateGltf(container: GltfContainer): GltfInstance {
   const clone = SkeletonUtils.clone(container.scene);
   const mixer = new THREE.AnimationMixer(clone);
   _registerMixer(mixer);
-  const record = { mixer, alive: (container.animations || []).length };
+  const record: MixerRecord = { mixer, alive: (container.animations || []).length };
   const animationGroups = (container.animations || []).map((clip) => new AnimGroup(clip, mixer, record));
   if (record.alive <= 0) {
     // Static model with no clips: nothing will ever unregister the mixer, so

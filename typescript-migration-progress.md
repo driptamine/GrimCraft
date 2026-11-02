@@ -17,6 +17,9 @@ Update this file every time a module is migrated: move the row from Queue to Don
 | `src/grid-helper.ts` | — (covered by grid suites) | Pure math, `number[]` returns. |
 | `src/merge-static.ts` | `tests/merge-static.test.ts` | `MergeStats`, `GltfContainerLike`, `AnyMesh` (checked surface + duck-typed flags); `materialIndex ?? 0` (three types mark it optional — same runtime fallback). |
 | `src/merge-skinned.ts` | `tests/merge-skinned.test.ts` | `SkinnedMergeStats`, `SkinnedPool`, per-branch `const skinned` for `bind` narrowing. |
+| `src/three-helpers.ts` | — (covered by grid/gpu/ground suites) | Factories, `MaybeMesh`, `TextureLoadCallbacks`, `DynamicResolution`, quality tiers. |
+| `src/gltf-models.ts` | — (covered by anim-scrub/migration suites) | `GltfContainer`, `GltfInstance`, `AnimGroup` (declared fields), `MixerRecord`. |
+| `src/model-upload.ts` | — | `AnimSlotNames`, `AnyGroup` for runtime-attached fields, DOM casts (`as HTMLInputElement`), `keyof typeof TEAM_COLOR`. |
 
 ## Infrastructure (done, supports all future renames)
 
@@ -37,7 +40,7 @@ Update this file every time a module is migrated: move the row from Queue to Don
 
 - [x] `src/camera-params.js`, `src/decal-size.js` (+ `tests/decal-size.test.js`)
 - [x] Three.js utils part 1: `mat-cache.js`, `grid-helper.js`, `merge-static.js` (+ test), `merge-skinned.js` (+ test)
-- [ ] Three.js utils part 2: `three-helpers.js`, `gltf-models.js`, `model-upload.js`
+- [x] Three.js utils part 2: `three-helpers.js`, `gltf-models.js`, `model-upload.js` (no dedicated tests — covered by suites; `decal-black.test.js` source path bumped to `.ts`)
 - [ ] Data + config: `factions/*.js`, `factions.js`, `maps-menu.js`, `teamcolour.js`, `meshes/*` (+ shared types file)
 - [ ] Input layer: `input/camera.js`, `input/selection.js`, `input/markers.js`, `input/orders.js`, `input/events.js`, `input/touch-controls.js`, `input.js`
 - [ ] HUD: `hud/bits.jsx` → `.tsx`, `hud/primitives.jsx`, components, `hud.js`

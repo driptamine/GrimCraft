@@ -113,7 +113,7 @@ export function mergeSkinnedContainer(container: GltfContainerLike | null, hidde
   };
 
   scene.updateMatrixWorld(true);
-  const meshes: AnyMesh[] = childMeshes(scene);
+  const meshes = childMeshes(scene) as AnyMesh[];
   // Pool key: material + (skinned ? skeleton + world + bind : 'rigid').
   // Nested maps avoid inventing composite string keys for objects.
   const pools = new Map<THREE.Material, Map<string, SkinnedPool>>();

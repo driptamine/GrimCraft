@@ -128,7 +128,7 @@ export function mergeStaticContainer(container: GltfContainerLike | null, hidden
   };
 
   scene.updateMatrixWorld(true);
-  const meshes: AnyMesh[] = childMeshes(scene);
+  const meshes = childMeshes(scene) as AnyMesh[];
   // Multi-material meshes are split per group so every primitive joins
   // its material pool; anything unmergeable keeps its original calls.
   const pools = new Map<THREE.Material, MergePool>(); // material -> { geos, meshes }

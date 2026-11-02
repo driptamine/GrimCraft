@@ -10,13 +10,13 @@ import { reportR2Progress } from './r2-progress.js';
 //  from the scene automatically, matching the old engine's behaviour.
 // ══════════════════════════════════════════════════════════════════════════════
 
-let _defaultScene = null;
+let _defaultScene: THREE.Object3D | null = null;
 
-export function setDefaultScene(sceneInstance) {
+export function setDefaultScene(sceneInstance: THREE.Object3D): void {
   _defaultScene = sceneInstance;
 }
 
-function _place(object, name) {
+function _place<T extends THREE.Object3D>(object: T, name?: string): T {
   if (name !== undefined && name !== null) {
     object.name = name;
   }
@@ -26,22 +26,31 @@ function _place(object, name) {
   return object;
 }
 
+// Three.js Object3D has no mesh-specific members; duck-typed walkers add
+// them structurally instead of casting the whole graph to `any`.
+export type MaybeMesh = THREE.Object3D & {
+  geometry?: THREE.BufferGeometry;
+  material?: THREE.Material | THREE.Material[] | null;
+  isMesh?: unknown;
+  isSkinnedMesh?: unknown;
+};
+
 // ── Object / mesh factories ─────────────────────────────────────────────────
 
-export function mkGroup(name) {
+export function mkGroup(name?: string): THREE.Group {
   return _place(new THREE.Group(), name);
 }
 
-export function mkBox(name, width, height, depth) {
+export function mkBox(name: string | undefined, width: number, height: number, depth: number): THREE.Mesh {
   return _place(new THREE.Mesh(new THREE.BoxGeometry(width, height, depth)), name);
 }
 
-export function mkSphere(name, diameter, segments = 12) {
+export function mkSphere(name: string | undefined, diameter: number, segments = 12): THREE.Mesh {
   const seg = Math.max(3, Math.round(segments));
   return _place(new THREE.Mesh(new THREE.SphereGeometry(diameter / 2, seg, Math.max(2, seg - 1))), name);
 }
 
-export function mkCylinder(name, diameterTop, diameterBottom, height, tessellation = 12) {
+export function mkCylinder(name: string | undefined, diameterTop: number, diameterBottom: number, height: number, tessellation = 12): THREE.Mesh {
   const seg = Math.max(3, Math.round(tessellation));
   return _place(
     new THREE.Mesh(new THREE.CylinderGeometry(diameterTop / 2, diameterBottom / 2, height, seg)),
@@ -49,7 +58,7 @@ export function mkCylinder(name, diameterTop, diameterBottom, height, tessellati
   );
 }
 
-export function mkTorus(name, diameter, thickness, tessellation = 24) {
+export function mkTorus(name: string | undefined, diameter: number, thickness: number, tessellation = 24): THREE.Mesh {
   // Babylon's torus lies flat in XZ; three.js TorusGeometry stands in XY, so
   // bake a -90° X rotation into the geometry to preserve the flat ground-ring look.
   const geo = new THREE.TorusGeometry(diameter / 2, thickness / 2, 10, Math.max(3, Math.round(tessellation)));
@@ -59,38 +68,38 @@ export function mkTorus(name, diameter, thickness, tessellation = 24) {
 
 // Expanding-ring ping frame: linear growth from 0.5 to maxScale, with the
 // fade concentrated near the end (opacity 1 - t^2).
-export function spPingFrame(time, duration, maxScale) {
+export function spPingFrame(time: number, duration: number, maxScale: number): { scale: number; opacity: number } {
   const t = Math.min(1, Math.max(0, time / duration));
   return { scale: 0.5 + (maxScale - 0.5) * t, opacity: 1 - t * t };
 }
 
-export function mkDisc(name, radius, tessellation = 16, doubleSided = false) {
+export function mkDisc(name: string | undefined, radius: number, tessellation = 16, doubleSided = false): THREE.Mesh {
   const mesh = _place(
     new THREE.Mesh(new THREE.CircleGeometry(radius, Math.max(3, Math.round(tessellation)))),
     name,
   );
   if (doubleSided) {
-    mesh.material.side = THREE.DoubleSide;
+    (mesh.material as THREE.MeshBasicMaterial).side = THREE.DoubleSide;
   }
   return mesh;
 }
 
-export function mkPlane(name, width, height, doubleSided = false) {
+export function mkPlane(name: string | undefined, width: number, height: number, doubleSided = false): THREE.Mesh {
   const mesh = _place(new THREE.Mesh(new THREE.PlaneGeometry(width, height)), name);
   if (doubleSided) {
-    mesh.material.side = THREE.DoubleSide;
+    (mesh.material as THREE.MeshBasicMaterial).side = THREE.DoubleSide;
   }
   return mesh;
 }
 
-const _polyBuilders = [
+const _polyBuilders: Array<(r: number) => THREE.BufferGeometry> = [
   (r) => new THREE.TetrahedronGeometry(r),
   (r) => new THREE.OctahedronGeometry(r),
   (r) => new THREE.DodecahedronGeometry(r),
   (r) => new THREE.IcosahedronGeometry(r),
 ];
 
-export function mkPoly(name, type, size) {
+export function mkPoly(name: string | undefined, type: number, size: number): THREE.Mesh {
   const build = _polyBuilders[type] || _polyBuilders[3];
   return _place(new THREE.Mesh(build(size)), name);
 }
@@ -98,11 +107,11 @@ export function mkPoly(name, type, size) {
 // Mesh sharing one of the caller's geometries (marked userData.shared so
 // disposeObj keeps it). For high-rate throwaways — bullets, particles —
 // where per-shot BufferGeometry churn costs more than it buys.
-export function mkSharedMesh(geometry, name) {
+export function mkSharedMesh(geometry: THREE.BufferGeometry, name?: string): THREE.Mesh {
   return _place(new THREE.Mesh(geometry), name);
 }
 
-export function mkTube(name, path, radius, tessellation = 8, capped = true) {
+export function mkTube(name: string | undefined, path: THREE.Vector3[], radius: number, tessellation = 8, capped = true): THREE.Mesh {
   // TubeGeometry needs a Curve, not a point array; the game's paths are dense
   // closed loops (rounded-square capture rings), which CatmullRom follows
   // exactly enough that the tube matches the old look.
@@ -113,19 +122,19 @@ export function mkTube(name, path, radius, tessellation = 8, capped = true) {
   return _place(new THREE.Mesh(geo), name);
 }
 
-export function mkGround(name, width, height, subdivisions = 1) {
+export function mkGround(name: string | undefined, width: number, height: number, subdivisions = 1): THREE.Mesh {
   const geo = new THREE.PlaneGeometry(width, height, subdivisions, subdivisions);
   geo.rotateX(-Math.PI / 2);
   return _place(new THREE.Mesh(geo), name);
 }
 
-export function mkEmptyMesh(name) {
+export function mkEmptyMesh(name?: string): THREE.Mesh {
   return _place(new THREE.Mesh(new THREE.BufferGeometry()), name);
 }
 
 // ── Line factories ──────────────────────────────────────────────────────────
 
-export function mkLines(name, points, color = null, opacity = 1) {
+export function mkLines(name: string | undefined, points: THREE.Vector3[], color: THREE.Color | null = null, opacity = 1): THREE.Line {
   const geo = new THREE.BufferGeometry().setFromPoints(points);
   const mat = new THREE.LineBasicMaterial({
     color: color ? color.clone() : new THREE.Color(1, 1, 1),
@@ -135,14 +144,14 @@ export function mkLines(name, points, color = null, opacity = 1) {
   return _place(new THREE.Line(geo, mat), name);
 }
 
-export function mkLineSystem(name, lines, colors = null, opacity = 1) {
+export function mkLineSystem(name: string | undefined, lines: THREE.Vector3[][], colors: THREE.Color[][] | null = null, opacity = 1): THREE.LineSegments {
   // Each entry of `lines` is a polyline strip; expand into segments so both
   // 2-point pairs (grid, rally dashes) and longer strips render identically.
-  const positions = [];
-  const colorValues = [];
+  const positions: number[] = [];
+  const colorValues: number[] = [];
   const hasColors = Array.isArray(colors);
   lines.forEach((strip, stripIndex) => {
-    const stripColors = hasColors ? colors[stripIndex] : null;
+    const stripColors = hasColors ? (colors as THREE.Color[][])[stripIndex] : null;
     for (let i = 0; i + 1 < strip.length; i++) {
       positions.push(strip[i].x, strip[i].y, strip[i].z, strip[i + 1].x, strip[i + 1].y, strip[i + 1].z);
       const c0 = (stripColors && stripColors[i]) || stripColors?.[0] || new THREE.Color(1, 1, 1);
@@ -161,8 +170,8 @@ export function mkLineSystem(name, lines, colors = null, opacity = 1) {
 
 // Shared invisible material for pick hitboxes: the mesh stays `visible` so the
 // raycaster hits it, but it writes neither color nor depth.
-let _ghostHitboxMaterial = null;
-export function ghostHitboxMaterial() {
+let _ghostHitboxMaterial: THREE.MeshBasicMaterial | null = null;
+export function ghostHitboxMaterial(): THREE.MeshBasicMaterial {
   if (!_ghostHitboxMaterial) {
     _ghostHitboxMaterial = new THREE.MeshBasicMaterial();
     _ghostHitboxMaterial.colorWrite = false;
@@ -173,21 +182,21 @@ export function ghostHitboxMaterial() {
 
 // ── Graph utilities ─────────────────────────────────────────────────────────
 
-export function childMeshes(root) {
-  const out = [];
+export function childMeshes(root: THREE.Object3D | null): THREE.Mesh[] {
+  const out: THREE.Mesh[] = [];
   if (!root) {
     return out;
   }
-  root.traverse((child) => {
+  root.traverse((child: MaybeMesh) => {
     if (child !== root && child.isMesh) {
-      out.push(child);
+      out.push(child as THREE.Mesh);
     }
   });
   return out;
 }
 
-export function descendants(node) {
-  const out = [];
+export function descendants(node: THREE.Object3D | null): THREE.Object3D[] {
+  const out: THREE.Object3D[] = [];
   if (!node) {
     return out;
   }
@@ -202,7 +211,7 @@ export function descendants(node) {
 // Ground-click predicate for raycastGround: the default plane, or an SGB map
 // tile (SGB_Tile_<n>) when a map hides the plane. Units, decals and helpers
 // never match, so clicks fall through them to the surface behind.
-export function isGroundMesh(mesh, ground = null) {
+export function isGroundMesh(mesh: THREE.Object3D | null, ground: THREE.Object3D | null = null): boolean {
   if (!mesh) {
     return false;
   }
@@ -217,7 +226,7 @@ export function isGroundMesh(mesh, ground = null) {
 // (bone "guard_banner_rod" + mesh "guard_banner_rod_1"), so the exact name
 // and the exact name plus _<digits> both match. The _inst_ form is a leftover
 // from the Babylon.js cloner suffix.
-export function matchHiddenNodeName(childName, wantedName) {
+export function matchHiddenNodeName(childName: unknown, wantedName: unknown): boolean {
   const child = String(childName || '').toLowerCase();
   const wanted = String(wantedName || '').toLowerCase();
   if (!wanted) {
@@ -238,10 +247,10 @@ export function matchHiddenNodeName(childName, wantedName) {
   return false;
 }
 
-// Collect descendants of `root` whose names match any of `wantedNames` using
-// the same dedupe-aware matching as hiddenNodes (see matchHiddenNodeName).
-export function findNodesByName(root, wantedNames) {
-  const found = [];
+// Collect descendants of `root` whose names match any of `wantedNames`
+// using the same dedupe-aware matching as hiddenNodes (see matchHiddenNodeName).
+export function findNodesByName(root: THREE.Object3D | null, wantedNames: string | string[]): THREE.Object3D[] {
+  const found: THREE.Object3D[] = [];
   if (!root || typeof root.traverse !== 'function') {
     return found;
   }
@@ -254,29 +263,29 @@ export function findNodesByName(root, wantedNames) {
   return found;
 }
 
-export function disposeObj(obj, deep = false) {
+export function disposeObj(obj: MaybeMesh | null | undefined, deep = false): void {
   if (!obj || obj.userData?.disposed) {
     return;
   }
   if (obj.parent) {
     obj.parent.remove(obj);
   }
-  const disposeMaterial = (material) => {
+  const disposeMaterial = (material: THREE.Material | THREE.Material[] | null | undefined): void => {
     if (!material) {
       return;
     }
     const materials = Array.isArray(material) ? material : [material];
     materials.forEach((mat) => {
       Object.values(mat).forEach((value) => {
-        if (value && value.isTexture) {
-          value.dispose();
+        if (value && (value as { isTexture?: unknown }).isTexture) {
+          (value as THREE.Texture).dispose();
         }
       });
       mat.dispose();
     });
   };
   if (obj.traverse) {
-    obj.traverse((child) => {
+    obj.traverse((child: MaybeMesh) => {
       if (child.geometry && !child.geometry.userData.shared) {
         child.geometry.dispose();
       }
@@ -301,13 +310,26 @@ const _textureLoader = new THREE.TextureLoader();
 const _tgaLoader = new TGALoader();
 const _ddsLoader = new DDSLoader();
 
-export function loadTexture(url, { onLoad = null, onError = null, onProgress = null } = {}) {
-  const done = (texture) => {
+export interface TextureLoadCallbacks {
+  onLoad?: ((texture: THREE.Texture) => void) | null;
+  onError?: ((error: unknown) => void) | null;
+  onProgress?: ((event: ProgressEvent) => void) | null;
+}
+
+// Parsed texture payload shared by TGALoader/DDSLoader (raw bytes, no image
+// element): the decoded image plus an optional mipmap chain.
+interface ParsedTextureData {
+  image?: unknown;
+  mipmaps?: THREE.Texture['mipmaps'];
+}
+
+export function loadTexture(url: string, { onLoad = null, onError = null, onProgress = null }: TextureLoadCallbacks = {}): THREE.Texture {
+  const done = (texture: THREE.Texture): void => {
     if (onLoad) {
       onLoad(texture);
     }
   };
-  const fail = (error) => {
+  const fail = (error: unknown): void => {
     reportR2Progress(url, { done: true, failed: true });
     if (onError) {
       onError(error);
@@ -334,7 +356,7 @@ export function loadTexture(url, { onLoad = null, onError = null, onProgress = n
           total: buffer.byteLength,
           done: true,
         });
-        const parsed = lower.endsWith('.tga') ? _tgaLoader.parse(buffer) : _ddsLoader.parse(buffer, true);
+        const parsed = (lower.endsWith('.tga') ? _tgaLoader.parse(buffer) : _ddsLoader.parse(buffer, true)) as unknown as ParsedTextureData;
         texture.image = parsed.image;
         texture.mipmaps = parsed.mipmaps || [];
         texture.needsUpdate = true;
@@ -356,7 +378,7 @@ export function loadTexture(url, { onLoad = null, onError = null, onProgress = n
 // get the low tier: pixelRatio 1, no MSAA, no shadow maps.
 // Pure functions (node-testable); DOM sniffing lives in scene.js.
 
-export function classifyGPU(rendererName) {
+export function classifyGPU(rendererName: unknown): 'low' | 'high' {
   const name = String(rendererName || '');
   // Intel iGPUs (Iris/HD/UHD) — but not discrete Intel Arc.
   if (/intel/i.test(name) && !/arc/i.test(name)) return 'low';
@@ -373,7 +395,12 @@ const DPR_HIGH_FPS = 55;
 const DPR_DOWN_FRAMES = 60;
 const DPR_UP_FRAMES = 300;
 
-export function createDynamicResolution(cap) {
+export interface DynamicResolution {
+  ratio(): number;
+  tick(fps: number): number | null;
+}
+
+export function createDynamicResolution(cap: number): DynamicResolution {
   let idx = DPR_LADDER.findIndex((r) => r <= cap);
   if (idx < 0) {
     idx = DPR_LADDER.length - 1;
@@ -384,7 +411,7 @@ export function createDynamicResolution(cap) {
     ratio() {
       return DPR_LADDER[idx];
     },
-    tick(fps) {
+    tick(fps: number) {
       if (DPR_LADDER[idx] <= 1) {
         return null;
       }
@@ -415,7 +442,7 @@ export function createDynamicResolution(cap) {
   };
 }
 
-export function pixelRatioForTier(tier, devicePixelRatio) {
+export function pixelRatioForTier(tier: unknown, devicePixelRatio: unknown): number {
   const dpr = Number(devicePixelRatio) || 1;
   if (tier === 'low') return 1;
   if (tier === 'medium') return Math.min(dpr, 1.5);
@@ -427,7 +454,7 @@ export const QUALITY_MEDIUM = 'medium';
 export const QUALITY_HIGH = 'high';
 export const QUALITY_STORAGE_KEY = 'grimcraft-quality';
 
-export function isQualityLevel(value) {
+export function isQualityLevel(value: unknown): boolean {
   const v = String(value || '').toLowerCase();
   return v === QUALITY_LOW || v === QUALITY_MEDIUM || v === QUALITY_HIGH;
 }
@@ -435,7 +462,7 @@ export function isQualityLevel(value) {
 // Pure resolution (node-testable): explicit query param wins, then the stored
 // button choice, then auto-detection from the GPU name (auto only ever
 // resolves to low or high — medium is a manual choice).
-export function resolveQualityTier({ query = '', stored = '', gpu = '' } = {}) {
+export function resolveQualityTier({ query = '', stored = '', gpu = '' }: { query?: unknown; stored?: unknown; gpu?: unknown } = {}): string {
   const q = String(query || '').toLowerCase();
   if (isQualityLevel(q)) return q;
   const s = String(stored || '').toLowerCase();
@@ -443,16 +470,16 @@ export function resolveQualityTier({ query = '', stored = '', gpu = '' } = {}) {
   return classifyGPU(gpu);
 }
 
-export function nextQualityTier(current) {
+export function nextQualityTier(current: unknown): string {
   const order = [QUALITY_LOW, QUALITY_MEDIUM, QUALITY_HIGH];
   const idx = order.indexOf(String(current || '').toLowerCase());
   return order[(idx + 1) % order.length];
 }
 
-export function qualityShadowsEnabled(tier) {
+export function qualityShadowsEnabled(tier: unknown): boolean {
   return String(tier) !== QUALITY_LOW;
 }
 
-export function qualityAntialiasEnabled(tier) {
+export function qualityAntialiasEnabled(tier: unknown): boolean {
   return String(tier) !== QUALITY_LOW;
 }

@@ -3,9 +3,29 @@ import { scene, world, TEAM_COLOR, PLAYER } from './scene.js';
 import { makeSoldierMesh } from './meshes.js';
 import { _applyGrenadierVisuals, _applyPlasmaVisuals, _applySuperiorVisuals } from './entities.js';
 import { mkTorus, mkGroup, disposeObj, childMeshes, descendants } from './three-helpers.js';
-import { loadGltf, instantiateGltf } from './gltf-models.js';
+import { loadGltf, instantiateGltf, type AnimGroup, type GltfContainer } from './gltf-models.js';
 
-export let _assetContainer = null;
+// Custom soldier-model upload panel: lets the user drop a .glb/.gltf/.fbx,
+// auto-scales it to guardsman height and swaps every soldier mesh for it.
+// DOM-heavy dev tool; the game imports (scene, meshes, entities) are still
+// untyped, so their values flow as `any` — only this file's own shapes and
+// the typed three.js/gltf-models surface are checked.
+
+// Object3D with the runtime-attached custom-model fields (pivot, anim
+// groups, selection disc, ...). The three.js surface stays checked; the
+// attached fields are untyped by design.
+type AnyGroup = THREE.Group & Record<string, any>;
+
+export interface AnimSlotNames {
+  idle: string | null;
+  run: string | null;
+  shoot: string | null;
+  shootMove: string | null;
+}
+
+const ANIM_SLOTS = ['idle', 'run', 'shoot', 'shootMove'] as const;
+
+export let _assetContainer: GltfContainer | null = null;
 export let _customModelScale = 1.0;
 export let _customModelName = '';
 export let _customModelOffsetX = 0;
@@ -18,11 +38,11 @@ export let _autoOffsetX = 0;
 export let _autoOffsetY = 0;
 export let _autoOffsetZ = 0;
 
-export let _animSlotNames = { idle: null, run: null, shoot: null, shootMove: null };
-export let _modelAnimGroupNames = [];
+export let _animSlotNames: AnimSlotNames = { idle: null, run: null, shoot: null, shootMove: null };
+export let _modelAnimGroupNames: string[] = [];
 
-export function _buildAnimList() {
-  const sectionElement = document.getElementById('anim-list-section');
+export function _buildAnimList(): void {
+  const sectionElement = document.getElementById('anim-list-section') as HTMLElement;
   const scrollContainer = document.getElementById('anim-list-scroll');
   if (!scrollContainer) {
     return;
@@ -43,10 +63,10 @@ export function _buildAnimList() {
     const nameSpan = document.createElement('span');
     nameSpan.className = 'anim-list-name';
     nameSpan.title = name;
-    nameSpan.textContent = name.length > 22 ? `${name.slice(0, 20)}…` : name;
+    nameSpan.textContent = name.length > 22 ? `${name.slice(0, 17)}…` : name;
     listItem.appendChild(nameSpan);
 
-    ['idle', 'run', 'shoot', 'shootMove'].forEach((slot) => {
+    ANIM_SLOTS.forEach((slot) => {
       const button = document.createElement('button');
       button.className = 'anim-assign-btn';
       button.id = `anim-assign-${index}-${slot}`;
@@ -62,9 +82,9 @@ export function _buildAnimList() {
   _refreshAnimListHighlights();
 }
 
-export function _refreshAnimListHighlights() {
+export function _refreshAnimListHighlights(): void {
   _modelAnimGroupNames.forEach((name, index) => {
-    ['idle', 'run', 'shoot', 'shootMove'].forEach((slot) => {
+    ANIM_SLOTS.forEach((slot) => {
       const button = document.getElementById(`anim-assign-${index}-${slot}`);
       if (!button) {
         return;
@@ -77,7 +97,7 @@ export function _refreshAnimListHighlights() {
   });
 }
 
-export function assignAnimFromList(animIdx, slotName) {
+export function assignAnimFromList(animIdx: number, slotName: keyof AnimSlotNames): void {
   const name = _modelAnimGroupNames[animIdx];
   if (!name) {
     return;
@@ -89,23 +109,23 @@ export function assignAnimFromList(animIdx, slotName) {
   setTimeout(() => setAnimStatus(''), 2000);
 }
 
-export function toggleModelPanel() {
-  const panel = document.getElementById('model-upload-panel');
+export function toggleModelPanel(): void {
+  const panel = document.getElementById('model-upload-panel') as HTMLElement;
   panel.classList.toggle('open');
 }
 
-export function handleModelDrop(e) {
+export function handleModelDrop(e: DragEvent): void {
   e.preventDefault();
   const dropZone = document.getElementById('model-drop-zone');
   if (dropZone) {
     dropZone.classList.remove('dragover');
   }
-  if (e.dataTransfer.files.length) {
-    handleModelFiles(e.dataTransfer.files);
+  if (e.dataTransfer!.files.length) {
+    handleModelFiles(e.dataTransfer!.files);
   }
 }
 
-export function setAnimStatus(msg, isErr) {
+export function setAnimStatus(msg: string, isErr?: boolean): void {
   const element = document.getElementById('anim-status');
   if (!element) {
     return;
@@ -114,27 +134,27 @@ export function setAnimStatus(msg, isErr) {
   element.style.color = isErr ? '#ff6644' : (msg ? '#ffe066' : 'rgba(80,200,255,0.5)');
 }
 
-function _readAsDataURL(file) {
+function _readAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (event) => resolve(event.target.result);
+    reader.onload = (event) => resolve(event.target?.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-function _readAsBuffer(file) {
+function _readAsBuffer(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (event) => resolve(event.target.result);
+    reader.onload = (event) => resolve(event.target?.result as ArrayBuffer);
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
   });
 }
 
-async function _buildDataURI(files) {
-  const mainFile = files.find((file) => /\.(glb|gltf|fbx)$/i.test(file.name));
-  const extension = mainFile.name.split('.').pop().toLowerCase();
+async function _buildDataURI(files: File[]): Promise<{ uri: string; extension: string }> {
+  const mainFile = files.find((file) => /\.(glb|gltf|fbx)$/i.test(file.name)) as File;
+  const extension = mainFile.name.split('.').pop()!.toLowerCase();
   if (extension === 'fbx') {
     return { uri: await _readAsDataURL(mainFile), extension: '.fbx' };
   }
@@ -142,18 +162,18 @@ async function _buildDataURI(files) {
     const buffer = await _readAsBuffer(mainFile);
     const uri = await new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = (event) => resolve(event.target.result);
+      reader.onload = (event) => resolve(event.target?.result as string);
       reader.readAsDataURL(new Blob([buffer], { type: 'model/gltf-binary' }));
     });
-    return { uri, extension: '.glb' };
+    return { uri: uri as string, extension: '.glb' };
   }
-  const companions = {};
+  const companions: Record<string, File> = {};
   for (const file of files) {
     if (file === mainFile) {
       continue;
     }
     companions[file.name.toLowerCase()] = file;
-    companions[file.name.split(/[/\\]/).pop().toLowerCase()] = file;
+    companions[file.name.split(/[/\\]/).pop()!.toLowerCase()] = file;
   }
   const gltf = JSON.parse(await mainFile.text());
   if (gltf.buffers) {
@@ -183,9 +203,9 @@ async function _buildDataURI(files) {
   return { uri: `data:model/gltf+json;base64,${jsonB64}`, extension: '.gltf' };
 }
 
-export async function handleModelFiles(fileList) {
+export async function handleModelFiles(fileList: FileList | File[]): Promise<void> {
   const files = Array.from(fileList);
-  const mainFile = files.find((file) => /\.(glb|gltf|fbx)$/i.test(file.name));
+  const mainFile = files.find((file) => /\.(glb|gltf|fbx)$/i.test(file.name)) as File;
   if (!mainFile) {
     setModelStatus('ERROR: no .glb / .gltf / .fbx file found', 'err');
     return;
@@ -210,13 +230,13 @@ export async function handleModelFiles(fileList) {
     const container = await loadGltf(uri, extension);
     _assetContainer = container;
 
-    const isMeleeName = (lowerName) => /(melee|attack|slash|swing|punch|stab|combat|knife|damage|thrown)/.test(lowerName);
+    const isMeleeName = (lowerName: string) => /(melee|attack|slash|swing|punch|stab|combat|knife|damage|thrown)/.test(lowerName);
     _modelAnimGroupNames = container.animations
       .map((clip) => clip.name)
       .filter((name) => !isMeleeName(name.toLowerCase()));
 
-    const isFiringName = (lowerName) => /(fir|shoot|gun|weapon)/.test(lowerName) && !lowerName.startsWith('vis_');
-    const isSituational = (lowerName) => /^(vis_|sync_|die_|thrown_|sacrifice|cower|flag_plant|capture_)/.test(lowerName);
+    const isFiringName = (lowerName: string) => /(fir|shoot|gun|weapon)/.test(lowerName) && !lowerName.startsWith('vis_');
+    const isSituational = (lowerName: string) => /^(vis_|sync_|die_|thrown_|sacrifice|cower|flag_plant|capture_)/.test(lowerName);
 
     _modelAnimGroupNames.forEach((name) => {
       const lowerName = name.toLowerCase();
@@ -305,10 +325,10 @@ export async function handleModelFiles(fileList) {
     _customModelOffsetX = 0;
     _customModelOffsetY = 0;
     _customModelOffsetZ = 0;
-    ['x', 'y', 'z'].forEach((axis) => {
-      const el = document.getElementById(`model-off-${axis}`);
+    (['x', 'y', 'z'] as const).forEach((axis) => {
+      const el = document.getElementById(`model-off-${axis}`) as HTMLInputElement | null;
       if (el) {
-        el.value = 0;
+        el.value = '0';
       }
       const label = document.getElementById(`model-off-${axis}-val`);
       if (label) {
@@ -336,17 +356,18 @@ export async function handleModelFiles(fileList) {
 
     _replaceExistingSoldierMeshes();
   } catch (error) {
-    setModelStatus(`LOAD ERROR — ${error.message || error}`, 'err');
+    const detail = error instanceof Error ? error.message || String(error) : String(error);
+    setModelStatus(`LOAD ERROR — ${detail}`, 'err');
   }
 }
 
-export function handleModelFile(file) {
+export function handleModelFile(file: File | null | undefined): void {
   if (file) {
     handleModelFiles([file]);
   }
 }
 
-export function setModelStatus(msg, className) {
+export function setModelStatus(msg: string, className?: string): void {
   const element = document.getElementById('model-status');
   if (!element) {
     return;
@@ -355,7 +376,7 @@ export function setModelStatus(msg, className) {
   element.className = className || '';
 }
 
-export function toggleSliderSection(name) {
+export function toggleSliderSection(name: string): void {
   const sectionBody = document.getElementById(`slider-section-${name}`);
   const arrowElement = document.getElementById(`${name}-arrow`);
   if (!sectionBody) {
@@ -368,23 +389,23 @@ export function toggleSliderSection(name) {
   }
 }
 
-export function updateModelScale(value) {
-  _customModelScale = Math.max(0.001, parseFloat(value) || 1);
+export function updateModelScale(value: unknown): void {
+  _customModelScale = Math.max(0.001, parseFloat(String(value)) || 1);
   const inverseScale = 1 / _customModelScale;
   const scaleValue = document.getElementById('model-scale-val');
   if (scaleValue) {
     scaleValue.textContent = _customModelScale.toFixed(3);
   }
-  const scaleNumber = document.getElementById('model-scale-num');
+  const scaleNumber = document.getElementById('model-scale-num') as HTMLInputElement | null;
   if (scaleNumber) {
     scaleNumber.value = _customModelScale.toFixed(3);
   }
-  const scaleSlider = document.getElementById('model-scale');
+  const scaleSlider = document.getElementById('model-scale') as HTMLInputElement | null;
   if (scaleSlider) {
-    scaleSlider.value = Math.round(Math.log10(_customModelScale) * 100);
+    scaleSlider.value = String(Math.round(Math.log10(_customModelScale) * 100));
   }
   if (_assetContainer && world) {
-    const applyScale = (entityId) => {
+    const applyScale = (entityId: number): void => {
       const mc = world.get(entityId, 'mesh');
       if (mc?.root?._isCustomModel) {
         mc.root.scale.setScalar(_customModelScale);
@@ -398,30 +419,30 @@ export function updateModelScale(value) {
   }
 }
 
-export function updateModelScaleFromSlider(sliderVal) {
-  const scale = Math.pow(10, parseFloat(sliderVal) / 100);
+export function updateModelScaleFromSlider(sliderVal: unknown): void {
+  const scale = Math.pow(10, parseFloat(String(sliderVal)) / 100);
   updateModelScale(scale);
 }
 
-export function updateModelScaleFromNum(numVal) {
+export function updateModelScaleFromNum(numVal: unknown): void {
   updateModelScale(numVal);
 }
 
-export function updateModelOffset(axis, value) {
-  value = parseFloat(value);
+export function updateModelOffset(axis: string, value: unknown): void {
+  const num = parseFloat(String(value));
   if (axis === 'x') {
-    _customModelOffsetX = value;
+    _customModelOffsetX = num;
   } else if (axis === 'y') {
-    _customModelOffsetY = value;
+    _customModelOffsetY = num;
   } else {
-    _customModelOffsetZ = value;
+    _customModelOffsetZ = num;
   }
   const label = document.getElementById(`model-off-${axis}-val`);
   if (label) {
-    label.textContent = value.toFixed(2);
+    label.textContent = num.toFixed(2);
   }
   if (world) {
-    const applyOffset = (entityId) => {
+    const applyOffset = (entityId: number): void => {
       const mc = world.get(entityId, 'mesh');
       if (mc?.root?._isCustomModel && mc.root._pivot) {
         mc.root._pivot.position.set(
@@ -436,21 +457,21 @@ export function updateModelOffset(axis, value) {
   }
 }
 
-export function updateModelRotation(axis, value) {
-  value = parseFloat(value);
+export function updateModelRotation(axis: string, value: unknown): void {
+  const num = parseFloat(String(value));
   if (axis === 'x') {
-    _customModelRotX = value;
+    _customModelRotX = num;
   } else if (axis === 'y') {
-    _customModelRotY = value;
+    _customModelRotY = num;
   } else {
-    _customModelRotZ = value;
+    _customModelRotZ = num;
   }
   const label = document.getElementById(`model-rot-${axis}-val`);
   if (label) {
-    label.textContent = `${Math.round(value)}°`;
+    label.textContent = `${Math.round(num)}°`;
   }
   if (world) {
-    const applyRotation = (entityId) => {
+    const applyRotation = (entityId: number): void => {
       const mc = world.get(entityId, 'mesh');
       if (mc?.root?._isCustomModel && mc.root._pivot) {
         mc.root._pivot.rotation.set(
@@ -465,7 +486,7 @@ export function updateModelRotation(axis, value) {
   }
 }
 
-export function clearCustomModel() {
+export function clearCustomModel(): void {
   if (_assetContainer) {
     try {
       _assetContainer.dispose();
@@ -496,19 +517,19 @@ export function clearCustomModel() {
     listScroll.innerHTML = '';
   }
 
-  ['x', 'y', 'z'].forEach((axis) => {
-    const sliderElement = document.getElementById(`model-off-${axis}`);
+  (['x', 'y', 'z'] as const).forEach((axis) => {
+    const sliderElement = document.getElementById(`model-off-${axis}`) as HTMLInputElement | null;
     const valueLabel = document.getElementById(`model-off-${axis}-val`);
     if (sliderElement) {
-      sliderElement.value = 0;
+      sliderElement.value = '0';
     }
     if (valueLabel) {
       valueLabel.textContent = '0.00';
     }
-    const rotationSlider = document.getElementById(`model-rot-${axis}`);
+    const rotationSlider = document.getElementById(`model-rot-${axis}`) as HTMLInputElement | null;
     const rotationValueLabel = document.getElementById(`model-rot-${axis}-val`);
     if (rotationSlider) {
-      rotationSlider.value = 0;
+      rotationSlider.value = '0';
     }
     if (rotationValueLabel) {
       rotationValueLabel.textContent = '0°';
@@ -519,18 +540,18 @@ export function clearCustomModel() {
   if (loadedInfo) {
     loadedInfo.style.display = 'none';
   }
-  const fileInput = document.getElementById('model-file-input');
+  const fileInput = document.getElementById('model-file-input') as HTMLInputElement | null;
   if (fileInput) {
     fileInput.value = '';
   }
   _replaceExistingSoldierMeshes();
 }
 
-export function _replaceExistingSoldierMeshes() {
+export function _replaceExistingSoldierMeshes(): void {
   if (!world) {
     return;
   }
-  world.query('soldier').forEach((soldierId) => {
+  world.query('soldier').forEach((soldierId: number) => {
     const soldier = world.get(soldierId, 'soldier');
     const mc = world.get(soldierId, 'mesh');
     if (!soldier || !mc) {
@@ -563,13 +584,13 @@ export function _replaceExistingSoldierMeshes() {
   });
 }
 
-export function _cloneCustomModel(teamKey, metaPayload) {
-  const config = TEAM_COLOR[teamKey] || TEAM_COLOR.builder;
-  const instance = instantiateGltf(_assetContainer);
+export function _cloneCustomModel(teamKey: string, metaPayload: Record<string, unknown>): THREE.Group {
+  const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.builder;
+  const instance = instantiateGltf(_assetContainer as GltfContainer);
   instance.animationGroups.forEach((animationGroup) => animationGroup.stop());
-  const root = mkGroup('custom_soldier_root');
+  const root = mkGroup('custom_soldier_root') as AnyGroup;
   root._isCustomModel = true;
-  const pivot = mkGroup('custom_pivot');
+  const pivot = mkGroup('custom_pivot') as AnyGroup;
   root.add(pivot);
   pivot.position.set(
     _autoOffsetX + _customModelOffsetX,
@@ -617,8 +638,8 @@ export function _cloneCustomModel(teamKey, metaPayload) {
   root._selDisc = selDisc;
   root._selMat = selMat;
 
-  const _dummy = () => {
-    const node = mkGroup('dummy');
+  const _dummy = (): AnyGroup => {
+    const node = mkGroup('dummy') as AnyGroup;
     root.add(node);
     return node;
   };
@@ -633,7 +654,7 @@ export function _cloneCustomModel(teamKey, metaPayload) {
   root._currentAnim = null;
   root._shootDone = false;
 
-  ['idle', 'run', 'shoot', 'shootMove'].forEach((slot) => {
+  ANIM_SLOTS.forEach((slot) => {
     const wantedName = _animSlotNames[slot];
     if (!wantedName) {
       return;
@@ -644,7 +665,7 @@ export function _cloneCustomModel(teamKey, metaPayload) {
     }
   });
 
-  root._playAnim = function (name, loop) {
+  root._playAnim = function (name: string, loop?: boolean) {
     if (loop === undefined) {
       loop = (name !== 'shoot' && name !== 'shootMove');
     }
@@ -672,7 +693,7 @@ export function _cloneCustomModel(teamKey, metaPayload) {
       }
     }
     const resolvedLoop = loop && resolvedName !== 'shoot' && resolvedName !== 'shootMove';
-    Object.values(root._animGroups).forEach((animationGroup) => {
+    (Object.values(root._animGroups) as AnimGroup[]).forEach((animationGroup) => {
       try {
         animationGroup.stop();
       } catch (error) {
@@ -718,13 +739,13 @@ export function _cloneCustomModel(teamKey, metaPayload) {
   return root;
 }
 
-export function _instantiateFromContainer(container, metaPayload) {
+export function _instantiateFromContainer(container: GltfContainer | null, metaPayload: Record<string, unknown>): THREE.Group | null {
   if (!container) {
     return null;
   }
   const instance = instantiateGltf(container);
   instance.animationGroups.forEach((animationGroup) => animationGroup.stop());
-  const root = mkGroup('model_root');
+  const root = mkGroup('model_root') as AnyGroup;
   root._animationGroups = instance.animationGroups;
   instance.rootNodes.forEach((rootNode) => {
     root.add(rootNode);

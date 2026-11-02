@@ -30,7 +30,7 @@ describe('decal black fix', () => {
     assert.match(viteCfg, /exclude: excludeMaps/);
   });
   it('png textures are marked sRGB like tga/dds (no washed-out decals)', () => {
-    const src = fs.readFileSync(path.join(root, 'src/three-helpers.js'), 'utf8');
+    const src = fs.readFileSync(path.join(root, 'src/three-helpers.ts'), 'utf8');
     const marks = src.match(/\.colorSpace = THREE\.SRGBColorSpace/g) || [];
     assert.ok(marks.length >= 2, 'tga/dds path + png path both mark sRGB');
   });
