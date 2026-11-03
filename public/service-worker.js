@@ -14,7 +14,7 @@
  */
 
 // NOTE: plain static file, copied verbatim from public/ — no Vite defines here.
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const APP_CACHE = `grimcraft-app-v${CACHE_VERSION}`;
 const MODELS_CACHE = `grimcraft-models-v${CACHE_VERSION}`;
 // models/ holds ~270 GLBs (~950MB); trim oldest-first past this cap.
