@@ -7,6 +7,11 @@ import { excludeMaps, excludeModels, syncRuntimeAssets } from './scripts/sync-ru
 
 function wikiInputs() {
   const entries = { main: 'index.html' };
+  // 500+ wiki pages make the build crawl: skip them unless BUILD_WIKI=1.
+  // Re-enable with: BUILD_WIKI=1 npm run build
+  if (!process.env.BUILD_WIKI) {
+    return entries;
+  }
   const dir = 'settings/wiki';
   if (!fs.existsSync(dir)) {
     return entries;
