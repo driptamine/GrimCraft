@@ -4,6 +4,7 @@ import { getStructureConfig } from '../../factions.js';
 import { getViewKind, getAliveGroups, computeSquadData, entityFaction, workerDisplayName } from '../data.js';
 import { StatRow } from '../bits.jsx';
 import { MAX_UPGRADES_PER_SQUAD, meleeDamageEstimate, numberOfUpgrades } from '../../entities/soldier-aim.js';
+import { DEFAULT_ARMOR_CLASS, dpsAgainst, getWeapon } from '../../combat/stats.js';
 import { taskbarIconUrl } from '../../ui/taskbar-icons.js';
 import {
   InfoPanel as InfoPanelCss, InfoTitle, InfoStats, QueueWrap, QueueLabel, QueueItemsRow, QueueItem,
@@ -191,17 +192,26 @@ export function InfoPanel(): JSX.Element {
         const sol = world.get(sid, 'soldier');
         return sum + (sol ? sol.attackRate : 0);
       }, 0) / aliveSols.length : 0;
-      const dps = (10.5 * avgRate).toFixed(1);
+      const avgDps = aliveSols.length ? aliveSols.reduce((sum: number, sid: any) => {
+        const sol = world.get(sid, 'soldier');
+        if (!sol) return sum;
+        const weapon = getWeapon(sol.weapon);
+        if (weapon) {
+          return sum + dpsAgainst(weapon, DEFAULT_ARMOR_CLASS) * (sol.damageMult || 1);
+        }
+        return sum + 10.5 * (sol.attackRate || 0);
+      }, 0) / aliveSols.length : 0;
+      const dps = (aliveSols.length ? avgDps : 10.5 * avgRate).toFixed(1);
       const mel = meleeDamageEstimate(aliveSols.map((sid: any) => world.get(sid, 'soldier'))).toFixed(1);
       const upgrades = numberOfUpgrades(
         aliveSols.map((sid: any) => world.get(sid, 'soldier')),
         sq.projectileType,
       );
-      const menMax = sq.soldiers[0] !== null && world.has(sq.soldiers[0], 'soldier') ? SQUAD_MAX : SQUAD_MAX - 1;
+      const menMax = sq.maxSquadSize ?? SQUAD_MAX;
       stats = (
         <>
           <StatRow icon={taskbarIconUrl('meleedamage') || '🗡️'} label={null} value={mel} />
-          <StatRow icon={taskbarIconUrl('squadsize') || '👥'} label={null} value={`${aliveSols.length}/${menMax}`} cls={aliveSols.length < 3 ? 'warn' : aliveSols.length === SQUAD_MAX ? 'good' : ''} />
+          <StatRow icon={taskbarIconUrl('squadsize') || '👥'} label={null} value={`${aliveSols.length}/${menMax}`} cls={aliveSols.length < 3 ? 'warn' : aliveSols.length === menMax ? 'good' : ''} />
           <StatRow icon={taskbarIconUrl('rangedamage') || '⚡'} label={null} value={dps} />
           <StatRow icon={taskbarIconUrl('numberofupgrades') || '⬆️'} label={null} value={`${upgrades}/${MAX_UPGRADES_PER_SQUAD}`} />
         </>

@@ -5,8 +5,9 @@ import {
   createBulletEntity,
   createSquadEntity,
   createVehicleEntity,
+  findUnitConfig,
 } from '../entities/entities.js';
-import { FACTIONS, playerFaction, resolveFactionKey } from '../factions.js';
+import { playerFaction, resolveFactionKey } from '../factions.js';
 import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import {
@@ -74,7 +75,8 @@ export function systemBuilding(world: any, deltaTime: number) {
           buildingComponent.queue.shift();
           const spawnPt = new THREE.Vector3(buildingComponent.position.x - 6, 0, buildingComponent.position.z);
           if (type === 'squad') {
-            const squadId = createSquadEntity(world, buildingComponent.team, spawnPt.x, spawnPt.z, 5, null, buildingComponent.faction);
+            const defaultSquad = findUnitConfig(resolveFactionKey(buildingComponent.faction, playerFaction), null);
+            const squadId = createSquadEntity(world, buildingComponent.team, spawnPt.x, spawnPt.z, defaultSquad?.size ?? 5, null, buildingComponent.faction);
             if (buildingComponent.rallyPoint) {
               const squadComponent = world.get(squadId, 'squad');
               if (squadComponent) {
@@ -101,9 +103,10 @@ export function systemBuilding(world: any, deltaTime: number) {
               }
             }
           } else {
-            const unitConfig = FACTIONS[resolveFactionKey(buildingComponent.faction, playerFaction)]?.units?.find((u) => u.name === type);
+            const unitFaction = resolveFactionKey(buildingComponent.faction, playerFaction);
+            const unitConfig = findUnitConfig(unitFaction, type);
             const squadId = unitConfig
-              ? createSquadEntity(world, buildingComponent.team, spawnPt.x, spawnPt.z, unitConfig.size || 1, type, buildingComponent.faction)
+              ? createSquadEntity(world, buildingComponent.team, spawnPt.x, spawnPt.z, unitConfig.size ?? 5, type, buildingComponent.faction)
               : createSquadEntity(world, buildingComponent.team, spawnPt.x, spawnPt.z, 5, null, buildingComponent.faction);
             if (buildingComponent.rallyPoint) {
               const squadComponent = world.get(squadId, 'squad');

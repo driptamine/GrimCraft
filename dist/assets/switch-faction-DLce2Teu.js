@@ -1,0 +1,1 @@
+import{k as s,p as r,l as c,m as f,n as m,o as h,q as i,V as l,u as p}from"./main-DA0Del76.js";import"./index-jYFtwJPP.js";function q(){const t=s();if(!t.length)return;let a=t[0];const n=t.indexOf(r);n>=0&&(a=t[(n+1)%t.length]),c(a);const o=f(a);o&&m(o);const e=h(a);e&&i&&(i.target=new l(e.x,0,e.z)),p()}export{q as switchFaction};

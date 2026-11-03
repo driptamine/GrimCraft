@@ -1,6 +1,9 @@
-import { world, selBuilder, selSquads, selBuildings, selListeningPost, requisition, SQUAD_MAX, COSTS, PROD_TIME } from '../core/scene.js';
+import { world, selBuilder, selSquads, selBuildings, selListeningPost, requisition, energy, SQUAD_MAX, COSTS, PROD_TIME } from '../core/scene.js';
+
+export const PLASMA_ENERGY_COST = 15;
 import { FACTIONS, playerFaction, getStructureConfig, ARENA_POSITION_FACTIONS } from '../factions.js';
 import type { ProductionItem } from '../factions/types.js';
+import { ARMOR_LABELS, type ArmorClass } from '../combat/stats.js';
 
 export interface FocusPosition {
   x: number;
@@ -192,7 +195,9 @@ function displayName(name: any): string {
 
 export function unitTooltip(item: any, factionKey: string = playerFaction): string {
   const faction = FACTIONS[factionKey];
-  const unit = (faction?.units || []).find((u) => u.name === item.name);
+  const norm = (value: any) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const unit = (faction?.units || []).find((u) => u.name === item.name)
+    || (faction?.infantry || []).find((u) => norm(u.name) === norm(item.name));
   const cost = item.cost || unit?.cost || COSTS[item.name as keyof typeof COSTS];
   const time = item.time || unit?.time || PROD_TIME[item.name as keyof typeof PROD_TIME];
   const lines = [displayName(item.name)];
@@ -200,9 +205,11 @@ export function unitTooltip(item: any, factionKey: string = playerFaction): stri
   if (unit) {
     const stats = [];
     if (unit.hp) stats.push(`HP ${unit.hp}`);
+    if (unit.armor) stats.push(`ARMOR ${ARMOR_LABELS[unit.armor as ArmorClass] || unit.armor}`);
     if (unit.damage) stats.push(`DMG ${unit.damage}`);
     if (unit.attackRange) stats.push(`RNG ${unit.attackRange}u`);
     if (unit.size) stats.push(`SIZE ${unit.size}`);
+    if (unit.squadSize) stats.push(`MAX ${unit.squadSize}`);
     if (stats.length) lines.push(stats.join(' · '));
   }
   return lines.join('\n');
@@ -290,15 +297,21 @@ export function computeSquadData(): {
   totalMaxHp: number;
   avgHpPct: number;
   hpColor: string;
-  allQueued: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number }[];
-  active: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number } | undefined;
-  rest: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number }[];
+  allQueued: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number; cost?: number }[];
+  active: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number; cost?: number } | undefined;
+  rest: { type: string; sqId: number; formIdx?: number; solId?: number; isGrenadier: boolean; isActive: boolean; progress: number; totalTime: number; cost?: number }[];
   reinCost: number;
+  sgtCost: number;
+  sgtTime: number;
   autoOn: boolean;
   sgtSoldier: any;
   sgtQueued: boolean;
   glCost: number;
   canAddGL: boolean;
+  plCost: number;
+  plEnergyCost: number;
+  canAddPL: boolean;
+  hasPlasma: boolean;
   chaseActive: boolean;
   curPtSq: string;
 } {
@@ -308,7 +321,10 @@ export function computeSquadData(): {
     const sq = world.get(sqId, 'squad');
     return sum + (sq ? sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier')).length : 0);
   }, 0);
-  const totalMax = alive.length * SQUAD_MAX;
+  const totalMax = alive.reduce((sum, sqId) => {
+    const sq = world.get(sqId, 'squad');
+    return sum + (sq?.maxSquadSize ?? SQUAD_MAX);
+  }, 0);
 
   let totalHp = 0;
   let totalMaxHp = 0;
@@ -329,15 +345,20 @@ export function computeSquadData(): {
   const allReinforceQueued = alive.flatMap((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (!sq) return [];
-    return sq.reinforceQueue.map((q: any, i: number) => ({
-      type: 'reinforce',
-      sqId,
-      formIdx: q.formIdx,
-      isGrenadier: false,
-      isActive: i === 0 && sq.grenadeQueue.length === 0,
-      progress: (i === 0 && sq.grenadeQueue.length === 0) ? sq.reinforceProgress / 7.0 : 0,
-      totalTime: 7.0,
-    }));
+    return sq.reinforceQueue.map((q: any, i: number) => {
+      const time = q.time ?? sq.reinforceTime ?? 7.0;
+      const isActive = i === 0 && sq.grenadeQueue.length === 0 && (sq.plasmaQueue || []).length === 0;
+      return {
+        type: 'reinforce',
+        sqId,
+        formIdx: q.formIdx,
+        isGrenadier: false,
+        isActive,
+        progress: isActive ? sq.reinforceProgress / time : 0,
+        totalTime: time,
+        cost: q.cost ?? sq.reinforceCost ?? COSTS.reinforce,
+      };
+    });
   });
   const allGrenadeQueued = alive.flatMap((sqId) => {
     const sq = world.get(sqId, 'squad');
@@ -352,11 +373,27 @@ export function computeSquadData(): {
       totalTime: 2.0,
     }));
   });
-  const allQueued = [...allGrenadeQueued, ...allReinforceQueued];
+  const allPlasmaQueued = alive.flatMap((sqId) => {
+    const sq = world.get(sqId, 'squad');
+    if (!sq) return [];
+    return (sq.plasmaQueue || []).map((q: any, i: number) => ({
+      type: 'plasma',
+      sqId,
+      solId: q.solId,
+      isGrenadier: false,
+      isActive: i === 0,
+      progress: i === 0 ? sq.plasmaProgress / 2.0 : 0,
+      totalTime: 2.0,
+    }));
+  });
+  const allQueued = [...allGrenadeQueued, ...allPlasmaQueued, ...allReinforceQueued];
   const active = allQueued.find((q) => q.isActive) || allQueued[0];
   const rest = allQueued.filter((q) => q !== active).slice(0, 12);
 
-  const reinCost = COSTS.reinforce;
+  const firstSquad = alive.map((sqId) => world.get(sqId, 'squad')).find(Boolean);
+  const reinCost = firstSquad?.reinforceCost ?? COSTS.reinforce;
+  const sgtCost = firstSquad?.sergeantCost ?? reinCost;
+  const sgtTime = firstSquad?.sergeantTime ?? firstSquad?.reinforceTime ?? 7.0;
   const autoOn = alive.some((sqId) => world.get(sqId, 'squad')?.autoReinforce);
 
   let sgtSoldier: any = null;
@@ -388,6 +425,18 @@ export function computeSquadData(): {
     return sq && sq.soldiers.filter((sid: any) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').isGrenadier).length + sq.grenadeQueue.length < 5;
   });
 
+  const plCost = COSTS.plasmaUpgrade;
+  const hasPlasma = alive.some((sqId) => {
+    const sq = world.get(sqId, 'squad');
+    return sq && ((sq.plasmaQueue || []).length > 0 || sq.soldiers.some((sid: any) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').projectileType === 'plasma'));
+  });
+  const canAddPL = requisition >= plCost && energy >= PLASMA_ENERGY_COST && alive.some((sqId) => {
+    const sq = world.get(sqId, 'squad');
+    if (!sq) return false;
+    const plasmaCount = sq.soldiers.filter((sid: any) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').projectileType === 'plasma').length;
+    return plasmaCount + (sq.plasmaQueue || []).length < 5;
+  });
+
   const chaseOnCount = alive.filter((sqId) => world.get(sqId, 'squad')?.autoChase).length;
   const chaseActive = chaseOnCount > (alive.length / 2);
 
@@ -416,11 +465,17 @@ export function computeSquadData(): {
     active,
     rest,
     reinCost,
+    sgtCost,
+    sgtTime,
     autoOn,
     sgtSoldier,
     sgtQueued,
     glCost,
     canAddGL,
+    plCost,
+    plEnergyCost: PLASMA_ENERGY_COST,
+    canAddPL,
+    hasPlasma,
     chaseActive,
     curPtSq,
   };

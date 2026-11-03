@@ -1,6 +1,7 @@
-import worker from '../../animations/eldar/worker.json';
-import soldier from '../../animations/eldar/soldier.json';
 import structuresJson from '../../animations/eldar/structures.json';
+import { bonesinger } from '../../stats/races/eldar/infantry/bonesinger.js';
+import { guardian } from '../../stats/races/eldar/infantry/guardian.js';
+import { darkReaper } from '../../stats/races/eldar/infantry/dark_reaper.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/eldar/eldar_structures_infantries_production_list.json';
@@ -12,37 +13,11 @@ export default {
   name: 'Eldar',
   hq: 'models/eldar/structures/webway_assembly.glb',
   infantry: [
-    {
-      name: 'Bonesinger',
-      model: 'models/eldar/infantry/bonesinger.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Guardian',
-      model: 'models/eldar/infantry/guardian.glb',
-      animations: soldier,
-      cost: 100,
-      time: 3,
-      hiddenNodes: ['Eldar_Flag', 'Eldar_Flag_Pole']
-    },
+    bonesinger,
+    guardian,
   ],
   units: [
-    {
-      name: 'dark_reaper',
-      model: 'models/eldar/infantry/dark_reaper.glb',
-      animations: soldier,
-      hiddenNodes: ['Eldar_Flag', 'Eldar_Flag_Pole'],
-      icon: 'assets/icons/Eldar/Units/Elite/dark_reaper_icon.png',
-      cost: 100,
-      time: 3,
-      size: 5,
-      attackRange: 22,
-      damage: 12,
-      hp: 450,
-      stationaryFireOnly: true,
-    },
+    darkReaper,
   ],
   structures: [
     {

@@ -1,7 +1,24 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import wyw from '@wyw-in-js/vite';
 import { excludeMaps, excludeModels, syncRuntimeAssets } from './scripts/sync-runtime-assets.mjs';
+
+function wikiInputs() {
+  const entries = { main: 'index.html' };
+  const dir = 'settings/wiki';
+  if (!fs.existsSync(dir)) {
+    return entries;
+  }
+  for (const name of fs.readdirSync(dir)) {
+    const index = path.join(dir, name, 'index.html');
+    if (fs.existsSync(index)) {
+      entries[`wiki-${name}`] = index;
+    }
+  }
+  return entries;
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -55,6 +72,9 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+      rollupOptions: {
+        input: wikiInputs(),
+      },
     },
   };
 });

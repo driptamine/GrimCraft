@@ -1,6 +1,6 @@
-import worker from '../../animations/tau/worker.json';
-import soldier from '../../animations/tau/soldier.json';
 import structuresJson from '../../animations/tau/structures.json';
+import { earthCasteBuilder } from '../../stats/races/tau/infantry/earth_caste_builder.js';
+import { fireWarrior } from '../../stats/races/tau/infantry/fire_warrior.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/tau/tau_structures_infantries_production_list.json';
@@ -12,21 +12,8 @@ export default {
   name: 'Tau',
   hq: 'models/tau/structures/tau_hq.glb',
   infantry: [
-    {
-      name: 'Earth Caste Builder',
-      model: 'models/tau/infantry/earth_caste_builder.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Fire Warrior',
-      model: 'models/tau/infantry/fire_warrior.glb',
-      animations: soldier,
-      cost: 100,
-      time: 3,
-      hiddenNodes: ['tau_banner', 'tau_banner_rod']
-    },
+    earthCasteBuilder,
+    fireWarrior,
   ],
   structures: [
     {

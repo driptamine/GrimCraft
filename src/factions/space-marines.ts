@@ -1,6 +1,7 @@
-import worker from '../../animations/space-marines/worker.json';
-import soldier from '../../animations/space-marines/soldier.json';
 import structuresJson from '../../animations/space-marines/structures.json';
+import { servitor } from '../../stats/races/space-marines/infantry/servitor.js';
+import { spaceMarine } from '../../stats/races/space-marines/infantry/space_marine.js';
+import { greyKnight } from '../../stats/races/space-marines/infantry/grey_knight.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/space-marines/space_marines_structures_infantries_production_list.json';
@@ -22,48 +23,11 @@ export default {
   },
   hq: 'models/space marines/structures/command_hq.glb',
   infantry: [
-    {
-      name: 'Servitor',
-      model: 'models/space marines/troops/servitor.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Space Marine',
-      model: 'models/space marines/troops/space_marine.glb',
-      animations: soldier,
-      cost: 100,
-      time: 3,
-      hiddenNodes: [
-        'marine_missile_launcher',
-        'marine_missile',
-        'marine_knife',
-        'marine_heavy_bolter_wheel',
-        'marine_heavy_bolter_belt',
-        'marine_heavy_bolter_backpack',
-        'marine_heavy_bolter',
-        'marine_grenade',
-        'marine_flamer',
-        'marine_banner_rod',
-        'marine_banner',
-        'marine_backpack_missiles',
-      ]
-    },
+    servitor,
+    spaceMarine,
   ],
   units: [
-    {
-      name: 'grey_knight',
-      model: 'models/space marines/troops/grey_knight.glb',
-      animations: soldier,
-      icon: 'assets/icons/Space Marines/Units/Elite/space_marine_icon_grey_knights.png',
-      cost: 150,
-      time: 5,
-      hp: 250,
-      size: 5,
-      attackRange: 20,
-      damage: 16,
-    },
+    greyKnight,
   ],
   structures: [
     {

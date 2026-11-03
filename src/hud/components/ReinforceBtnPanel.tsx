@@ -1,8 +1,8 @@
 import type { JSX } from 'react';
-import { world, requisition, setRequisition, SQUAD_MAX, COSTS } from '../../core/scene.js';
+import { world, requisition, setRequisition, energy, setEnergy, SQUAD_MAX, COSTS } from '../../core/scene.js';
 import { updateHUD } from '../../core/hud.js';
 import { applySquadWeaponVisuals } from '../../entities/entities.js';
-import { netSetProjectileType } from '../../net/multiplayer.js';
+import { netPlasmaUpgrade, netSetProjectileType } from '../../net/multiplayer.js';
 import { computeSquadData } from '../data.js';
 import { CompactReinforceButton, AmmoButton, Tooltip } from '../bits.jsx';
 import {
@@ -12,7 +12,7 @@ import { assetUrl } from '../../render/assets.js';
 import { R2Img } from '../bits.jsx';
 
 function SergeantSlotView({ data }: any): JSX.Element {
-  const sgtCost = COSTS.reinforce;
+  const sgtCost = data.sgtCost ?? COSTS.reinforce;
   const canAddSgt = requisition >= sgtCost && !data.sgtSoldier && !data.sgtQueued;
 
   let cls = '';
@@ -34,8 +34,10 @@ function SergeantSlotView({ data }: any): JSX.Element {
       const sqId = data.alive[i];
       const sq = world.get(sqId, 'squad');
       if (sq && !sq.reinforceQueue.some((q: any) => q.formIdx === 0)) {
-        setRequisition(requisition - sgtCost);
-        sq.reinforceQueue.unshift({ formIdx: 0 });
+        const cost = sq.sergeantCost ?? sgtCost;
+        if (requisition < cost) return;
+        setRequisition(requisition - cost);
+        sq.reinforceQueue.unshift({ formIdx: 0, cost, time: sq.sergeantTime ?? data.sgtTime ?? 7 });
         break;
       }
     }
@@ -84,6 +86,32 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
     updateHUD();
   };
 
+  const addPlasma = () => {
+    for (let i = 0; i < data.alive.length; i += 1) {
+      const sqId = data.alive[i];
+      const sq = world.get(sqId, 'squad');
+      if (!sq) continue;
+      const plasmaCount = sq.soldiers.filter((sid: any) => sid && world.has(sid, 'soldier') && world.get(sid, 'soldier').projectileType === 'plasma').length;
+      if (plasmaCount + (sq.plasmaQueue || []).length >= 5) continue;
+      const target = sq.soldiers.find((sid: any) => {
+        if (!sid || !world.has(sid, 'soldier')) return false;
+        const sol = world.get(sid, 'soldier');
+        if (sol.isGrenadier || sol.projectileType === 'plasma') return false;
+        if ((sq.plasmaQueue || []).some((q: any) => q.solId === sid)) return false;
+        if ((sq.grenadeQueue || []).some((q: any) => q.solId === sid)) return false;
+        return true;
+      });
+      if (target) {
+        setRequisition(requisition - data.plCost);
+        setEnergy(energy - data.plEnergyCost);
+        sq.plasmaQueue.push({ solId: target });
+        if (window._multiplayerMode) netPlasmaUpgrade(sqId, target);
+        break;
+      }
+    }
+    updateHUD();
+  };
+
   const setProjectile = (pt: string) => {
     data.alive.forEach((sqId: number) => {
       const sq = world.get(sqId, 'squad');
@@ -102,13 +130,14 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
       <AmmoButton
         icon="assets/icons/Space Marines/Buildings/Economy/guard_upgrade_plasma_gun.png"
         label="PLASMA"
-        disabled={false}
-        tooltip="WEAPON: PLASMA\nSwitch squad weapons to plasma projectiles"
+        disabled={!data.canAddPL}
+        cost={`${data.plCost}R`}
+        tooltip={`WEAPON UPGRADE: PLASMA\nCost ${data.plCost}R ${data.plEnergyCost}E — upgrade one soldier to plasma (max 5 per squad)`}
         style={{
-          border: data.curPtSq === 'plasma' ? '1px solid #ff4444' : '1px solid rgba(255,68,68,0.22)',
-          opacity: data.curPtSq === 'plasma' ? 1 : 0.55,
+          border: data.curPtSq === 'plasma' || data.hasPlasma ? '1px solid #ff4444' : '1px solid rgba(255,68,68,0.22)',
+          opacity: data.curPtSq === 'plasma' || data.hasPlasma ? 1 : 0.55,
         }}
-        onClick={() => setProjectile('plasma')}
+        onClick={addPlasma}
       />
       <AmmoButton
         icon="assets/icons/Imperial Guard/Buildings/Economy/guard_squad_kasrkin_plasma.png"
@@ -157,6 +186,9 @@ export function ReinforceButtonsPanel(): JSX.Element {
       const sqId = data.alive[j];
       const sq = world.get(sqId, 'squad');
       if (!sq) continue;
+      const cost = sq.reinforceCost ?? data.reinCost;
+      const maxSquadSize = sq.maxSquadSize ?? SQUAD_MAX;
+      if (requisition < cost) continue;
       const aliveSols = sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier'));
       const occupied = new Set([
         ...aliveSols.map((sid: any) => {
@@ -165,10 +197,10 @@ export function ReinforceButtonsPanel(): JSX.Element {
         }),
         ...sq.reinforceQueue.map((q: any) => q.formIdx),
       ]);
-      for (let i = 1; i < SQUAD_MAX; i += 1) {
+      for (let i = 1; i < maxSquadSize; i += 1) {
         if (!occupied.has(i)) {
-          setRequisition(requisition - data.reinCost);
-          sq.reinforceQueue.push({ formIdx: i });
+          setRequisition(requisition - cost);
+          sq.reinforceQueue.push({ formIdx: i, cost, time: sq.reinforceTime ?? 7 });
           added += 1;
           break;
         }

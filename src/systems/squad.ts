@@ -12,8 +12,10 @@ import {
   createSoldierEntity,
   getSoldierMuzzlePos,
   upgradeToGrenadier,
+  upgradeToPlasma,
 } from '../entities/entities.js';
 import { FACTIONS } from '../factions.js';
+import { DEFAULT_ARMOR_CLASS, damagePerShot, getWeapon, type ArmorClass } from '../combat/stats.js';
 import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../fx/plasma-bolt.js';
@@ -939,8 +941,10 @@ export function systemSquad(world: any, deltaTime: number) {
       }
     }
     if (squadComponent.reinforceQueue.length > 0) {
+      const activeReinforce = squadComponent.reinforceQueue[0];
+      const reinforceTime = activeReinforce?.time ?? squadComponent.reinforceTime ?? 7.0;
       squadComponent.reinforceProgress += deltaTime;
-      if (squadComponent.reinforceProgress >= 7.0) {
+      if (squadComponent.reinforceProgress >= reinforceTime) {
         squadComponent.reinforceProgress = 0;
         const { formIdx } = squadComponent.reinforceQueue.shift();
         if (squadComponent.soldiers[formIdx] === null || !world.has(squadComponent.soldiers[formIdx], 'soldier')) {
@@ -973,7 +977,7 @@ export function systemSquad(world: any, deltaTime: number) {
         meshComponent.reinBar.visible = true;
         meshComponent.reinBar.position.copy(squadComponent.position);
         meshComponent.reinBar.position.y = 3.48;
-        updateHpBar(meshComponent.reinBar, squadComponent.reinforceProgress / 7.0);
+        updateHpBar(meshComponent.reinBar, squadComponent.reinforceProgress / reinforceTime);
       }
     } else {
       if (meshComponent.reinBar) {
@@ -1010,6 +1014,24 @@ export function systemSquad(world: any, deltaTime: number) {
         updateHUD();
       }
     }
+    if (!Array.isArray(squadComponent.plasmaQueue)) {
+      squadComponent.plasmaQueue = [];
+      squadComponent.plasmaProgress = 0;
+    }
+    if (squadComponent.plasmaQueue.length > 0) {
+      squadComponent.plasmaProgress += deltaTime;
+      if (squadComponent.plasmaProgress >= 2.0) {
+        squadComponent.plasmaProgress = 0;
+        const { solId: soldierEntityId } = squadComponent.plasmaQueue.shift();
+        if (soldierEntityId !== null && world.has(soldierEntityId, 'soldier')) {
+          upgradeToPlasma(world, soldierEntityId);
+        }
+        if (squadComponent.plasmaQueue.length === 0) {
+          squadComponent.plasmaProgress = 0;
+        }
+        updateHUD();
+      }
+    }
   }
 }
 
@@ -1023,6 +1045,9 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
     if (soldierComponent._fleeing) {
       continue;
     }
+    // Beam/laser/lightning visuals fire at a slower cadence. Per-shot damage
+    // is scaled by the same factor so effective DPS is unchanged.
+    const cadence = squadComponent.projectileType === 'laser' || squadComponent.projectileType === 'beam' || squadComponent.projectileType === 'lightning' ? 2.5 : 1;
     soldierComponent.attackCooldown = Math.max(0, soldierComponent.attackCooldown - deltaTime);
     if (soldierComponent.attackCooldown <= 0) {
       const soldierMeshComponent = world.get(soldierId, 'mesh');
@@ -1031,31 +1056,38 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
         if (soldierComponent.cloaked) {
           soldierComponent.revealTimer = 2.5;
         }
-        const projectileType = squadComponent.projectileType || 'bullet';
+        const projectileType = soldierComponent.projectileType || squadComponent.projectileType || 'bullet';
+        const targetSoldier = world.get(enemy.soldierEntityId, 'soldier');
+        const targetArmor = (targetSoldier?.armorClass || DEFAULT_ARMOR_CLASS) as ArmorClass;
+        const weapon = getWeapon(soldierComponent.weapon);
+        // Wiki weapon stats drive ordinary gunfire. Special projectile
+        // upgrades (plasma, blaster, ...) keep their own damage profiles.
+        const statDamage = weapon && (projectileType === 'bullet' || projectileType === 'beam')
+          ? damagePerShot(weapon, targetArmor, cadence) * damageMult
+          : null;
         if (projectileType === 'beam') {
-          createBeamEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createBeamEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, false, statDamage);
         } else if (projectileType === 'lightning') {
           const muzzlePos = getSoldierMuzzlePos(world, soldierId);
-          createLightningEntity(world, muzzlePos, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createLightningEntity(world, muzzlePos, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'laser') {
-          createLaserBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createLaserBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'plasma') {
-          createPlasmaBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createPlasmaBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'plasma-final') {
-          createPlasmaFinalBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createPlasmaFinalBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
           attachPlasmaMuzzleFlash(soldierMeshComponent.root);
         } else if (projectileType === 'blaster') {
-          createBlasterBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createBlasterBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'reaper') {
-          createReaperBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createReaperBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else {
-          createBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult);
+          createBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         }
         soldierComponent.flashTimer = .06;
         soldierComponent.shootTimer = 0.4;
       }
-      const ptRate = squadComponent.projectileType === 'laser' ? 2.5 : squadComponent.projectileType === 'beam' ? 2.5 : squadComponent.projectileType === 'lightning' ? 2.5 : 1;
-      soldierComponent.attackCooldown = (1 / soldierComponent.attackRate) * ptRate;
+      soldierComponent.attackCooldown = (1 / soldierComponent.attackRate) * cadence;
     }
   }
 }

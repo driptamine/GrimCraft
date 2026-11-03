@@ -294,6 +294,8 @@ function _onSnapshot(snapshot: any): void {
       reinforceProgress: squadData.reinforce_progress,
       grenadeQueue: squadData.grenade_queue || [],
       grenadeProgress: squadData.grenade_progress,
+      plasmaQueue: squadData.plasma_queue || [],
+      plasmaProgress: squadData.plasma_progress,
       moveOrder: squadData.move_order ? _toVector3(squadData.move_order) : null,
       stopped: squadData.stopped,
       autoChase: squadData.auto_chase,
@@ -381,6 +383,9 @@ export function netTrainUnit(buildingId: any, unitType: any): void {
 }
 export function netGrenadeUpgrade(squadId: any, soldierId: any): void {
   _net.sendCmd({ GrenadeUpgrade: { squad_id: squadId, sol_id: soldierId } });
+}
+export function netPlasmaUpgrade(squadId: any, soldierId: any): void {
+  _net.sendCmd({ PlasmaUpgrade: { squad_id: squadId, sol_id: soldierId } });
 }
 export function netDemolishBuilding(id: any): void {
   _net.sendCmd({ DemolishBuilding: { building_id: id } });

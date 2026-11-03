@@ -220,15 +220,20 @@ function BuildingActions(): JSX.Element | null {
       .filter((p) => p && typeof p === 'object' && p.name);
     const useOwn = !isMechanized && barracksProduction.length === 0 && ownProduction.length > 0;
     const production = useOwn ? ownProduction : barracksProduction;
+    const squadEntry = FACTIONS[factionKey]?.infantry?.[1];
+    const squadCost = squadEntry?.cost ?? COSTS.squad;
+    const squadTime = squadEntry?.time ?? PROD_TIME.squad;
 
-    const train = (type: string, count: number) => {
+    const train = (type: string, count: number, costOverride?: number, timeOverride?: number) => {
+      const cost = costOverride ?? COSTS[type as keyof typeof COSTS] ?? 0;
+      const time = timeOverride ?? PROD_TIME[type as keyof typeof PROD_TIME] ?? PROD_TIME.squad;
       if (window._multiplayerMode) {
         for (let i = 0; i < count; i += 1) netTrainUnit(id, type);
       } else {
         for (let i = 0; i < count; i += 1) {
-          if (requisition >= COSTS[type as keyof typeof COSTS] && building.queue.length < 6) {
-            setRequisition(requisition - (COSTS[type as keyof typeof COSTS]));
-            building.queue.push({ type, progress: 0, total: PROD_TIME[type as keyof typeof PROD_TIME] });
+          if (requisition >= cost && building.queue.length < 6) {
+            setRequisition(requisition - cost);
+            building.queue.push({ type, progress: 0, total: time });
           }
         }
       }
@@ -266,9 +271,9 @@ function BuildingActions(): JSX.Element | null {
 
     if (isBarracks && !useOwn) {
       buttons.push(
-        <ActionButton key="squad" icon={squadIcon} label="SQUAD" cost={`${COSTS.squad}R`} tooltip={`GUARDSMEN SQUAD\nCOST ${COSTS.squad}R\nRecruit a squad of guardsmen`} disabled={!(requisition >= COSTS.squad && building.queue.length < 6)} onClick={() => train('squad', 1)} />,
+        <ActionButton key="squad" icon={squadIcon} label="SQUAD" cost={`${squadCost}R`} tooltip={`${(squadEntry?.name || 'SQUAD').toUpperCase()}\nCOST ${squadCost}R · TIME ${squadTime}s\nRecruit a squad`} disabled={!(requisition >= squadCost && building.queue.length < 6)} onClick={() => train('squad', 1, squadCost, squadTime)} />,
         <ActionButton key="builder" icon={workerIcon} label={workerDisplayName(factionKey)} cost={`${COSTS.builder}R`} tooltip={`${workerDisplayName(factionKey)}\nCOST ${COSTS.builder}R\nRecruit a construction engineer`} disabled={!(requisition >= COSTS.builder && building.queue.length < 6)} onClick={() => train('builder', 1)} />,
-        <ActionButton key="squad3" icon={squadIcon} label="3 SQUADS" cost={`${COSTS.squad * 3}R`} tooltip={`3 GUARDSMEN SQUADS\nCOST ${COSTS.squad * 3}R\nRecruit 3 squads at once`} disabled={!(requisition >= COSTS.squad * 3 && building.queue.length <= 3)} onClick={() => train('squad', 3)} />,
+        <ActionButton key="squad3" icon={squadIcon} label="3 SQUADS" cost={`${squadCost * 3}R`} tooltip={`3 ${(squadEntry?.name || 'SQUAD').toUpperCase()}S\nCOST ${squadCost * 3}R\nRecruit 3 squads at once`} disabled={!(requisition >= squadCost * 3 && building.queue.length <= 3)} onClick={() => train('squad', 3, squadCost, squadTime)} />,
       );
     }
   }

@@ -1,6 +1,7 @@
-import worker from '../../animations/orks/worker.json';
-import soldier from '../../animations/orks/soldier.json';
 import structuresJson from '../../animations/orks/structures.json';
+import { grots } from '../../stats/races/orks/infantry/grots.js';
+import { boyz } from '../../stats/races/orks/infantry/boyz.js';
+import { boyzShoota } from '../../stats/races/orks/infantry/boyz_shoota.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/orks/orks_structures_infantries_production_list.json';
@@ -12,35 +13,11 @@ export default {
   name: 'Orks',
   hq: 'models/orks/structures/settlement.glb',
   infantry: [
-    {
-      name: 'Grots',
-      model: 'models/orks/infantry/grots.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Boyz',
-      model: 'models/orks/infantry/boyz.glb',
-      animations: soldier,
-      cost: 100,
-      time: 3,
-      hiddenNodes: ['ork_flag', 'ork_flag_pole']
-    },
+    grots,
+    boyz,
   ],
   units: [
-    {
-      name: 'boyz_shoota',
-      model: 'models/orks/infantry/boyz_shoota.glb',
-      animations: soldier,
-      hiddenNodes: ['ork_flag', 'ork_flag_pole'],
-      icon: 'assets/icons/Orks/Units/Basic/shoota_boyz_icon.png',
-      cost: 100,
-      time: 3,
-      size: 5,
-      attackRange: 22,
-      damage: 12,
-    },
+    boyzShoota,
   ],
   structures: [
     {

@@ -1,6 +1,6 @@
-import worker from '../../animations/necrons/worker.json';
-import soldier from '../../animations/necrons/soldier.json';
 import structuresJson from '../../animations/necrons/structures.json';
+import { builderScarab } from '../../stats/races/necrons/infantry/builder_scarab.js';
+import { necronWarrior } from '../../stats/races/necrons/infantry/necron_warrior.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/necrons/necrons_structures_infantries_production_list.json';
@@ -12,20 +12,8 @@ export default {
   name: 'Necrons',
   hq: 'models/necrons/structures/monolith.glb',
   infantry: [
-    {
-      name: 'Builder Scarab',
-      model: 'models/necrons/infantry/builder_scarab.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Necron Warrior',
-      model: 'models/necrons/infantry/necron_basic_warrior.glb',
-      animations: soldier,
-      cost: 100,
-      time: 3
-    },
+    builderScarab,
+    necronWarrior,
   ],
   structures: [
     {

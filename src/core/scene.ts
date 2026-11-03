@@ -75,6 +75,7 @@ export const COSTS = {
   apc: 180,
   mechanized: 180,
   grenadeUpgrade: 30,
+  plasmaUpgrade: 20,
   airfield: 200,
   jet: 220,
   gunTurret: 100,

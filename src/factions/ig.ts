@@ -1,6 +1,15 @@
-import tech_priest_engineseer from '../../animations/ig/infantry/tech_priest_engineseer.json';
-import imperial_guardsmen from '../../animations/ig/infantry/imperial_guardsmen.json';
 import structuresJson from '../../animations/ig/structures/structures.json';
+import { techPriestEnginseer } from '../../stats/races/ig/infantry/tech_priest_enginseer.js';
+import { guardsmen } from '../../stats/races/ig/infantry/guardsmen.js';
+import { sergeant } from '../../stats/races/ig/infantry/sergeant.js';
+import { commissar } from '../../stats/races/ig/infantry/commissar.js';
+import { psyker } from '../../stats/races/ig/infantry/psyker.js';
+import { priest } from '../../stats/races/ig/infantry/priest.js';
+import { vindicare } from '../../stats/races/ig/infantry/vindicare.js';
+import { heavyWeaponsTeam } from '../../stats/races/ig/infantry/heavy_weapons_team.js';
+import { kasrkin } from '../../stats/races/ig/infantry/kasrkin.js';
+import { ogryn } from '../../stats/races/ig/infantry/ogryn.js';
+import { commandSquad } from '../../stats/races/ig/infantry/command_squad.js';
 const structures: Record<string, unknown> = structuresJson;
 
 const STRUCTURE_HIDDEN_NODES = [
@@ -22,160 +31,19 @@ export default {
   },
   hq: 'models/ig/structures/hq.glb',
   infantry: [
-    {
-      name: 'Tech Priest Enginseer',
-      model: 'models/ig/infantry/tech_priest_engineseer.glb',
-      animations: tech_priest_engineseer,
-      icon: 'assets/icons/Imperial Guard/Units/Commanders/guard_squad_enginseer.png',
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Guardsmen',
-      model: 'models/ig/infantry/guardsmen.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Basic/guard_squad_guardsmen.png',
-      cost: 100,
-      time: 3,
-      hiddenNodes: [
-        'guard_banner',
-        'guard_banner_rod',
-
-        // 'guardsmen_lasgun',
-        'guardsmen_grenade_launcher',
-        'guardsmen_plasma_pistol',
-        'guardsmen_flamer',
-
-        // All four heads stay unmerged so each soldier shows exactly one
-        // (see applyGuardsmanHead in meshes/soldiers.js).
-        'guardsmen_head01',
-        'guardsmen_head02',
-        'guardsmen_head03',
-        'guardsmen_head04',
-
-      ]
-    },
+    techPriestEnginseer,
+    guardsmen,
   ],
   units: [
-    {
-      name: 'sergeant',
-      model: 'models/ig/infantry/guardsmen_sergeant.glb',
-      animations: imperial_guardsmen,
-      hiddenNodes: ['guard_banner', 'guard_banner_rod'],
-      icon: 'assets/icons/Imperial Guard/Units/Basic/guard_sargeant_icon.png',
-      cost: 100,
-      time: 7,
-      size: 1,
-      attackRange: 22,
-      damage: 12,
-    },
-    {
-      name: 'commissar',
-      model: 'models/ig/infantry/commissar.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Commanders/guard_squad_commissar.png',
-      cost: 150,
-      time: 6,
-      hp: 250,
-      size: 1,
-      attackRange: 22,
-      damage: 12,
-    },
-    {
-      name: 'psyker',
-      model: 'models/ig/infantry/sanctioned_psyker.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Basic/guard_squad_psyker.png',
-      cost: 140,
-      time: 6,
-      hp: 180,
-      size: 1,
-      attackRange: 26,
-      damage: 18,
-    },
-    {
-      name: 'priest',
-      model: 'models/ig/infantry/priest.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Commanders/guard_squad_priest.png',
-      cost: 140,
-      time: 6,
-      hp: 180,
-      size: 1,
-      attackRange: 12,
-      damage: 10,
-    },
-    {
-      name: 'vindicare',
-      model: 'models/ig/infantry/vindicare_temple_assassin.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Elite/guard_squad_assassin.png',
-      cost: 160,
-      time: 7,
-      hp: 200,
-      size: 1,
-      attackRange: 34,
-      damage: 25,
-    },
-    {
-      name: 'heavy_weapons_team',
-      model: 'models/ig/infantry/heavy_weapon_platoon.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Basic/guard_heavy_weapons_team.png',
-      cost: 150,
-      time: 6,
-      hp: 130,
-      size: 3,
-      attackRange: 30,
-      damage: 14,
-    },
-    {
-      name: 'kasrkin',
-      model: 'models/ig/infantry/kasrkin.glb',
-      animations: imperial_guardsmen,
-      hiddenNodes: [
-        'guard_banner_rod',
-        'guard_banner',
-
-        'kasrkin_grenade_launcher',
-        'karskin_flamer',
-        'karskin_hellgun',
-
-
-      ],
-      icon: 'assets/icons/Imperial Guard/Units/Elite/guard_squad_kasrkin.png',
-      cost: 180,
-      time: 7,
-      hp: 160,
-      size: 5,
-      attackRange: 24,
-      damage: 13,
-    },
-    {
-      name: 'ogryn',
-      model: 'models/ig/infantry/ogryn.glb',
-      animations: imperial_guardsmen,
-      hiddenNodes: ['guard_banner_rod', 'guard_banner'],
-      icon: 'assets/icons/Imperial Guard/Units/Elite/guard_squad_ogryns.png',
-      cost: 160,
-      time: 7,
-      hp: 240,
-      size: 4,
-      attackRange: 14,
-      damage: 20,
-    },
-    {
-      name: 'command_squad',
-      model: 'models/ig/infantry/imperial_captain.glb',
-      animations: imperial_guardsmen,
-      icon: 'assets/icons/Imperial Guard/Units/Basic/guard_squad_command_squad.png',
-      cost: 200,
-      time: 8,
-      hp: 170,
-      size: 5,
-      attackRange: 22,
-      damage: 12,
-    },
+    sergeant,
+    commissar,
+    psyker,
+    priest,
+    vindicare,
+    heavyWeaponsTeam,
+    kasrkin,
+    ogryn,
+    commandSquad,
   ],
   structures: [
     {
@@ -201,8 +69,8 @@ export default {
           name: 'guardsmen',
           icon: 'assets/icons/Imperial Guard/Units/Basic/guard_squad_guardsmen.png',
           model: 'models/ig/infantry/guardsmen.glb',
-          cost: 100,
-          time: 3
+          cost: 160,
+          time: 20
         },
         {
           name: 'builder',
@@ -287,8 +155,8 @@ export default {
           name: 'guardsmen',
           icon: 'assets/icons/Imperial Guard/Units/Basic/guard_squad_guardsmen.png',
           model: 'models/ig/infantry/guardsmen.glb',
-          cost: 100,
-          time: 3
+          cost: 160,
+          time: 20
         },
         {
           name: 'heavy_weapons_team',

@@ -179,8 +179,9 @@ export function resetGame(mapKey: string = window._currentMapKey || 'arena'): vo
     const builderX = team === PLAYER ? x + 10 : x - 10;
     createBuilderEntity(entityWorld, builderX, z, team, faction);
   }
-  createSquadEntity(entityWorld, 'red', 30, 10, 5);
-  createSquadEntity(entityWorld, 'red', 30, -10, 5);
+  // Chaos Space Marine squads start at the wiki's 4/10 squad size.
+  createSquadEntity(entityWorld, 'red', 30, 10, 4);
+  createSquadEntity(entityWorld, 'red', 30, -10, 4);
   // Faction starter squads for both sides: blue hosts IG/Necrons/Tau/Orks
   // bases, red hosts Eldar/Space Marine/Dark Eldar bases on the shipped maps.
   const starterSpawns = [
@@ -323,19 +324,20 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
 
       // Auto-reinforce
       {
-        const cost = COSTS.reinforce;
         let changed = false;
         for (const sid of world.query('squad')) {
           const squadComponent = world.get(sid, 'squad');
+          const cost = squadComponent?.reinforceCost ?? COSTS.reinforce;
+          const maxSquadSize = squadComponent?.maxSquadSize ?? SQUAD_MAX;
           if (!squadComponent || !squadComponent.autoReinforce || squadComponent.team !== PLAYER || squadComponent.reinforceQueue.length > 0 || requisition < cost) {
             continue;
           }
           const alive = squadComponent.soldiers.filter((soldierId: any) => soldierId !== null && world.has(soldierId, 'soldier'));
           const occupied = new Set(alive.map((soldierId: any) => world.get(soldierId, 'soldier')?.formIdx));
-          for (let i = 1; i < SQUAD_MAX; i++) {
+          for (let i = 1; i < maxSquadSize; i++) {
             if (!occupied.has(i)) {
               setRequisition(requisition - cost);
-              squadComponent.reinforceQueue.push({ formIdx: i });
+              squadComponent.reinforceQueue.push({ formIdx: i, cost, time: squadComponent.reinforceTime ?? 7 });
               changed = true;
               break;
             }
@@ -354,7 +356,7 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
         const hasQueue = world.query('building').some((id: any) => (world.get(id, 'building')?.queue.length || 0) > 0);
         const hasReinforce = selSquads.some((id) => {
           const squadComponent = world.get(id, 'squad');
-          return squadComponent && (squadComponent.reinforceQueue.length > 0 || squadComponent.grenadeQueue.length > 0);
+          return squadComponent && (squadComponent.reinforceQueue.length > 0 || squadComponent.grenadeQueue.length > 0 || (squadComponent.plasmaQueue || []).length > 0);
         });
         if (hasQueue || hasReinforce) {
           updateHUD();

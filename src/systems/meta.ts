@@ -38,7 +38,7 @@ export function systemAI(world: any, deltaTime: number) {
   counters.aiT += deltaTime;
   if (counters.aiT >= 28) {
     counters.aiT = 0;
-    createSquadEntity(world, PLAYER === 'blue' ? 'red' : 'blue', 30 + (Math.random() - .5) * 10, (Math.random() - .5) * 40, 5);
+    createSquadEntity(world, PLAYER === 'blue' ? 'red' : 'blue', 30 + (Math.random() - .5) * 10, (Math.random() - .5) * 40, 4);
   }
 }
 

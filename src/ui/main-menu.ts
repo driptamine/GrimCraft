@@ -60,6 +60,10 @@ function _onItemClick(item: { id: string; label: string }): void {
     renderCredits();
     return;
   }
+  if (item.id === 'settings') {
+    renderSettings();
+    return;
+  }
   if (screen === 'stub') {
     renderStub(item.label);
     return;
@@ -122,6 +126,43 @@ function renderMenuList(): void {
     });
   });
   list.appendChild(qualityBtn);
+}
+
+export const wikiEntries = [
+  { label: "PLAYER'S GUIDE", path: 'settings/wiki/players_guide.html' },
+  { label: 'GUARDSMEN SQUAD', path: 'settings/wiki/guardsmen_squad/' },
+];
+
+function renderSettings(): void {
+  const list = document.getElementById('main-menu-list');
+  if (!list) {
+    return;
+  }
+  list.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'main-menu-stub-title';
+  title.textContent = 'Settings';
+  list.appendChild(title);
+  const note = document.createElement('div');
+  note.className = 'main-menu-stub-note';
+  note.textContent = 'WIKI';
+  list.appendChild(note);
+  for (const entry of wikiEntries) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'main-menu-btn';
+    btn.textContent = entry.label;
+    btn.addEventListener('click', () => {
+      window.open(entry.path, '_blank');
+    });
+    list.appendChild(btn);
+  }
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'main-menu-btn';
+  back.textContent = '‹ BACK';
+  back.addEventListener('click', renderMenuList);
+  list.appendChild(back);
 }
 
 export const creditNames = ['Driptamine', 'Alexander Morgun'];

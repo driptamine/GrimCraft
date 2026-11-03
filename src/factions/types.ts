@@ -1,33 +1,13 @@
 // Shared faction config types (plan: define once, import everywhere).
 // The nine faction data files stay untyped data — their inferred shapes are
 // checked against FactionConfig once, at the FACTIONS map in factions.ts.
-// Every field is optional because per-faction shapes differ (some lack
-// units/structures); the index signature keeps string-keyed lookups working.
-export interface FactionInfantryEntry {
-  model?: string;
-  hiddenNodes?: string[];
-  // Animation JSON varies per model ({idle/run/...} vs {phases: {...}}),
-  // so the field stays unknown; readers narrow per use.
-  animations?: unknown;
-  name?: string;
-  cost?: number;
-  time?: number;
-}
+// Soldier stat blocks live in stats/races/<faction>/infantry/*.ts as
+// UnitStats; these aliases keep the faction-side names working.
+import type { UnitStats } from '../../stats/types.js';
 
-export interface FactionUnitEntry {
-  name?: string;
-  model?: string;
-  hiddenNodes?: string[];
-  canFly?: boolean;
-  stationaryFireOnly?: boolean;
-  icon?: string;
-  cost?: number;
-  time?: number;
-  hp?: number;
-  damage?: number;
-  attackRange?: number;
-  size?: number;
-}
+export interface FactionInfantryEntry extends UnitStats {}
+
+export interface FactionUnitEntry extends UnitStats {}
 
 export interface FactionAddonEntry {
   name?: string;

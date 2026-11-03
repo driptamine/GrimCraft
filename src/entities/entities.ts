@@ -8,6 +8,7 @@ import {
   SQUAD_SCATTER,
   FORMATION,
   TAG,
+  COSTS,
   researchedTech,
   JET_ALT,
   JET_SPEED,
@@ -34,6 +35,7 @@ import {
 } from '../meshes.js';
 import { updateHUD } from '../core/hud.js';
 import { FACTIONS, playerFaction, enemyFaction, resolveFactionKey } from '../factions.js';
+import { DEFAULT_ARMOR_CLASS, getWeapon } from '../combat/stats.js';
 import { NecronLightning } from '../fx/necron-lightning.js';
 import { makePlasmaBoltMesh, makePlasmaFinalBoltMesh } from '../fx/plasma-bolt.js';
 import { makeBlasterBoltMesh } from '../fx/blaster-bolt.js';
@@ -106,7 +108,6 @@ export function applySquadWeaponVisuals(world: any, squadEntityId: any) {
   if (!squadComponent) {
     return;
   }
-  const isPlasma = squadComponent.projectileType === 'plasma' || squadComponent.projectileType === 'plasma-final';
   squadComponent.soldiers.forEach((soldierId: any) => {
     if (!soldierId || !world.has(soldierId, 'soldier')) {
       return;
@@ -119,7 +120,8 @@ export function applySquadWeaponVisuals(world: any, squadEntityId: any) {
     if (soldier?.isGrenadier) {
       return;
     }
-    if (isPlasma) {
+    const effective = soldier?.projectileType || squadComponent.projectileType;
+    if (effective === 'plasma' || effective === 'plasma-final') {
       _applyPlasmaVisuals(root);
     } else {
       _toggleMeshNode(root, 'guardsmen_lasgun', true);
@@ -147,6 +149,48 @@ function _resolveSoldierUnitType(squadUnitType: any, formIdx: number, unitType: 
   return squadUnitType || null;
 }
 
+function _normalizeUnitKey(value: any): string {
+  return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function _unitEntryMatches(entry: any, key: string): boolean {
+  if (!entry || !key) {
+    return false;
+  }
+  if (_normalizeUnitKey(entry.name) === key) {
+    return true;
+  }
+  const model = String(entry.model ?? '');
+  const base = (model.split('/').pop() || '').replace(/\.glb$/i, '');
+  return _normalizeUnitKey(base) === key;
+}
+
+/**
+ * Resolve the stats/config entry for a soldier type.
+ *
+ * Wiki squads such as Guardsmen and Chaos Space Marines live in `infantry`,
+ * not `units`, so named squads must fall back there. A null unit type is the
+ * faction's default soldier (infantry[1]).
+ */
+export function findUnitConfig(factionKey: string, unitType: any = null): any {
+  const faction = FACTIONS[factionKey];
+  if (!faction) {
+    return null;
+  }
+  if (!unitType) {
+    return faction.infantry?.[1] || null;
+  }
+  const key = _normalizeUnitKey(unitType);
+  if (!key) {
+    return faction.infantry?.[1] || null;
+  }
+  const unit = (faction.units || []).find((u) => _unitEntryMatches(u, key));
+  if (unit) {
+    return unit;
+  }
+  return (faction.infantry || []).find((u) => _unitEntryMatches(u, key)) || null;
+}
+
 export function createSoldierEntity(world: any, squadId: any, formIdx: number, unitType: any = null) {
   const squadComponent = world.get(squadId, 'squad');
   const isSuperior = (formIdx === 0);
@@ -157,10 +201,8 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
     unitType = 'sergeant';
   }
   const soldierFaction = resolveFactionKey(squadComponent?.faction, squadComponent?.team === PLAYER ? playerFaction : enemyFaction);
-  let unitConfig: any = null;
-  if (unitType) {
-    unitConfig = FACTIONS[soldierFaction]?.units?.find((u) => u.name === unitType) || null;
-  }
+  const unitConfig: any = findUnitConfig(soldierFaction, unitType);
+  const weaponProfile = getWeapon(unitConfig?.weapon);
 
   let maxHp = unitConfig?.hp ?? (isSuperior ? 150 : 100);
   const isGuardsman = !unitType || unitType === 'guardsmen' || unitType === 'sergeant';
@@ -181,7 +223,9 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
     hp: maxHp,
     maxHp,
     attackCooldown: 0,
-    attackRate: 2.4 + Math.random() * 0.8,
+    attackRate: weaponProfile ? 1 / weaponProfile.refire : 2.4 + Math.random() * 0.8,
+    armorClass: unitConfig?.armor || DEFAULT_ARMOR_CLASS,
+    weapon: unitConfig?.weapon || null,
     walkTime: Math.random() * Math.PI * 2,
     flashTimer: 0,
     shootTimer: 0,
@@ -191,6 +235,7 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
     _flyStage: 0,
     isGrenadier,
     isSuperior,
+    projectileType: null,
     moveSpeed: 5.8 + Math.random() * 2.2,
     idlePhase: Math.random() * Math.PI * 2,
     idleYawOffset: (Math.random() - 0.5) * 0.08,
@@ -233,12 +278,14 @@ export function createSquadEntity(world: any, team: any, cx: number, cz: number,
   const id = world.createEntity([TAG.squad]);
   const initFacing = new THREE.Vector3(0, 0, team === PLAYER ? 1 : -1);
   const factionKey = resolveFactionKey(faction, team === PLAYER ? playerFaction : enemyFaction);
-  const unitConfig = unitType ? FACTIONS[factionKey]?.units?.find((u) => u.name === unitType) || null : null;
-  let attackRange = unitConfig?.attackRange ?? (22 + Math.random() * 4);
+  const unitConfig: any = findUnitConfig(factionKey, unitType);
+  const weaponProfile = getWeapon(unitConfig?.weapon);
+  let attackRange = unitConfig?.attackRange ?? weaponProfile?.range ?? (22 + Math.random() * 4);
   let speed = 5.5 + Math.random() * 1.5;
   const isGuardsman = !unitType || unitType === 'guardsmen';
   if (isGuardsman && researchedTech.has('satellite_targeting')) attackRange *= 1.2;
   if (unitType === 'kasrkin' && researchedTech.has('genetic_enhancement')) speed *= 1.33;
+  const sergeantConfig = (FACTIONS[factionKey]?.units || []).find((u) => u.name === 'sergeant') || null;
   world.add(id, 'squad', {
     team,
     faction: factionKey,
@@ -249,6 +296,11 @@ export function createSquadEntity(world: any, team: any, cx: number, cz: number,
     speed,
     attackRange,
     detectionRange: 40,
+    maxSquadSize: unitConfig?.squadSize ?? SQUAD_MAX,
+    reinforceCost: unitConfig?.reinforceCost ?? COSTS.reinforce,
+    reinforceTime: unitConfig?.reinforceTime ?? 7,
+    sergeantCost: sergeantConfig?.reinforceCost ?? sergeantConfig?.cost ?? unitConfig?.reinforceCost ?? COSTS.reinforce,
+    sergeantTime: sergeantConfig?.reinforceTime ?? sergeantConfig?.time ?? unitConfig?.reinforceTime ?? 7,
     grenadeCd: 0,
     grenadeReloadTime: 3,
     idleTime: 0,
@@ -256,6 +308,8 @@ export function createSquadEntity(world: any, team: any, cx: number, cz: number,
     reinforceProgress: 0,
     grenadeQueue: [],
     grenadeProgress: 0,
+    plasmaQueue: [],
+    plasmaProgress: 0,
     moveOrder: null,
     stopped: false,
     flyOrder: null,
@@ -594,7 +648,7 @@ export function createStrategicPointEntity(world: any, x: number, z: number, kin
   return id;
 }
 
-export function createBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1) {
+export function createBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity([TAG.bullet]);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -621,14 +675,14 @@ export function createBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any
     vx: (dx / length) * speed,
     vy: ((dy + 0.02) / length) * speed,
     vz: (dz / length) * speed,
-    damage: (8 + Math.random() * 5) * damageMult,
+    damage: damageOverride ?? (8 + Math.random() * 5) * damageMult,
     age: 0,
   });
   world.add(id, 'mesh', { root: mesh });
   return id;
 }
 
-export function createPlasmaBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1) {
+export function createPlasmaBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity([TAG.bullet]);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -655,7 +709,7 @@ export function createPlasmaBulletEntity(world: any, ownerMeshPos: any, ownerTea
     rx: (Math.random() - 0.5) * 8,
     ry: (Math.random() - 0.5) * 8,
     rz: (Math.random() - 0.5) * 8,
-    damage: (14 + Math.random() * 6) * damageMult,
+    damage: damageOverride ?? (14 + Math.random() * 6) * damageMult,
     age: 0,
   });
   world.add(id, 'mesh', { root: mesh });
@@ -665,14 +719,16 @@ export function createPlasmaBulletEntity(world: any, ownerMeshPos: any, ownerTea
 // Plasma Final: same plasma bolt pipeline, but a heavier warhead — bigger
 // bolt, harder hit. Built on createPlasmaBulletEntity so the mesh, flight
 // and system handling stay identical.
-export function createPlasmaFinalBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1) {
-  const id = createPlasmaBulletEntity(world, ownerMeshPos, ownerTeam, ownerEntityRef, targetSoldierId, damageMult);
+export function createPlasmaFinalBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
+  const id = createPlasmaBulletEntity(world, ownerMeshPos, ownerTeam, ownerEntityRef, targetSoldierId, damageMult, damageOverride);
   if (id === null) {
     return null;
   }
   const bullet = world.get(id, 'bullet');
   bullet.projectileType = 'plasma-final';
-  bullet.damage = (20 + Math.random() * 8) * damageMult;
+  if (damageOverride === null) {
+    bullet.damage = (20 + Math.random() * 8) * damageMult;
+  }
   // Swap the plain bolt for the plasma-fx dressed one (same contract for
   // systemPlasmaBullet: filaments/tendrils/arcs/crackle).
   const oldRoot = world.get(id, 'mesh')?.root;
@@ -685,7 +741,7 @@ export function createPlasmaFinalBulletEntity(world: any, ownerMeshPos: any, own
   return id;
 }
 
-export function createBlasterBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1) {
+export function createBlasterBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity([TAG.bullet]);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -709,14 +765,14 @@ export function createBlasterBulletEntity(world: any, ownerMeshPos: any, ownerTe
     vx: (dx / length) * speed,
     vy: ((dy + 0.02) / length) * speed,
     vz: (dz / length) * speed,
-    damage: (11 + Math.random() * 4) * damageMult,
+    damage: damageOverride ?? (11 + Math.random() * 4) * damageMult,
     age: 0,
   });
   world.add(id, 'mesh', { root: mesh });
   return id;
 }
 
-export function createReaperBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1) {
+export function createReaperBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity([TAG.bullet]);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -740,7 +796,7 @@ export function createReaperBulletEntity(world: any, ownerMeshPos: any, ownerTea
     vx: (dx / length) * speed,
     vy: ((dy + 0.02) / length) * speed,
     vz: (dz / length) * speed,
-    damage: (13 + Math.random() * 5) * damageMult,
+    damage: damageOverride ?? (13 + Math.random() * 5) * damageMult,
     age: 0,
   });
   world.add(id, 'mesh', { root: mesh });
@@ -806,7 +862,7 @@ export function createVehicleEntity(world: any, team: any, name: any, model: any
   return id;
 }
 
-export function createLaserBulletEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1) {
+export function createLaserBulletEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity(['laserBullet']);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -834,14 +890,14 @@ export function createLaserBulletEntity(world: any, ownerPos: any, ownerTeam: an
     vx: (dx / length) * speed,
     vy: (dy / length) * speed,
     vz: (dz / length) * speed,
-    damage: (12 + Math.random() * 6) * damageMult,
+    damage: damageOverride ?? (12 + Math.random() * 6) * damageMult,
     age: 0,
   });
   world.add(id, 'mesh', { root: mesh });
   return id;
 }
 
-export function createBeamEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1, exactY = false) {
+export function createBeamEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1, exactY = false, damageOverride: number | null = null) {
   const id = world.createEntity(['beam']);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -868,7 +924,7 @@ export function createBeamEntity(world: any, ownerPos: any, ownerTeam: any, owne
   beamMaterial.opacity = 0.92;
   beamMaterial.transparent = true;
   mesh.material = beamMaterial;
-  const damage = (10 + Math.random() * 8) * damageMult;
+  const damage = damageOverride ?? (10 + Math.random() * 8) * damageMult;
   world.add(id, 'beam', {
     team: ownerTeam,
     targetId: targetSoldierId,
@@ -934,7 +990,7 @@ export function getSoldierMuzzlePos(world: any, soldierId: any) {
   return tipPos;
 }
 
-export function createLightningEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1) {
+export function createLightningEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity(['beam']);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
@@ -945,7 +1001,7 @@ export function createLightningEntity(world: any, ownerPos: any, ownerTeam: any,
   endPos.y = 1.0;
   const lightning = new NecronLightning(scene, {});
   lightning.fire(startPos, endPos);
-  const damage = (10 + Math.random() * 8) * damageMult;
+  const damage = damageOverride ?? (10 + Math.random() * 8) * damageMult;
   world.add(id, 'beam', {
     team: ownerTeam,
     targetId: targetSoldierId,
@@ -1051,14 +1107,30 @@ export function upgradeToGrenadier(world: any, sid: any) {
     return;
   }
   soldierComponent.isGrenadier = true;
-  soldierComponent.hp = 150;
-  soldierComponent.maxHp = 150;
+  // Older builds bumped every grenadier to 150 HP. Keep higher wiki health
+  // (e.g. Guardsmen at 160) instead of lowering it on upgrade.
+  if (!soldierComponent.maxHp || soldierComponent.maxHp < 150) {
+    soldierComponent.hp = 150;
+    soldierComponent.maxHp = 150;
+  }
   const meshComponent = world.get(sid, 'mesh');
   if (meshComponent) {
     if (meshComponent.root) {
       _applyGrenadierVisuals(meshComponent.root);
     }
     meshComponent.reloadBar = _makeReloadBar(PLAYER);
+  }
+}
+
+export function upgradeToPlasma(world: any, sid: any) {
+  const soldierComponent = world.get(sid, 'soldier');
+  if (!soldierComponent) {
+    return;
+  }
+  soldierComponent.projectileType = 'plasma';
+  const meshComponent = world.get(sid, 'mesh');
+  if (meshComponent?.root) {
+    _applyPlasmaVisuals(meshComponent.root);
   }
 }
 

@@ -1,6 +1,6 @@
-import worker from '../../animations/sob/worker.json';
-import soldier from '../../animations/sob/soldier.json';
 import structuresJson from '../../animations/sob/structures.json';
+import { servitor } from '../../stats/races/sob/infantry/servitor.js';
+import { battleSister } from '../../stats/races/sob/infantry/battle_sister.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/sob/sob_structures_infantries_production_list.json';
@@ -12,21 +12,8 @@ export default {
   name: 'Sisters of Battle',
   hq: 'models/sob/structures/adepta_sororitas_convent.glb',
   infantry: [
-    {
-      name: 'Servitor',
-      model: 'models/sob/infantry/servitor.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Battle Sister',
-      model: 'models/sob/infantry/battle_sister.glb',
-      animations: soldier,
-      cost: 100,
-      time: 3,
-      hiddenNodes: ['sb_obj_banner', 'sb_obj_flagpole']
-    },
+    servitor,
+    battleSister,
   ],
   structures: [
     {

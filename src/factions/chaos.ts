@@ -1,7 +1,7 @@
-import worker from '../../animations/chaos/worker.json';
-import chaos_space_marine from '../../animations/chaos/chaos_space_marine.json';
-import bloodthirster from '../../animations/chaos/bloodthirster.json';
 import structuresJson from '../../animations/chaos/structures.json';
+import { heretic } from '../../stats/races/chaos/infantry/heretic.js';
+import { chaosSpaceMarine } from '../../stats/races/chaos/infantry/chaos_space_marine.js';
+import { bloodthirsterStats as bloodthirster } from '../../stats/races/chaos/infantry/bloodthirster.js';
 const structures: Record<string, unknown> = structuresJson;
 
 import infProduction from '../../animations/chaos/chaos_structures_infantries_production_list.json';
@@ -13,46 +13,11 @@ export default {
   name: 'Chaos',
   hq: 'models/chaos/structures/desecrated_stronghold.glb',
   infantry: [
-    {
-      name: 'Heretic',
-      model: 'models/chaos/infantry/heretic.glb',
-      animations: worker,
-      cost: 80,
-      time: 2
-    },
-    {
-      name: 'Chaos Space Marine',
-      model: 'models/chaos/infantry/chaos_space_marine.glb',
-      animations: chaos_space_marine,
-      cost: 100,
-      time: 3,
-      hiddenNodes: [
-        'chaos_banner',
-        'marine_sergeant_banner_rod',
-        'chaos_rocket_launcher',
-        'chaos_heavy_bolter',
-        'chaos_heavy_bolter_belt',
-        'chaos_missiles',
-        'chaos_knife',
-        'chaos_plasma_rifle',
-        'chaos_flamer',
-      ]
-    },
+    heretic,
+    chaosSpaceMarine,
   ],
   units: [
-    {
-      name: 'bloodthirster',
-      model: 'models/chaos/infantry/bloodthirster.glb',
-      animations: bloodthirster,
-      hiddenNodes: ['independant_bloodthirster_axe'],
-      cost: 400,
-      time: 12,
-      hp: 1500,
-      size: 1,
-      attackRange: 5,
-      damage: 60,
-      canFly: true,
-    },
+    bloodthirster,
   ],
   structures: [
     {

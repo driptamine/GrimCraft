@@ -149,9 +149,16 @@ export async function loadGltf(url: string, extension = ''): Promise<GltfContain
   }
   reportR2Progress(url, { done: true });
   const meshes: THREE.Object3D[] = [];
-  root.traverse((child: THREE.Object3D & { isMesh?: unknown }) => {
+  root.traverse((child: THREE.Object3D & { isMesh?: unknown; userData?: { hidden?: unknown } }) => {
     if (child.isMesh) {
       meshes.push(child);
+    }
+    // Variant meshes baked hidden in the file (node extras.hidden) stay
+    // hidden: nothing is deleted, and no clip carries visibility tracks
+    // that would switch them back on. Explicit _toggleMeshNode calls still
+    // override this initial state.
+    if ((child.userData as { hidden?: unknown } | undefined)?.hidden === true) {
+      child.visible = false;
     }
   });
   const container: GltfContainer = {
