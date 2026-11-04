@@ -22,7 +22,7 @@ describe('startup main menu', () => {
   });
 
   it('renders each credits name on its own line', () => {
-    assert.deepEqual(creditNames, ['Driptamine', 'Alexander Morgun']);
+    assert.deepEqual(creditNames, ['Driptamine', 'Alexander Morgun', 'Snezhana Shevtsova']);
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const src = fs.readFileSync(path.join(root, 'src/ui/main-menu.ts'), 'utf8');
     assert.ok(src.includes('for (const name of creditNames)'), 'render uses creditNames');

@@ -165,7 +165,7 @@ function renderSettings(): void {
   list.appendChild(back);
 }
 
-export const creditNames = ['Driptamine', 'Alexander Morgun'];
+export const creditNames = ['Driptamine', 'Alexander Morgun', 'Snezhana Shevtsova'];
 
 function renderCredits(): void {
   const list = document.getElementById('main-menu-list');
