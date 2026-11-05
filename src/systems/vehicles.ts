@@ -93,7 +93,7 @@ export function systemApc(world: any, deltaTime: number) {
         const dx = enemyMeshComponent.root.position.x - apc.position.x;
         const dz = enemyMeshComponent.root.position.z - apc.position.z;
         meshComponent.root._turret.rotation.y = Math.atan2(dx, dz);
-        if (minDistance > apc.attackRange * .85 && !apc.moveOrder && !apc.selected) {
+        if (minDistance > apc.attackRange * .85 && !apc.moveOrder && !apc.selected && !apc.stopped && apc.stance !== 'stand') {
           const enemyPosition = enemyMeshComponent.root.position;
           apc.moveOrder = new THREE.Vector3(enemyPosition.x, 0, enemyPosition.z);
         }

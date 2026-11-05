@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="plasma">
+      <stop stop-color="#fff"/>
+      <stop offset=".3" stop-color="#d9efff"/>
+      <stop offset=".6" stop-color="#7c9eff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#3c40e0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="6" fill="#0b1228"/>
+  <g fill="url(#plasma)">
+    <circle cx="12" cy="45" r="6"/>
+    <circle cx="22" cy="43" r="7"/>
+    <circle cx="19" cy="29" r="8"/>
+    <circle cx="35" cy="37" r="9"/>
+    <circle cx="34" cy="20" r="10"/>
+    <circle cx="49" cy="24" r="11"/>
+    <circle cx="49" cy="44" r="12"/>
+  </g>
+</svg>

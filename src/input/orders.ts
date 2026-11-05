@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createAirfieldEntity, createBeamEntity, createBuildingEntity, createStructureEntity, getSoldierMuzzlePos } from '../entities/entities.js';
 import { playHitCrunch } from '../fx/audio.js';
+import { cursorCss } from '../ui/cursors.js';
 import { FACTIONS, playerFaction, resolveFactionKey } from '../factions.js';
 import { updateHUD } from '../core/hud.js';
 import { canPlaceListeningPost } from '../meshes.js';
@@ -247,25 +248,7 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
     if (markerSx !== null && markerSy !== null) spawnMoveMarker(markerSx, markerSy);
     else spawnMoveMarkerAt(point);
   };
-  const selectedApcs = selSquads.filter((id: number) => world.get(id, 'apc') != null);
-  if (selectedApcs.length) {
-    selectedApcs.forEach((id) => {
-      const apc = world.get(id, 'apc');
-      if (apc) apc.moveOrder = new THREE.Vector3(point.x, 0, point.z);
-    });
-    mark();
-    return;
-  }
-  const selectedVehicles = selSquads.filter((id: number) => world.get(id, 'vehicle') != null);
-  if (selectedVehicles.length) {
-    selectedVehicles.forEach((id) => {
-      const vehicle = world.get(id, 'vehicle');
-      if (vehicle) vehicle.moveOrder = new THREE.Vector3(point.x, 0, point.z);
-    });
-    mark();
-    return;
-  }
-  const selectedJets = selSquads.filter((id: number) => world.get(id, 'jet') != null);
+  const selectedJets = selSquads.filter((id: number) => canCommand(world.get(id, 'jet')?.team));
   if (selectedJets.length) {
     selectedJets.forEach((id, i) => {
       const jet = world.get(id, 'jet');
@@ -277,8 +260,6 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
         jet.strafe = null;
       }
     });
-    mark();
-    return;
   }
   const selectedBarracks = selBuildings.filter((id: number) => world.has(id, 'building'));
   if (selectedBarracks.length && selSquads.length === 0 && selBuilder === null) {
@@ -309,7 +290,7 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
     builder.moveTarget = new THREE.Vector3(point.x, 0, point.z);
     builder.isBuilding = false;
   }
-  const active = selSquads.filter((sid: number) => world.has(sid, 'squad'));
+  const active = selSquads.filter((sid: number) => canCommand(world.get(sid, 'squad')?.team));
   if (active.length) {
     const cols = Math.ceil(Math.sqrt(active.length));
     // Explicit capture request: right-click landed on a point mesh, or the
@@ -333,13 +314,14 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
         destination.z = snapped.z;
       }
       squad.moveOrder = destination;
+      squad.attackMove = false;
       squad.stopped = false;
       squad.flyOrder = null;
       squad.forcedTarget = null;
       squad.forcedSoldierId = null;
     });
   }
-  const activeApcs = selSquads.filter((sid: number) => world.has(sid, 'apc'));
+  const activeApcs = selSquads.filter((sid: number) => canCommand(world.get(sid, 'apc')?.team));
   activeApcs.forEach((id, i) => {
     const apc = world.get(id, 'apc');
     if (apc) {
@@ -356,7 +338,7 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
       apc.moveOrder = destination;
     }
   });
-  const activeVehicles = selSquads.filter((sid: number) => world.has(sid, 'vehicle'));
+  const activeVehicles = selSquads.filter((sid: number) => canCommand(world.get(sid, 'vehicle')?.team));
   activeVehicles.forEach((id, i) => {
     const vehicle = world.get(id, 'vehicle');
     if (vehicle) {
@@ -428,13 +410,13 @@ export let _pendingBuilderCommand: string | null = null;
 
 export function setBuilderCommand(cmd: string): void {
   _pendingBuilderCommand = cmd;
-  canvas!.style.cursor = cmd ? 'crosshair' : '';
+  if (canvas) canvas.style.cursor = cmd === 'melee' ? cursorCss('melee', 'crosshair') : (cmd ? 'crosshair' : '');
 }
 
 
 export function clearBuilderCommand(): void {
   _pendingBuilderCommand = null;
-  canvas!.style.cursor = '';
+  if (canvas) canvas.style.cursor = '';
 }
 
 
@@ -476,7 +458,7 @@ export function armFlyTargeting(): boolean {
 
 export function cancelFlyTargeting(): void {
   _flyArmed = null;
-  canvas!.style.cursor = '';
+  if (canvas) canvas.style.cursor = '';
 }
 
 
@@ -577,10 +559,11 @@ export function _issueBuilderCommand(cmd: string, sx: number, sy: number, point:
 }
 
 
-export function _tryBuilderCommandClick(sx: number, sy: number): boolean {
+export function _tryBuilderCommandClick(sx: number, sy: number, button = 0): boolean {
   if (_pendingBuilderCommand === null) {
     return false;
   }
+  if (button !== (_pendingBuilderCommand === 'melee' ? 2 : 0)) return false;
   const cmd = _pendingBuilderCommand;
   clearBuilderCommand();
   if (selBuilder === null || !world.has(selBuilder, 'builder')) {

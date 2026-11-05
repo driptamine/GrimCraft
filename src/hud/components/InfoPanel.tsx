@@ -1,8 +1,10 @@
 import type { JSX } from 'react';
 import { world, selBuilder, selBuildings, selListeningPost, hoveredEnemySquad, SQUAD_MAX, JET_ATTACK_RANGE, PLAYER, LP_REQUISITION_RATES } from '../../core/scene.js';
-import { getStructureConfig } from '../../factions.js';
+import { FACTIONS, getStructureConfig } from '../../factions.js';
 import { getViewKind, getAliveGroups, computeSquadData, entityFaction, workerDisplayName } from '../data.js';
-import { StatRow } from '../bits.jsx';
+import { R2Img, StatRow } from '../bits.jsx';
+import { assetUrl } from '../../render/assets.js';
+import { productionQueueIcon } from '../queue-icons.js';
 import { MAX_UPGRADES_PER_SQUAD, meleeDamageEstimate, numberOfUpgrades } from '../../entities/soldier-aim.js';
 import { DEFAULT_ARMOR_CLASS, dpsAgainst, getWeapon } from '../../combat/stats.js';
 import { taskbarIconUrl } from '../../ui/taskbar-icons.js';
@@ -10,15 +12,7 @@ import {
   InfoPanel as InfoPanelCss, InfoTitle, InfoStats, QueueWrap, QueueLabel, QueueItemsRow, QueueItem,
 } from '../primitives.jsx';
 
-function queueIcon(item: any): string {
-  if (item.type === 'squad') return '⚔';
-  if (item.type === 'jet') return '✈️';
-  if (item.type === 'vehicle') return '🚜';
-  if (item.type === 'builder') return '🔨';
-  return '👤';
-}
-
-function ProductionQueue({ items }: any): JSX.Element | null {
+function ProductionQueue({ items, producer }: any): JSX.Element | null {
   if (!items || items.length === 0) {
     return null;
   }
@@ -26,12 +20,15 @@ function ProductionQueue({ items }: any): JSX.Element | null {
     <QueueWrap>
       <QueueLabel>PRODUCTION QUEUE</QueueLabel>
       <QueueItemsRow>
-        {items.map((item: any, i: number) => (
-          <QueueItem key={i} title={`${String(item.type).replace(/_/g, ' ').toUpperCase()} — ${Math.round((item.progress / item.total) * 100)}%`}>
-            {queueIcon(item)}
-            <div className="q-prog" style={{ width: `${(item.progress / item.total) * 100}%` }} />
-          </QueueItem>
-        ))}
+        {items.map((item: any, i: number) => {
+          const icon = productionQueueIcon(item, FACTIONS[entityFaction(producer)], producer?.type, producer?.production);
+          return (
+            <QueueItem key={i} title={`${String(item.type).replace(/_/g, ' ').toUpperCase()} — ${Math.round((item.progress / item.total) * 100)}%`}>
+              {icon.includes('/') ? <R2Img src={assetUrl(icon)} alt={String(item.type).replace(/_/g, ' ')} /> : (icon || '?')}
+              <div className="q-prog" style={{ width: `${(item.progress / item.total) * 100}%` }} />
+            </QueueItem>
+          );
+        })}
       </QueueItemsRow>
     </QueueWrap>
   );
@@ -80,7 +77,7 @@ export function InfoPanel(): JSX.Element {
         </>
       );
       if (airfield.queue.length > 0) {
-        queue = <ProductionQueue items={airfield.queue} />;
+        queue = <ProductionQueue items={airfield.queue} producer={airfield} />;
       }
     }
   } else if (view === 'building') {
@@ -106,7 +103,7 @@ export function InfoPanel(): JSX.Element {
           </>
         );
         if (building.queue.length > 0) {
-          queue = <ProductionQueue items={building.queue} />;
+          queue = <ProductionQueue items={building.queue} producer={building} />;
         }
       }
       if (structure?.type === 'tactica_control' && structure.researchQueue?.length > 0) {
@@ -163,7 +160,7 @@ export function InfoPanel(): JSX.Element {
         </>
       );
       if (apc.queue?.length > 0) {
-        queue = <ProductionQueue items={apc.queue} />;
+        queue = <ProductionQueue items={apc.queue} producer={apc} />;
       }
     }
   } else if (view === 'vehicle') {

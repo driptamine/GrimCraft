@@ -396,6 +396,30 @@
     padding:14px 10px; text-align:center; color:rgba(80,200,255,0.4); font-size:8px;
   }
 
+  #combat-panel-btn {
+    position:fixed; top:412px; right:12px; z-index:20;
+    background:rgba(8,18,28,0.92); border:1px solid rgba(255,100,80,0.35);
+    color:#ff9b80; font-family:'Courier New',monospace;
+    font-size:9px; letter-spacing:.12em; padding:5px 10px; cursor:pointer;
+  }
+  #combat-panel-btn:hover, #combat-panel-btn.active { background:rgba(255,100,80,0.18); color:#fff; }
+  #combat-panel {
+    display:none; position:fixed; top:442px; right:12px; z-index:21;
+    width:250px; box-sizing:border-box; padding:10px;
+    background:rgba(8,18,28,0.95); border:1px solid rgba(255,100,80,0.35);
+    color:#ff9b80; font:10px 'Courier New',monospace;
+  }
+  #combat-panel.open { display:block; }
+  #combat-panel label { display:block; margin-bottom:8px; letter-spacing:.1em; }
+  #combat-panel .fire-rate-row { display:flex; align-items:center; gap:8px; }
+  #kasrkin-fire-rate { flex:1; min-width:0; accent-color:#ff9b80; cursor:pointer; }
+  #kasrkin-fire-rate-val { min-width:42px; text-align:right; color:#fff; }
+  #combat-panel p { font-size:9px; line-height:1.5; color:#bfd1dc; }
+  #combat-panel button {
+    width:100%; padding:5px; cursor:pointer; font:9px 'Courier New',monospace;
+    background:rgba(255,100,80,0.08); border:1px solid rgba(255,100,80,0.3); color:#ff9b80;
+  }
+
   /* ── Camera panel (right) ─────────────────────────────────────────── */
   #camera-panel-btn {
     position:fixed; top:292px; right:12px; z-index:20;
@@ -764,8 +788,8 @@
 
   /* Capture progress bars (styled via Linaria primitives in js/hud) */
 </style>
-  <script type="module" crossorigin src="/assets/main-C1GaA6Gj.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-cvUrd_pt.css">
+  <script type="module" crossorigin src="/assets/main-EkihzeNG.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-Cf0h9-71.css">
 </head>
 <body>
 <canvas id="renderCanvas"></canvas>
@@ -838,6 +862,17 @@
   <div id="pathfinding-panel-title">⌖ PATHFINDING <span id="pathfinding-panel-subtitle">SQUAD ROUTING</span></div>
   <div id="pathfinding-list"><div class="pathfinding-empty">OPEN PANEL TO LIST MODES</div></div>
   <div id="pathfinding-status"></div>
+</div>
+
+<button id="combat-panel-btn" onclick="toggleCombatPanel()" aria-controls="combat-panel" aria-expanded="false">⚡ FIRE RATE</button>
+<div id="combat-panel">
+  <label for="kasrkin-fire-rate">KASRKIN LASER FIRE RATE</label>
+  <div class="fire-rate-row">
+    <input type="range" id="kasrkin-fire-rate" min="0.4" max="10" step="0.1" value="4" oninput="updateKasrkinFireRate(this.value)">
+    <output id="kasrkin-fire-rate-val" for="kasrkin-fire-rate">4.0/s</output>
+  </div>
+  <p>Bursts per second · applies live to all Kasrkin hellguns. Damage per second stays the same. Saved automatically.</p>
+  <button type="button" onclick="resetKasrkinFireRate()">RESET TO 4.0/s</button>
 </div>
 
 <button id="camera-panel-btn" onclick="toggleCameraPanel()">◉ CAMERA</button>

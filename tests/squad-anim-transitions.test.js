@@ -87,6 +87,43 @@ beforeEach(() => {
 });
 
 describe('squad anim transitions', () => {
+  it('melee orders close the distance, play strikes, and do not spawn gunfire', () => {
+    const enemyId = world.createEntity([]);
+    const enemySoldier = world.createEntity([]);
+    world.add(enemyId, 'squad', { team: 'red', position: new THREE.Vector3(18, 0, 0), soldiers: [enemySoldier] });
+    world.add(enemySoldier, 'soldier', { squadId: enemyId, hp: 1000, maxHp: 1000, shootTimer: 0, flashTimer: 0 });
+    const enemyRoot = makeRoot('enemy');
+    enemyRoot.position.set(18, 0, 0);
+    world.add(enemySoldier, 'mesh', { root: enemyRoot, hpBar: hpBar() });
+    squad.attackMode = 'melee';
+    squad.autoChase = true;
+    squad.forcedSoldierId = enemySoldier;
+    frames(1);
+    assert.ok(squad.position.x > 0, 'approaches instead of attacking from rifle range');
+    assert.ok(s1reqs().some((entry) => entry.name === 'run'));
+    assert.ok(!s1reqs().some((entry) => entry.name === 'melee'));
+    frames(360);
+    assert.ok(s1reqs().some((entry) => entry.name === 'melee'), 'requests the melee animation up close');
+    assert.ok(world.get(enemySoldier, 'soldier').hp < 1000, 'close strikes deal damage');
+    assert.equal(world.query('beam').length, 0);
+    assert.equal(world.query('bullet').length, 0);
+    assert.equal(world.query('laserBullet').length, 0);
+    squad.stopped = true;
+    squad.moveOrder = null;
+    squad.forcedSoldierId = null;
+    const hp = world.get(enemySoldier, 'soldier').hp;
+    log = [];
+    frames(1);
+    assert.equal(s1reqs()[0].name, 'idle', 'stop exits the melee animation');
+    frames(30);
+    assert.equal(world.get(enemySoldier, 'soldier').hp, hp, 'stop cancels further strikes');
+    squad.attackMode = 'ranged';
+    squad.stopped = false;
+    log = [];
+    frames(90);
+    assert.ok(s1reqs().some((entry) => entry.name === 'shoot' || entry.name === 'shootMove'), 'ranged mode returns to firing animations');
+  });
+
   it('Q freezes formation settling and idles on the same frame', () => {
     squad.moveOrder = { x: 60, z: 0 };
     squad.stopped = false;

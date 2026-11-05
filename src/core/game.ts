@@ -77,6 +77,9 @@ declare global {
     toggleDecalsPanel: () => Promise<void>;
     togglePathfindingPanel: () => Promise<void>;
     toggleCameraPanel: () => Promise<void>;
+    toggleCombatPanel: () => Promise<void>;
+    updateKasrkinFireRate: (value: unknown) => Promise<void>;
+    resetKasrkinFireRate: () => Promise<void>;
     updateCameraParam: (which: any, value: any) => Promise<void>;
     resetCameraPanel: () => Promise<void>;
     switchFaction: () => Promise<void>;
@@ -136,7 +139,7 @@ export function resetGame(mapKey: string = window._currentMapKey || 'arena'): vo
       }
     }
   }
-  particles.forEach((particle: any) => disposeObj(particle.mesh));
+  particles.forEach((particle: any) => disposeObj(particle.mesh, true));
   particles.length = 0;
   grenadeCallbacks.length = 0;
 
@@ -410,6 +413,9 @@ window.addEventListener('DOMContentLoaded', () => {
   window.toggleGrid = () => import('./scene.js').then((module) => module.toggleGrid());
   window.toggleGridVariant = () => import('./scene.js').then((module) => module.toggleGridVariant());
   window.toggleNodesPanel = toggleNodesPanel;
+  window.toggleCombatPanel = () => import('../ui/combat-panel.js').then((module) => module.toggleCombatPanel());
+  window.updateKasrkinFireRate = (value) => import('../ui/combat-panel.js').then((module) => module.updateKasrkinFireRate(value));
+  window.resetKasrkinFireRate = () => import('../ui/combat-panel.js').then((module) => module.resetKasrkinFireRate());
   window.toggleScatterPanel = () => import('./scene.js').then((module) => module.toggleScatterPanel());
   window.resetGame = resetGame;
   window.onScatterInput = (value: any) => import('./scene.js').then((module) => module.onScatterInput(value));

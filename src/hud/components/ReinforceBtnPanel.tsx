@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { world, requisition, setRequisition, energy, setEnergy, SQUAD_MAX, COSTS } from '../../core/scene.js';
+import { world, canCommand, requisition, setRequisition, energy, setEnergy, SQUAD_MAX, COSTS } from '../../core/scene.js';
 import { updateHUD } from '../../core/hud.js';
 import { applySquadWeaponVisuals } from '../../entities/entities.js';
 import { netPlasmaUpgrade, netSetProjectileType } from '../../net/multiplayer.js';
@@ -10,6 +10,9 @@ import {
 } from '../primitives.jsx';
 import { assetUrl } from '../../render/assets.js';
 import { R2Img } from '../bits.jsx';
+import { PLASMA_CLOUD_PUFF } from '../../fx/plasma-cloud-puff.js';
+import plasmaCloudPuffIcon from '../../../assets/command_icons/plasma_cloud_puff.svg?url';
+import { isPlasmaPuffPreviewOpen, togglePlasmaPuffPreview } from '../../ui/plasma-puff-preview.js';
 
 function SergeantSlotView({ data }: any): JSX.Element {
   const sgtCost = data.sgtCost ?? COSTS.reinforce;
@@ -67,6 +70,11 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
   if (data.alive.length === 0) {
     return null;
   }
+  const puffSquads = data.alive.filter((id: number) => {
+    const squad = world.get(id, 'squad');
+    return squad && canCommand(squad.team) && (squad.faction || 'ig') === 'ig'
+      && (!squad.unitType || squad.unitType === 'guardsmen');
+  });
 
   const addGrenadier = () => {
     for (let i = 0; i < data.alive.length; i += 1) {
@@ -114,6 +122,7 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
 
   const setProjectile = (pt: string) => {
     data.alive.forEach((sqId: number) => {
+      if (pt === PLASMA_CLOUD_PUFF && !puffSquads.includes(sqId)) return;
       const sq = world.get(sqId, 'squad');
       if (sq) {
         sq.projectileType = pt;
@@ -150,6 +159,25 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
         }}
         onClick={() => setProjectile('plasma-final')}
       />
+      {puffSquads.length > 0 && <AmmoButton
+        icon={plasmaCloudPuffIcon}
+        label="PLASMA CLOUD PUFF"
+        disabled={false}
+        tooltip="WEAPON: PLASMA CLOUD PUFF\nSeven small plasma clouds pierced by a blue beam\nThree lengths along the flight: 20%, 40%, 60% of soldier height"
+        style={{
+          border: data.curPtSq === PLASMA_CLOUD_PUFF ? '1px solid #879eff' : '1px solid rgba(135,158,255,0.22)',
+          opacity: data.curPtSq === PLASMA_CLOUD_PUFF ? 1 : 0.55,
+        }}
+        onClick={() => setProjectile(PLASMA_CLOUD_PUFF)}
+      />}
+      {puffSquads.length > 0 && <AmmoButton
+        icon="🔍"
+        label={isPlasmaPuffPreviewOpen() ? 'CLOSE PREVIEW' : 'VIEW PUFFS'}
+        disabled={false}
+        tooltip="VIEW PLASMA CLOUD PUFF\nInspect all seven stationary projectiles up close\nMouse wheel: zoom · Alt + drag: orbit · Esc: close"
+        style={{ borderColor: isPlasmaPuffPreviewOpen() ? '#879eff' : undefined }}
+        onClick={togglePlasmaPuffPreview}
+      />}
       <AmmoButton
         icon="🔴"
         label="BEAM"

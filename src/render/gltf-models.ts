@@ -344,6 +344,14 @@ export class AnimGroup {
 
 export function instantiateGltf(container: GltfContainer): GltfInstance {
   const clone = SkeletonUtils.clone(container.scene);
+  // SkeletonUtils clones rigs, but shares geometry/materials with the source
+  // and every other soldier. Removing one instance must not free that geometry.
+  const skeletons = new Set<THREE.Skeleton>();
+  clone.traverse((node) => {
+    const mesh = node as THREE.SkinnedMesh;
+    if (mesh.geometry) mesh.geometry.userData.shared = true;
+    if (mesh.isSkinnedMesh && mesh.skeleton) skeletons.add(mesh.skeleton);
+  });
   const mixer = new THREE.AnimationMixer(clone);
   _registerMixer(mixer);
   const record: MixerRecord = { mixer, alive: (container.animations || []).length };
@@ -353,12 +361,17 @@ export function instantiateGltf(container: GltfContainer): GltfInstance {
     // drop it immediately instead of updating a dead mixer every frame.
     _unregisterMixer(mixer);
   }
+  let disposed = false;
   return {
     rootNodes: [clone],
     animationGroups,
     mixer,
     dispose() {
+      if (disposed) return;
+      disposed = true;
       animationGroups.forEach((group) => group.dispose());
+      mixer.uncacheRoot(clone);
+      skeletons.forEach((skeleton) => skeleton.dispose());
       if (clone.parent) {
         clone.parent.remove(clone);
       }

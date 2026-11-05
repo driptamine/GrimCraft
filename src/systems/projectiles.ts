@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { updatePlasmaBoltCrackle } from '../fx/plasma-bolt.js';
+import { PLASMA_CLOUD_PUFF, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
+import { updatePlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
+import { HELLGUN_LASER_NAME, fadeHellgunLaser } from '../fx/hellgun-laser.js';
+import { LASGUN_LASER_NAME, fadeLasgunLaser } from '../fx/lasgun-laser.js';
 import {
   PLAYER,
   addBeforeRender,
@@ -15,6 +19,9 @@ import { _groundAt, _snapTerrainBegin } from './terrain.js';
 
 export const _boltLookTarget = new THREE.Vector3();
 export const _boltFlashWhite = new THREE.Color(1, 1, 1);
+const _puffStart = new THREE.Vector3();
+const _puffTravel = new THREE.Vector3();
+const _puffClosest = new THREE.Vector3();
 
 
 export function systemBullet(world: any, deltaTime: number) {
@@ -226,21 +233,23 @@ export function systemLaserBullet(world: any, deltaTime: number) {
     }
     bulletComponent.age += deltaTime;
     if (bulletComponent.age > 1.5) {
-      disposeObj(meshComponent.root);
+      disposeObj(meshComponent.root, meshComponent.root.name === HELLGUN_LASER_NAME);
       world.destroyEntity(id);
       continue;
     }
     meshComponent.root.position.x += bulletComponent.vx * deltaTime;
     meshComponent.root.position.y += bulletComponent.vy * deltaTime;
     meshComponent.root.position.z += bulletComponent.vz * deltaTime;
-    meshComponent.root.rotation.y = Math.atan2(bulletComponent.vx, bulletComponent.vz);
+    if (!bulletComponent.exactOrigin) {
+      meshComponent.root.rotation.y = Math.atan2(bulletComponent.vx, bulletComponent.vz);
+    }
     const targetMeshComponent = world.get(bulletComponent.targetId, 'mesh');
     if (targetMeshComponent && world.has(bulletComponent.targetId, 'soldier')) {
       const distance = meshComponent.root.position.distanceTo(targetMeshComponent.root.position);
       if (distance < .8) {
         _soldierTakeDamage(world, bulletComponent.targetId, bulletComponent.damage);
         spawnParticles(meshComponent.root.position, new THREE.Color(1, 0, 0), 5);
-        disposeObj(meshComponent.root);
+        disposeObj(meshComponent.root, meshComponent.root.name === HELLGUN_LASER_NAME);
         world.destroyEntity(id);
         continue;
       }
@@ -273,12 +282,16 @@ export function systemBeam(world: any, deltaTime: number) {
       continue;
     }
     const fade = Math.max(0, 1 - beamComponent.age / 0.18);
-    if (meshComponent.root.material) {
+    if (meshComponent.root.name === HELLGUN_LASER_NAME) {
+      fadeHellgunLaser(meshComponent.root, fade);
+    } else if (meshComponent.root.name === LASGUN_LASER_NAME) {
+      fadeLasgunLaser(meshComponent.root, fade);
+    } else if (meshComponent.root.material) {
       meshComponent.root.material.opacity = fade * 0.92;
       meshComponent.root.material.transparent = true;
     }
     if (beamComponent.age > 0.18) {
-      disposeObj(meshComponent.root);
+      disposeObj(meshComponent.root, meshComponent.root.name === HELLGUN_LASER_NAME || meshComponent.root.name === LASGUN_LASER_NAME);
       world.destroyEntity(id);
     }
   }
@@ -385,7 +398,7 @@ export function systemBlasterBullet(world: any, deltaTime: number) {
 export function systemPlasmaBullet(world: any, deltaTime: number) {
   for (const id of world.query('bullet', 'mesh')) {
     const bulletComponent = world.get(id, 'bullet');
-    if (!bulletComponent || !['plasma', 'plasma-final'].includes(bulletComponent.projectileType?.toLowerCase())) {
+    if (!bulletComponent || !['plasma', 'plasma-final', PLASMA_CLOUD_PUFF].includes(bulletComponent.projectileType?.toLowerCase())) {
       continue;
     }
     const meshComponent = world.get(id, 'mesh');
@@ -393,6 +406,8 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
       continue;
     }
     bulletComponent.age += deltaTime;
+    const cloudPuff = bulletComponent.projectileType === PLASMA_CLOUD_PUFF;
+    if (cloudPuff) updatePlasmaCloudPuff(meshComponent.root, bulletComponent.age);
     // Elongated bolt flies nose-first along its velocity; filaments swirl.
     _boltLookTarget.set(
       meshComponent.root.position.x + bulletComponent.vx,
@@ -413,20 +428,36 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
       world.destroyEntity(id);
       continue;
     }
+    if (cloudPuff) _puffStart.copy(meshComponent.root.position);
     meshComponent.root.position.x += bulletComponent.vx * deltaTime;
     meshComponent.root.position.y += bulletComponent.vy * deltaTime;
     meshComponent.root.position.z += bulletComponent.vz * deltaTime;
+    if (cloudPuff) {
+      bulletComponent.travelled = (bulletComponent.travelled || 0) + meshComponent.root.position.distanceTo(_puffStart);
+      updatePlasmaCloudBlaster(meshComponent.root, bulletComponent.travelled);
+    }
     const targetMeshComponent = world.get(bulletComponent.targetId, 'mesh');
     if (targetMeshComponent && world.has(bulletComponent.targetId, 'soldier')) {
       // Troops anchor at the feet while the bolt flies at chest height: test
       // the hit against the chest or every shot sails through the body.
-      _boltLookTarget.copy(targetMeshComponent.root.position);
+      if (cloudPuff) targetMeshComponent.root.getWorldPosition(_boltLookTarget);
+      else _boltLookTarget.copy(targetMeshComponent.root.position);
       _boltLookTarget.y += 1.0;
-      const distance = meshComponent.root.position.distanceTo(_boltLookTarget);
-      if (distance < 1.0) {
+      let distance = meshComponent.root.position.distanceTo(_boltLookTarget);
+      if (cloudPuff) {
+        // Small, fast puffs must still hit if a frame steps past the target.
+        _puffTravel.copy(meshComponent.root.position).sub(_puffStart);
+        const lengthSq = _puffTravel.lengthSq();
+        const t = lengthSq > 0 ? THREE.MathUtils.clamp(_puffClosest.copy(_boltLookTarget).sub(_puffStart).dot(_puffTravel) / lengthSq, 0, 1) : 0;
+        _puffClosest.copy(_puffStart).addScaledVector(_puffTravel, t);
+        distance = _puffClosest.distanceTo(_boltLookTarget);
+      }
+      if (distance < (cloudPuff ? 0.55 : 1.0)) {
         _soldierTakeDamage(world, bulletComponent.targetId, bulletComponent.damage);
-        spawnParticles(meshComponent.root.position, _boltFlashWhite, 5);
-        spawnParticles(meshComponent.root.position, new THREE.Color(0.45, 0.7, 1.0), 12);
+        if (!cloudPuff) {
+          spawnParticles(meshComponent.root.position, _boltFlashWhite, 5);
+          spawnParticles(meshComponent.root.position, new THREE.Color(0.45, 0.7, 1.0), 12);
+        }
         disposeObj(meshComponent.root);
         world.destroyEntity(id);
         continue;
@@ -453,7 +484,8 @@ export function systemParticle(world: any, deltaTime: number) {
     p.mesh.rotation.x += deltaTime * 10;
     p.mesh.rotation.y += deltaTime * 7;
     if (p.age >= p.life) {
-      disposeObj(p.mesh);
+      // Particle materials are created per particle; geometry is shared.
+      disposeObj(p.mesh, true);
       particles.splice(i, 1);
     }
   }

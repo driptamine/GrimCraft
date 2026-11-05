@@ -74,6 +74,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       open: true,
+      // ECS/Three state cannot survive a module reload. File edits otherwise
+      // trigger Vite's full-reload fallback and discard the running match.
+      // Keep watching/invalidation so a manual refresh loads current sources.
+      hmr: false,
     },
     build: {
       outDir: 'dist',

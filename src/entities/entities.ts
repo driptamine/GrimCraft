@@ -40,6 +40,10 @@ import { NecronLightning } from '../fx/necron-lightning.js';
 import { makePlasmaBoltMesh, makePlasmaFinalBoltMesh } from '../fx/plasma-bolt.js';
 import { makeBlasterBoltMesh } from '../fx/blaster-bolt.js';
 import { makeReaperBoltMesh } from '../fx/reaper-bolt.js';
+import { HELLGUN_LASER_NAME, makeHellgunLaserMesh } from '../fx/hellgun-laser.js';
+import { LASGUN_LASER_NAME, makeLasgunLaserMesh } from '../fx/lasgun-laser.js';
+import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh } from '../fx/plasma-cloud-puff.js';
+import { attachPlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
 import { mkBox, mkSphere, mkCylinder, mkPlane, mkGroup, disposeObj, childMeshes, descendants } from '../render/three-helpers.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -120,8 +124,9 @@ export function applySquadWeaponVisuals(world: any, squadEntityId: any) {
     if (soldier?.isGrenadier) {
       return;
     }
-    const effective = soldier?.projectileType || squadComponent.projectileType;
-    if (effective === 'plasma' || effective === 'plasma-final') {
+    const effective = squadComponent.projectileType === PLASMA_CLOUD_PUFF
+      ? PLASMA_CLOUD_PUFF : soldier?.projectileType || squadComponent.projectileType;
+    if (effective === 'plasma' || effective === 'plasma-final' || effective === PLASMA_CLOUD_PUFF) {
       _applyPlasmaVisuals(root);
     } else {
       _toggleMeshNode(root, 'guardsmen_lasgun', true);
@@ -229,6 +234,7 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
     walkTime: Math.random() * Math.PI * 2,
     flashTimer: 0,
     shootTimer: 0,
+    meleeTimer: 0,
     scatter: null,
     stagger: 0,
     flyAlt: 0,
@@ -254,7 +260,7 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
   });
   if (isGrenadier) {
     _applyGrenadierVisuals(mesh);
-  } else if (squadComponent.projectileType === 'plasma' || squadComponent.projectileType === 'plasma-final') {
+  } else if (squadComponent.projectileType === 'plasma' || squadComponent.projectileType === 'plasma-final' || squadComponent.projectileType === PLASMA_CLOUD_PUFF) {
     _applyPlasmaVisuals(mesh);
   }
   if (isSuperior) {
@@ -262,6 +268,7 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
   }
 
   const hpBar = makeHpBar(1.2, squadComponent.team);
+  hpBar.visible = false;
   let reloadBar: any = null;
   if (isGrenadier) {
     reloadBar = _makeReloadBar(squadComponent.team);
@@ -389,7 +396,9 @@ export function createBuilderEntity(world: any, x: number, z: number, team: any 
     bodyMat.emissive = new THREE.Color(0.27, 0.13, 0);
   }
   mesh.position.set(x, 0, z);
-  world.add(id, 'mesh', { root: mesh });
+  const hpBar = makeHpBar(1.2, team);
+  hpBar.visible = false;
+  world.add(id, 'mesh', { root: mesh, hpBar });
   return id;
 }
 
@@ -741,6 +750,38 @@ export function createPlasmaFinalBulletEntity(world: any, ownerMeshPos: any, own
   return id;
 }
 
+/** Seven compact projectiles share one plasma shot's damage budget. */
+export function createPlasmaCloudPuffVolley(world: any, origin: THREE.Vector3, team: string, ownerId: number, targetId: number, damageMult = 1, damageOverride: number | null = null): number[] {
+  const target = world.get(targetId, 'mesh')?.root;
+  if (!target || !world.has(targetId, 'soldier')) return [];
+  const aim = target.getWorldPosition(new THREE.Vector3());
+  aim.y += 1;
+  const direction = aim.clone().sub(origin).normalize();
+  const right = new THREE.Vector3(direction.z, 0, -direction.x);
+  if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
+  right.normalize();
+  const up = new THREE.Vector3().crossVectors(direction, right).normalize();
+  const damage = (damageOverride ?? (14 + Math.random() * 6) * damageMult) / PLASMA_CLOUD_PUFF_COUNT;
+  const ids: number[] = [];
+  for (let index = 0; index < PLASMA_CLOUD_PUFF_COUNT; index++) {
+    const id = world.createEntity([TAG.bullet]);
+    const mesh = makePlasmaCloudPuffMesh(index);
+    const angle = index * Math.PI * 2 / PLASMA_CLOUD_PUFF_COUNT;
+    mesh.position.copy(origin).addScaledVector(right, Math.cos(angle) * 0.045).addScaledVector(up, Math.sin(angle) * 0.045);
+    mesh.lookAt(aim);
+    if (index === 0) attachPlasmaCloudBlaster(mesh, mesh.position.distanceTo(aim));
+    const velocity = aim.clone().sub(mesh.position).normalize().multiplyScalar(35 + index * 1.1);
+    world.add(id, 'bullet', {
+      team, targetId, ownerRef: ownerId, projectileType: PLASMA_CLOUD_PUFF, puffVariant: index,
+      vx: velocity.x, vy: velocity.y, vz: velocity.z, damage, age: 0, travelled: 0,
+    });
+    world.add(id, 'mesh', { root: mesh });
+    scene?.add(mesh);
+    ids.push(id);
+  }
+  return ids;
+}
+
 export function createBlasterBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
   const id = world.createEntity([TAG.bullet]);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
@@ -829,6 +870,7 @@ export function createApcEntity(world: any, position: any, faction: any = null) 
   const meta = { apcEntityId: id, faction: factionKey };
   const root = makeApcMesh(position, PLAYER, meta);
   const hpBar = makeHpBar(3, PLAYER);
+  hpBar.visible = false;
   world.add(id, 'mesh', { root, hpBar });
   return id;
 }
@@ -858,18 +900,19 @@ export function createVehicleEntity(world: any, team: any, name: any, model: any
   const meta = { vehicleEntityId: id, faction: factionKey };
   const root = makeVehicleMesh(model, position, team, meta);
   const hpBar = makeHpBar(3, team);
+  hpBar.visible = false;
   world.add(id, 'mesh', { root, hpBar });
   return id;
 }
 
-export function createLaserBulletEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
+export function createLaserBulletEntity(world: any, ownerPos: any, ownerTeam: any, ownerId: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null, exactOrigin = false) {
   const id = world.createEntity(['laserBullet']);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
     return null;
   }
   const ownerPosition = ownerPos.clone();
-  ownerPosition.y = 2.3;
+  if (!exactOrigin) ownerPosition.y = 2.3;
   const targetPosition = targetMesh.position.clone();
   targetPosition.y = 1;
   const dx = targetPosition.x - ownerPosition.x;
@@ -877,16 +920,26 @@ export function createLaserBulletEntity(world: any, ownerPos: any, ownerTeam: an
   const dz = targetPosition.z - ownerPosition.z;
   const length = Math.hypot(dx, dy, dz) || 1;
   const speed = 65;
-  const mesh = mkBox('laser', 0.02, 0.02, 8.0);
+  const hellgun = world.get(ownerId, 'soldier')?.weapon === 'hellgun';
+  const mesh = hellgun ? makeHellgunLaserMesh(8, 'z') : mkBox('laser', 0.02, 0.02, 8.0);
   mesh.position.copy(ownerPosition);
   mesh.rotation.y = Math.atan2(dx, dz);
-  const laserMaterial = new THREE.MeshBasicMaterial();
-  laserMaterial.color = new THREE.Color(1, 0, 0);
-  mesh.material = laserMaterial;
+  if (exactOrigin) {
+    // Anchor the back of the streak at the muzzle, with no geometry behind it.
+    if (!hellgun) mesh.geometry.translate(0, 0, 4);
+    mesh.lookAt(targetPosition);
+  }
+  if (!hellgun) {
+    const laserMaterial = new THREE.MeshBasicMaterial();
+    laserMaterial.color = new THREE.Color(1, 0, 0);
+    mesh.material = laserMaterial;
+  }
   world.add(id, 'laserBullet', {
     team: ownerTeam,
     targetId: targetSoldierId,
     ownerRef: ownerId,
+    exactOrigin,
+    projectileType: hellgun ? HELLGUN_LASER_NAME : 'laser',
     vx: (dx / length) * speed,
     vy: (dy / length) * speed,
     vz: (dz / length) * speed,
@@ -913,22 +966,29 @@ export function createBeamEntity(world: any, ownerPos: any, ownerTeam: any, owne
   const dy = endPos.y - startPos.y;
   const dz = endPos.z - startPos.z;
   const length = Math.hypot(dx, dy, dz) || 1;
-  const mesh = mkCylinder('beam', 0.02, 0.05, length, 10);
+  const weapon = world.get(ownerId, 'soldier')?.weapon;
+  const hellgun = weapon === 'hellgun';
+  const lasgun = weapon === 'lasgun';
+  const mesh = hellgun ? makeHellgunLaserMesh(length)
+    : lasgun ? makeLasgunLaserMesh(length) : mkCylinder('beam', 0.02, 0.05, length, 10);
   const from = new THREE.Vector3(dx, dy, dz).normalize();
   const quat = new THREE.Quaternion();
   quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), from);
   mesh.quaternion.copy(quat);
   mesh.position.copy(startPos.clone().add(endPos).multiplyScalar(0.5));
-  const beamMaterial = new THREE.MeshBasicMaterial();
-  beamMaterial.color = new THREE.Color(1, 92 / 255, 92 / 255);
-  beamMaterial.opacity = 0.92;
-  beamMaterial.transparent = true;
-  mesh.material = beamMaterial;
+  if (!hellgun && !lasgun) {
+    const beamMaterial = new THREE.MeshBasicMaterial();
+    beamMaterial.color = new THREE.Color(1, 92 / 255, 92 / 255);
+    beamMaterial.opacity = 0.92;
+    beamMaterial.transparent = true;
+    mesh.material = beamMaterial;
+  }
   const damage = damageOverride ?? (10 + Math.random() * 8) * damageMult;
   world.add(id, 'beam', {
     team: ownerTeam,
     targetId: targetSoldierId,
     ownerRef: ownerId,
+    projectileType: hellgun ? HELLGUN_LASER_NAME : lasgun ? LASGUN_LASER_NAME : 'beam',
     age: 0,
     damage,
     hit: false,
@@ -946,12 +1006,25 @@ const MUZZLE_TIP_EXTENSION = 0.5;
 // (necron gauss_flayer: marker_gun_muzzle_ctr_out), extended slightly along
 // the barrel axis; falls back to chest height above the soldier's feet when
 // the model has no muzzle nodes.
-export function getSoldierMuzzlePos(world: any, soldierId: any) {
+export function getSoldierMuzzlePos(world: any, soldierId: any, weapon: string | null = null) {
   const root = world.get(soldierId, 'mesh')?.root;
   const fallback = root ? root.position.clone() : new THREE.Vector3();
   fallback.y = 1.05;
   if (!root) {
     return fallback;
+  }
+  if (weapon === PLASMA_CLOUD_PUFF) {
+    const muzzle = root.getObjectByName('marker_plasma_muzzle');
+    return muzzle ? muzzle.getWorldPosition(new THREE.Vector3()) : fallback;
+  }
+  if (weapon === 'hellgun') {
+    // kasrkin.glb names the hellgun's barrel marker "lasgun". It rides
+    // bone_ig_hand_weapon_r, so world position follows the animated gun.
+    // Do not select the plasma/flamer markers present in the same model,
+    // or apply the extra extension used by Necron gun-tip markers.
+    const muzzle = root.getObjectByName('marker_hellgun_muzzle')
+      || root.getObjectByName('marker_lasgun_muzzle');
+    return muzzle ? muzzle.getWorldPosition(new THREE.Vector3()) : fallback;
   }
   let best: any = null;
   let bestScore = Infinity;
@@ -1078,6 +1151,7 @@ export function createJetEntity(world: any, spawnPos: any) {
   });
   const mesh = makeJetMesh(new THREE.Vector3(spawnPos.x, JET_ALT, spawnPos.z), PLAYER, { jetEntityId });
   const hpBar = makeHpBar(3.5, PLAYER);
+  hpBar.visible = false;
   world.add(id, 'mesh', { root: mesh, hpBar });
   return id;
 }

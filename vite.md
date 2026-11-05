@@ -6,7 +6,9 @@
 npm run dev
 ```
 
-Starts dev server at http://localhost:3000 with instant HMR.
+Starts dev server at http://localhost:3000. Automatic HMR/page reloads on file
+changes are disabled because they discard the running match. Refresh the browser
+manually when ready to apply code changes; Vite still invalidates changed files.
 Files are served as native ESM — no bundle step.
 
 Use this for ALL code-and-test work: fixing bugs, adding features,

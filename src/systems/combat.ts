@@ -3,6 +3,7 @@ import { infantryImmortal } from '../hud/store.js';
 import {
   PLAYER,
   TEAM_COLOR,
+  _allHitboxes,
   kills,
   particles,
   setKills,
@@ -73,6 +74,7 @@ export function disposeMeshComponent(meshComponent: any) {
     }
     if (meshComponent.root._instanceData) {
       try {
+        meshComponent.root._instanceData.dispose?.();
         meshComponent.root._instanceData.animationGroups.forEach((ag: any) => {
           try {
             ag.stop();
@@ -96,6 +98,9 @@ export function disposeMeshComponent(meshComponent: any) {
     }
     childMeshes(meshComponent.root).forEach((m) => disposeObj(m));
     disposeObj(meshComponent.root);
+    for (let i = _allHitboxes.length - 1; i >= 0; i--) {
+      if (_allHitboxes[i].userData?.disposed) _allHitboxes.splice(i, 1);
+    }
   }
   if (meshComponent.hpBar) {
     childMeshes(meshComponent.hpBar).forEach((m) => disposeObj(m));
@@ -224,11 +229,9 @@ export function disposeSoldierHud(meshComponent: any) {
 
 
 export function disposeSoldierMeshes(meshComponent: any) {
-  try {
-    childMeshes(meshComponent.root).forEach((m) => disposeObj(m));
-    disposeObj(meshComponent.root);
-  } catch (e) { /* ignore */ }
   disposeSoldierHud(meshComponent);
+  // Death needs the same complete rig/mixer teardown as a world reset.
+  disposeMeshComponent(meshComponent);
 }
 
 

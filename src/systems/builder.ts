@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createBuildingEntity, createStructureEntity } from '../entities/entities.js';
 import { updateHUD } from '../core/hud.js';
-import { buildListeningPostMesh } from '../meshes.js';
+import { buildListeningPostMesh, updateHpBar } from '../meshes.js';
 import {
   COSTS,
   currentBounds,
@@ -29,6 +29,7 @@ export function systemBuilder(world: any, deltaTime: number) {
     if (!builderComponent || !meshComponent) {
       continue;
     }
+    builderComponent.meleeTimer = Math.max(0, (builderComponent.meleeTimer || 0) - deltaTime);
     meshComponent.root.position.y = _groundAt(meshComponent.root.position.x, meshComponent.root.position.z);
     if (builderComponent.buildTargetSP !== null && !builderComponent.isBuilding) {
       const strategicPoint = world.get(builderComponent.buildTargetSP, 'strategicPoint');
@@ -104,7 +105,7 @@ export function systemBuilder(world: any, deltaTime: number) {
       }
     } else {
       if (meshComponent.root._playAnim) {
-        meshComponent.root._playAnim('idle');
+        meshComponent.root._playAnim(builderComponent.meleeOrder && builderComponent.meleeTimer > 0 ? 'melee' : 'idle');
       }
       if (meshComponent.root._legL) {
         meshComponent.root._legL.rotation.x *= .85;
@@ -114,6 +115,16 @@ export function systemBuilder(world: any, deltaTime: number) {
         meshComponent.root._armL.rotation.x *= .85;
         meshComponent.root._armR.rotation.x *= .85;
       }
+    }
+    if (builderComponent.meleeOrder && builderComponent.meleeTimer > 0 && !meshComponent.root._playAnim && meshComponent.root._armR) {
+      const swing = Math.sin((1 - Math.min(1, builderComponent.meleeTimer / 0.65)) * Math.PI * 2);
+      meshComponent.root._armR.rotation.x = -0.8 + swing;
+    }
+    if (meshComponent.hpBar) {
+      meshComponent.hpBar.position.copy(meshComponent.root.position);
+      meshComponent.hpBar.position.y += 0.06;
+      meshComponent.hpBar.position.z -= 1.1;
+      updateHpBar(meshComponent.hpBar, builderComponent.hp / builderComponent.maxHp);
     }
   }
 }
@@ -155,6 +166,10 @@ export function _builderCombat(world: any, b: any, m: any, deltaTime: number) {
     if (b.attackCd <= 0) {
       const soldierId = esq.soldiers.find((sid: any) => sid !== null && world.has(sid, 'soldier'));
       if (soldierId !== undefined) {
+        if (b.meleeOrder) {
+          b.meleeTimer = m.root._animGroups?.melee?.getDuration?.() || 0.65;
+          m.root._playAnim?.('melee', false);
+        }
         _soldierTakeDamage(world, soldierId, b.attackDamage);
         const smc = world.get(soldierId, 'mesh');
         if (smc) {

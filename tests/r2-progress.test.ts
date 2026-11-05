@@ -83,7 +83,7 @@ describe('r2 download progress', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
     const gltf = read('src/render/gltf-models.ts');
-    assert.ok(gltf.includes("from './r2-progress.js'"), 'loadGltf reports bytes');
+    assert.ok(gltf.includes("from '../net/r2-progress.js'"), 'loadGltf reports bytes');
     assert.ok(gltf.includes('loadAsync(url, onByteProgress)'), 'loader passes progress events');
     const helpers = read('src/render/three-helpers.ts');
     assert.ok(helpers.includes('reportR2Progress(url,'), 'textures report completion');

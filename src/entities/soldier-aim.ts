@@ -219,7 +219,7 @@ export function animSwitchBlocked({ currentAnim, shootDone, name, force = false 
   if (force) {
     return false;
   }
-  return (currentAnim === 'shoot' || currentAnim === 'shootMove') && !shootDone && name !== currentAnim;
+  return (currentAnim === 'shoot' || currentAnim === 'shootMove' || currentAnim === 'melee') && !shootDone && name !== currentAnim;
 }
 
 // Seconds a soldier holds the weapon-ready idle_tracking pose after combat
@@ -257,16 +257,15 @@ export const MAX_UPGRADES_PER_SQUAD = 5;
 export function numberOfUpgrades(soldiers: { isGrenadier?: boolean }[] | null | undefined, projectileType: string): number {
   const list = soldiers || [];
   const grenadiers = list.filter((s) => s && s.isGrenadier).length;
-  const plasma = projectileType === 'plasma' || projectileType === 'plasma-final'
+  const plasma = projectileType === 'plasma' || projectileType === 'plasma-final' || projectileType === 'plasma-cloud-puff'
     ? list.filter((s) => s && !s.isGrenadier).length
     : 0;
   return Math.min(MAX_UPGRADES_PER_SQUAD, grenadiers + plasma);
 }
 
-// Melee damage estimate, parallel to the ranged DPS readout (10.5 × rate).
-// No melee mechanics exist yet, so this display placeholder deliberately
-// sits below the ranged baseline until real melee combat lands.
+// Base melee damage per swing; long animation clips can limit attack cadence.
 export const MELEE_DAMAGE_BASE = 8.0;
+export const MELEE_RANGE = 2.4;
 
 export function meleeDamageEstimate(soldiers: { attackRate?: number }[] | null | undefined): number {
   const list = (soldiers || []).filter(Boolean);

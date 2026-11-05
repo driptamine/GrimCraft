@@ -13,7 +13,7 @@ describe('info panel production queue', () => {
   it('shows the queue for any training building, not just IG types', () => {
     assert.ok(view.includes('if (building && building.queue) {'), 'any building with a queue shows it');
     assert.ok(!view.includes('isHQ || isBarracks || isMechanized'), 'no IG type gate on the queue block');
-    assert.ok(view.includes('queue = <ProductionQueue items={building.queue} />;'), 'queue items render');
+    assert.ok(view.includes('queue = <ProductionQueue items={building.queue} producer={building} />;'), 'queue uses the producing building’s faction and production list');
   });
 
   it('queue items render progress generically', () => {

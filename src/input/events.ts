@@ -11,7 +11,6 @@ import { preloadTaskbarIcons } from '../ui/taskbar-icons.js';
 import { updateHUD } from '../core/hud.js';
 import { buildMenuOpen, setBuildMenuOpen } from '../hud/store.js';
 import {
-  _hoverEnemySquad,
   buildMode,
   camera,
   canCommand,
@@ -23,7 +22,11 @@ import {
   setSelBuilder,
   set_hoverEnemySquad,
   world,
+  addBeforeRender,
+  removeBeforeRender,
 } from '../core/scene.js';
+import { createUnitHover, syncUnitHealthBars, faceHealthBarsToCamera } from '../render/unit-indicators.js';
+import { _groundAt } from '../systems/terrain.js';
 import { isDecalHoverEnabled } from '../maps/sgb-decals.js';
 import { _apcEjectPassengers } from '../core/systems.js';
 import { disposeObj } from '../render/three-helpers.js';
@@ -34,6 +37,7 @@ import {
   setAltDown, setAltOrbitLast, setIsAltOrbiting, setIsOrbiting, setIsSelecting, setLastHoverPickT, setMouseEntered, setMouseX, setMouseY, setRangeCirclesVisible, setRightDown, setRightDragStartPos, setRightLastPos, setSelEnd, setSelStart,
 } from './camera.js';
 import { _boardSquadOntoApc, _flyArmed, _pendingBuilderCommand, _tryBuilderCommandClick, cancelFlyTargeting, clearBuilderCommand, issueFpsShot, issueRightClick, placeBuild, placeListeningPost, setBuilderCommand } from './orders.js';
+import { pendingUnitCommand, clearUnitCommand, setUnitCommand, setSelectedAttackMode, stopSelectedTroops, tryUnitCommandClick } from './unit-commands.js';
 import { copyGunPose, fpsAimPoint, fpsLook, initGunPosePanel, isGunEditMode, isShooterMode, setCameraMode, toggleCameraFps, toggleGunEditMode } from '../render/camera-fps.js';
 import { clearSelection, doBoxSelect, doClickSelect, pickMesh, raycastGround } from './selection.js';
 
@@ -56,6 +60,13 @@ export function _updateHoverCursor(hit: { meta?: any } | null): void {
   let hover: { kind: string; damaged?: boolean } | null = null;
   let hoverApc = null;
   if (meta) {
+    const targetId = meta.squadEntityId ?? world.get(meta.soldierEntityId, 'soldier')?.squadId
+      ?? meta.builderEntityId ?? meta.apcEntityId ?? meta.vehicleEntityId ?? meta.jetEntityId
+      ?? meta.buildingEntityId ?? meta.structureEntityId ?? meta.airfieldEntityId;
+    const target = targetId == null ? null
+      : world.get(targetId, 'squad') || world.get(targetId, 'builder') || world.get(targetId, 'apc')
+        || world.get(targetId, 'vehicle') || world.get(targetId, 'jet') || world.get(targetId, 'building')
+        || world.get(targetId, 'structure') || world.get(targetId, 'airfield');
     if (repairMode) {
       const rid = meta.buildingEntityId ?? meta.structureEntityId ?? meta.vehicleEntityId ?? meta.airfieldEntityId;
       if (rid !== undefined) {
@@ -64,6 +75,8 @@ export function _updateHoverCursor(hit: { meta?: any } | null): void {
           hover = { kind: 'repairable', damaged: comp.hp < (comp.maxHp || comp.hp) };
         }
       }
+    } else if (target?.team && (target.hp == null || target.hp > 0) && isHostileToSelection(world, targetId, target.team)) {
+      hover = { kind: 'enemy' };
     } else if (meta.apcEntityId !== undefined) {
       const apc = world.get(meta.apcEntityId, 'apc');
       if (apc && canCommand(apc.team) && apc.passengers.length < apc.maxPassengers) {
@@ -94,11 +107,11 @@ export function _updateHoverCursor(hit: { meta?: any } | null): void {
   const name = resolveCursor({
     modal: getModalCursor(),
     buildMode,
-    pendingCommand: _pendingBuilderCommand,
+    pendingCommand: pendingUnitCommand || _pendingBuilderCommand,
     hover,
     infantrySelected,
   });
-  canvas!.style.cursor = name ? cursorCss(name, 'auto') : ((buildMode || _pendingBuilderCommand || _flyArmed) ? 'crosshair' : cursorCss('default', ''));
+  canvas!.style.cursor = name ? cursorCss(name, 'auto') : ((buildMode || _pendingBuilderCommand || pendingUnitCommand || _flyArmed) ? 'crosshair' : cursorCss('default', ''));
 }
 
 
@@ -119,12 +132,37 @@ export function isHostileToSelection(world: any, hoveredId: number, hoveredTeam:
 }
 
 
+let _unitIndicatorsCleanup: (() => void) | null = null;
+
 export function setupPointerEvents(): void {
   initGunPosePanel();
   if (!canvas) return;
+  _unitIndicatorsCleanup?.();
+  const unitHover = createUnitHover(scene, _groundAt);
+  const clearUnitHover = (): void => {
+    unitHover.clear();
+    set_hoverEnemySquad(null);
+  };
+  const refreshIndicators = addBeforeRender(() => {
+    if (isShooterMode()) unitHover.clear();
+    else unitHover.refresh(world);
+    syncUnitHealthBars(world, {
+      unitIds: selSquads, builderId: selBuilder, enemySquadId: hoveredEnemySquad,
+      hoveredUnitId: unitHover.hoveredUnitId,
+    });
+    faceHealthBarsToCamera(world, camera, _groundAt);
+  });
+  canvas.addEventListener('pointerleave', clearUnitHover);
+  window.addEventListener('blur', clearUnitHover);
+  _unitIndicatorsCleanup = () => {
+    removeBeforeRender(refreshIndicators);
+    window.removeEventListener('blur', clearUnitHover);
+    unitHover.dispose();
+  };
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   canvas.addEventListener('pointerdown', (event) => {
     if (!canvas) return;
+    clearUnitHover();
     // Touch in shooter mode is owned by the touch controls (left stick for
     // movement, right-side drag for look, FIRE button to shoot): letting the
     // mouse path run would fire a shot on every look-drag start.
@@ -154,6 +192,7 @@ export function setupPointerEvents(): void {
         canvas.setPointerCapture(event.pointerId);
         return;
       }
+      if (pendingUnitCommand) return;
       setIsSelecting(true);
       canvas.setPointerCapture(event.pointerId);
       setSelStart({ x: event.clientX, y: event.clientY });
@@ -161,7 +200,8 @@ export function setupPointerEvents(): void {
       selBoxEl.style.display = 'block';
       updateSelBoxCSS();
     } else if (event.button === 2) {
-      if (_pendingBuilderCommand) {
+      if (pendingUnitCommand && pendingUnitCommand !== 'melee') clearUnitCommand();
+      if (_pendingBuilderCommand && _pendingBuilderCommand !== 'melee') {
         clearBuilderCommand();
       }
       if (buildMode) {
@@ -173,6 +213,7 @@ export function setupPointerEvents(): void {
       setIsOrbiting(false);
       setRightDragStartPos({ x: event.clientX, y: event.clientY });
       setRightLastPos({ x: event.clientX, y: event.clientY });
+      if (pendingUnitCommand === 'melee' || _pendingBuilderCommand === 'melee') return;
       const selectedApcs = selSquads.filter((id: number) => world.get(id, 'apc') != null);
       if (selectedApcs.length) {
         const point = raycastGround(event.clientX, event.clientY);
@@ -388,6 +429,7 @@ export function setupPointerEvents(): void {
       _updatePointBaseHover();
       _updateBuildingHover(hit);
       _updateHoverCursor(hit);
+      unitHover.update(world, hit?.meta || null, (id, team) => isHostileToSelection(world, id, team));
       let hoveredSquadId = null;
       if (hit?.meta) {
         const sid = hit.meta.squadEntityId !== undefined ? hit.meta.squadEntityId : world.get(hit.meta.soldierEntityId, 'soldier')?.squadId;
@@ -396,25 +438,7 @@ export function setupPointerEvents(): void {
           if (squad && isHostileToSelection(world, sid, squad.team)) hoveredSquadId = sid;
         }
       }
-      if (hoveredSquadId !== _hoverEnemySquad) {
-        if (_hoverEnemySquad !== null && _hoverEnemySquad !== hoveredEnemySquad && world.has(_hoverEnemySquad, 'squad')) {
-          const previousSquad = world.get(_hoverEnemySquad, 'squad');
-          previousSquad?.soldiers.forEach((sid: number) => {
-            if (!sid) return;
-            const mc = world.get(sid, 'mesh');
-            if (mc?.root?._selMat) mc.root._selMat.opacity = 0; mc.root._selMat.transparent = true;
-          });
-        }
-        set_hoverEnemySquad(hoveredSquadId);
-        if (hoveredSquadId !== null && hoveredSquadId !== hoveredEnemySquad) {
-          const hsq = world.get(hoveredSquadId, 'squad');
-          hsq?.soldiers.forEach((sid: number) => {
-            if (!sid) return;
-            const mc = world.get(sid, 'mesh');
-            if (mc?.root?._selMat) mc.root._selMat.opacity = 0.4; mc.root._selMat.transparent = true;
-          });
-        }
-      }
+      set_hoverEnemySquad(hoveredSquadId);
     }
   });
   canvas.addEventListener('pointerup', (event) => {
@@ -437,7 +461,7 @@ export function setupPointerEvents(): void {
         }
         return;
       }
-      if (_tryBuilderCommandClick(event.clientX, event.clientY)) {
+      if (tryUnitCommandClick(event.clientX, event.clientY) || _tryBuilderCommandClick(event.clientX, event.clientY)) {
         setIsSelecting(false);
         selBoxEl.style.display = 'none';
         return;
@@ -452,7 +476,11 @@ export function setupPointerEvents(): void {
       }
       updateHUD();
     } else if (event.button === 2) {
-      if (!isOrbiting) issueRightClick(event.clientX, event.clientY);
+      if (!isOrbiting
+        && !tryUnitCommandClick(event.clientX, event.clientY, 2)
+        && !_tryBuilderCommandClick(event.clientX, event.clientY, 2)) {
+        issueRightClick(event.clientX, event.clientY);
+      }
       setRightDown(false);
       setIsOrbiting(false);
     }
@@ -473,6 +501,11 @@ export function initInput(): void {
       event.preventDefault();
     }
     if (event.code === 'Escape') {
+      if (pendingUnitCommand) {
+        clearUnitCommand();
+        event.preventDefault();
+        updateHUD();
+      }
       if (buildMenuOpen) {
         setBuildMenuOpen(false);
         event.preventDefault();
@@ -488,15 +521,7 @@ export function initInput(): void {
       if (!buildMode) canvas!.style.cursor = 'grab';
     }
     if (event.code === 'KeyQ') {
-      selSquads.forEach((sid: number) => {
-        const squad = world.get(sid, 'squad');
-        if (squad) {
-          squad.moveOrder = null;
-          squad.flyOrder = null;
-          squad.captureOrderSpId = null;
-          squad.stopped = true;
-        }
-      });
+      stopSelectedTroops();
     }
     if (event.code === 'KeyL') {
       selSquads.filter((id: number) => world.has(id, 'apc')).forEach((apcId) => {
@@ -567,6 +592,20 @@ export function initInput(): void {
         }
       }
       updateHUD();
+    }
+    const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement | null)?.tagName || '');
+    if (!typing && !(event.target as HTMLElement | null)?.isContentEditable && !event.ctrlKey && !event.metaKey && !event.altKey && !isShooterMode()) {
+      if (event.code === 'Digit1' || event.code === 'Numpad1') {
+        setSelectedAttackMode('melee');
+        event.preventDefault();
+      } else if (event.code === 'Digit2' || event.code === 'Numpad2') {
+        setSelectedAttackMode('ranged');
+        event.preventDefault();
+      }
+    }
+    if (!typing && selBuilder === null && selSquads.length > 0) {
+      if (event.code === 'KeyM') setUnitCommand('move');
+      if (event.code === 'KeyT') setUnitCommand('melee');
     }
     if (selBuilder !== null && world.has(selBuilder, 'builder')) {
       if (event.code === 'KeyM') {

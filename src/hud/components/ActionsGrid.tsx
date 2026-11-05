@@ -13,6 +13,8 @@ import { buildMenuOpen, setBuildMenuOpen } from '../store.js';
 import { getViewKind, getAliveGroups, computeSquadData, getBarracksProduction, getStructureProduction, unitTooltip, structureTooltip, addonTooltip, entityFaction, workerDisplayName } from '../data.js';
 import { ActionButton, CostGlyph } from '../bits.jsx';
 import { ActionsGridDiv, CommandGridDiv, CommandEmptySlot } from '../primitives.jsx';
+import { UnitCommandGrid } from './UnitCommandGrid.jsx';
+import { clearUnitCommand } from '../../input/unit-commands.js';
 
 type ProductionObject = Exclude<ProductionItem, string>;
 
@@ -68,7 +70,7 @@ function BuilderActions(): JSX.Element | null {
       <ActionButton key="move" icon="assets/command_icons/move.png" label="MOVE" cost="M" tooltip="MOVE\nRight-click ground to move" onClick={() => setBuilderCommand('move')} />,
       <ActionButton key="stop" icon={faction?.icons?.stop || 'assets/command_icons/stop.png'} label="STOP" cost="Q KEY" tooltip="STOP\nCancel all orders" onClick={stopBuild} />,
       <ActionButton key="attackmove" icon="assets/command_icons/attackm.png" label="ATTACK\nMOVE" tooltip="ATTACK MOVE\nMove and engage enemies along the way" onClick={() => setBuilderCommand('attackmove')} />,
-      <ActionButton key="melee" icon="assets/command_icons/melee.png" label="MELEE" cost="T" tooltip="MELEE\nEngage in close combat" onClick={() => setBuilderCommand('melee')} />,
+      <ActionButton key="melee" icon="assets/command_icons/melee.png" label="MELEE" cost="1 / T" tooltip="MELEE (1 / T)\nRight-click an enemy or ground to engage in close combat\nPress 2 to switch back to ranged" onClick={() => setBuilderCommand('melee')} />,
       <ActionButton key="toggle" icon="assets/command_icons/train_units.png" label="BUILD\nSTRUCTURE" tooltip="BUILD STRUCTURE\nOpen construction menu" onClick={() => setBuildMenuOpen(true)} />,
       <ActionButton key="repair" icon="assets/command_icons/repair.png" label="REPAIR" cost="R" tooltip="REPAIR\nRight-click damaged building to repair" onClick={() => setBuilderCommand('repair')} />,
       stanceBtn('stand', 'assets/command_icons/stance_stand.png', 'STAND'),
@@ -374,8 +376,7 @@ function JetActions(): JSX.Element | null {
   };
 
   return (
-    <ActionsGridDiv>
-      {modes.map((m) => {
+    <UnitCommandGrid extras={modes.map((m) => {
         const isActive = jets.every((jid: number) => {
           const j = world.get(jid, 'jet');
           return j && (j.waitOrders ? 'hold' : j.patrolMode) === m.key;
@@ -393,8 +394,7 @@ function JetActions(): JSX.Element | null {
             onClick={() => setMode(m)}
           />
         );
-      })}
-    </ActionsGridDiv>
+      })} />
   );
 }
 
@@ -408,25 +408,8 @@ function SquadActions(): JSX.Element {
     return !!cfg?.canFly;
   });
 
-  return (
-    <ActionsGridDiv>
-      <ActionButton
-        icon="⏹"
-        label="STOP"
-        cost="Q KEY"
-        tooltip="STOP\nCancel movement and hold position"
-        onClick={() => {
-          data.alive.forEach((sqId) => {
-            const sq = world.get(sqId, 'squad');
-            if (sq) {
-              sq.moveOrder = null;
-              sq.stopped = true;
-            }
-          });
-          updateHUD();
-        }}
-      />
-      <ActionButton
+  const extras: JSX.Element[] = [
+      <ActionButton key="resume"
         icon="▶"
         label="RESUME"
         tooltip="RESUME\nClear STOP and resume orders"
@@ -437,8 +420,8 @@ function SquadActions(): JSX.Element {
           });
           updateHUD();
         }}
-      />
-      <ActionButton
+      />,
+      <ActionButton key="chase"
         icon={data.chaseActive ? '🔴' : '🟢'}
         label={data.chaseActive ? 'CHASE ON' : 'CHASE OFF'}
         tooltip={`AUTO-CHASE ${data.chaseActive ? 'ON' : 'OFF'}\nAutomatically pursue nearby enemies`}
@@ -450,20 +433,23 @@ function SquadActions(): JSX.Element {
           });
           updateHUD();
         }}
-      />
-      {canFlySelected && (
-        <ActionButton
+      />,
+  ];
+  if (canFlySelected) {
+    extras.push(
+        <ActionButton key="fly"
           icon="🕊"
           label="FLY"
           tooltip="FLY\nRight-click a point to fly there"
           onClick={() => {
+            clearUnitCommand();
             armFlyTargeting();
             updateHUD();
           }}
         />
-      )}
-    </ActionsGridDiv>
-  );
+    );
+  }
+  return <UnitCommandGrid extras={extras} />;
 }
 
 /* ── HQ command grid (Imperial Guard) ────────────────────────────────── */
@@ -939,6 +925,7 @@ export function ActionsGrid(): JSX.Element | null {
   }
   if (view === 'buildings') return <MultiBuildingActions />;
   if (view === 'jet') return <JetActions />;
+  if (view === 'vehicle' || view === 'apc') return <UnitCommandGrid />;
   if (view === 'squad' || view === 'squads') return <SquadActions />;
   return <ActionsGridDiv />;
 }

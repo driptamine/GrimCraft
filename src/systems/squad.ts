@@ -8,6 +8,7 @@ import {
   createLightningEntity,
   createPlasmaBulletEntity,
   createPlasmaFinalBulletEntity,
+  createPlasmaCloudPuffVolley,
   createReaperBulletEntity,
   createSoldierEntity,
   getSoldierMuzzlePos,
@@ -16,9 +17,12 @@ import {
 } from '../entities/entities.js';
 import { FACTIONS } from '../factions.js';
 import { DEFAULT_ARMOR_CLASS, damagePerShot, getWeapon, type ArmorClass } from '../combat/stats.js';
+import { isKasrkinHellgun, kasrkinFireRate } from '../combat/fire-rate.js';
+import { updateMeleeEngagements } from '../combat/melee-engagements.js';
 import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../fx/plasma-bolt.js';
+import { PLASMA_CLOUD_PUFF } from '../fx/plasma-cloud-puff.js';
 import {
   FLY_CLIMB,
   FLY_CRUISE_ALT,
@@ -37,6 +41,8 @@ import {
 } from '../core/scene.js';
 import { HILL_SLOT_RELEASE_DIST } from '../../pathfinding/avoid.js';
 import {
+  MELEE_DAMAGE_BASE,
+  MELEE_RANGE,
   CAPTURE_PROGRESS_RATE,
   CAPTURE_SEQUENCE,
   PLANTER_SPEED_MULT,
@@ -58,7 +64,7 @@ import {
 } from '../entities/soldier-aim.js';
 import { childMeshes, disposeObj, findNodesByName } from '../render/three-helpers.js';
 import { getRideInfo, yieldSlotBehind } from '../render/camera-fps.js';
-import { findClosestEnemySoldier } from './combat.js';
+import { findClosestEnemySoldier, _soldierTakeDamage } from './combat.js';
 import { _strategicPointUpdateOwner } from './points.js';
 import { _avoidDir, _groundAt, _snapTerrainBegin, _steerSquadFacing } from './terrain.js';
 import { clampStepToRoute, exitsStraight, updateMoverRoute, updateSquadRoute } from '../../pathfinding/astar-integrated.js';
@@ -78,6 +84,7 @@ export function systemSoldier(world: any, deltaTime: number) {
     if (soldierComponent.shootTimer > 0) {
       soldierComponent.shootTimer -= deltaTime;
     }
+    soldierComponent.meleeTimer = Math.max(0, (soldierComponent.meleeTimer || 0) - deltaTime);
     if (soldierComponent.revealTimer > 0) {
       soldierComponent.revealTimer -= deltaTime;
     }
@@ -224,13 +231,21 @@ export function systemSquad(world: any, deltaTime: number) {
   // One snapshot for every enemy search this tick (safe: lookups below
   // tolerate entities destroyed mid-loop via the usual get() guards).
   const allSquadIds = world.query('squad');
+  updateMeleeEngagements(world, allSquadIds, attackMode);
   for (const squadEntityId of world.query('squad', 'mesh')) {
     const squadComponent = world.get(squadEntityId, 'squad');
     const meshComponent = world.get(squadEntityId, 'mesh');
     if (!squadComponent || !meshComponent) {
       continue;
     }
+    const squadAttackMode = squadComponent.attackMode || attackMode;
+    const meleeMode = squadAttackMode === 'melee';
+    const combatRange = meleeMode ? MELEE_RANGE : squadComponent.attackRange;
     const aliveSols = squadComponent.soldiers.filter((s: any) => s !== null && world.has(s, 'soldier'));
+    if (aliveSols.some((id: number) => world.get(id, 'soldier')?.meleeEngaged)) {
+      squadComponent.captureOrderSpId = null;
+      squadComponent.capturingSpId = null;
+    }
     if (aliveSols.length === 0) {
       childMeshes(meshComponent.hpBar).forEach((m) => disposeObj(m));
       disposeObj(meshComponent.hpBar);
@@ -260,7 +275,7 @@ export function systemSquad(world: any, deltaTime: number) {
         const dz = enemyMeshComponent.root.position.z - squadComponent.position.z;
         const length = Math.hypot(dx, dz) || 1;
         if (squadComponent.team !== PLAYER) {
-          if (distance > squadComponent.attackRange && !squadComponent.moveOrder) {
+          if (distance > combatRange && !squadComponent.moveOrder) {
             const huntTarget = updateMoverRoute(squadComponent, squadComponent.position, enemyMeshComponent.root.position, { tag: 'hunt', keyPrecision: 4 }) || enemyMeshComponent.root.position;
             const hdx = huntTarget.x - squadComponent.position.x;
             const hdz = huntTarget.z - squadComponent.position.z;
@@ -278,8 +293,8 @@ export function systemSquad(world: any, deltaTime: number) {
             squadComponent.position.z = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.z));
             moving = true;
           }
-        } else if (attackMode === 'melee') {
-          if (distance > squadComponent.attackRange && !squadComponent.moveOrder) {
+        } else if (squadAttackMode === 'melee') {
+          if (distance > combatRange && !squadComponent.moveOrder) {
             squadComponent.facing.set(dx / length, 0, dz / length);
             if (!exitsStraight(squadComponent, squadComponent.position.x, squadComponent.position.z)) {
               _steerSquadFacing(squadComponent, length);
@@ -295,7 +310,7 @@ export function systemSquad(world: any, deltaTime: number) {
           }
         } else {
           squadComponent.facing.set(dx / length, 0, dz / length);
-          if (distance > squadComponent.attackRange) {
+          if (distance > combatRange) {
             if (!exitsStraight(squadComponent, squadComponent.position.x, squadComponent.position.z)) {
               _steerSquadFacing(squadComponent, length);
             }
@@ -338,7 +353,7 @@ export function systemSquad(world: any, deltaTime: number) {
             const dz = enemyMeshComponent.root.position.z - squadComponent.position.z;
             const length = Math.hypot(dx, dz) || 1;
             if (squadComponent.team !== PLAYER) {
-              if (enemy.distance > squadComponent.attackRange && !squadComponent.moveOrder) {
+              if (enemy.distance > combatRange && !squadComponent.moveOrder) {
                 const huntTarget = updateMoverRoute(squadComponent, squadComponent.position, enemyMeshComponent.root.position, { tag: 'hunt', keyPrecision: 4 }) || enemyMeshComponent.root.position;
                 const hdx = huntTarget.x - squadComponent.position.x;
                 const hdz = huntTarget.z - squadComponent.position.z;
@@ -356,8 +371,8 @@ export function systemSquad(world: any, deltaTime: number) {
                 squadComponent.position.z = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.z));
                 moving = true;
               }
-            } else if (attackMode === 'melee') {
-              if (enemy.distance > squadComponent.attackRange && !squadComponent.moveOrder) {
+            } else if (squadAttackMode === 'melee') {
+              if (enemy.distance > combatRange && !squadComponent.moveOrder) {
                 const huntTarget = updateMoverRoute(squadComponent, squadComponent.position, enemyMeshComponent.root.position, { tag: 'hunt', keyPrecision: 4 }) || enemyMeshComponent.root.position;
                 const hdx = huntTarget.x - squadComponent.position.x;
                 const hdz = huntTarget.z - squadComponent.position.z;
@@ -378,14 +393,14 @@ export function systemSquad(world: any, deltaTime: number) {
             } else {
               let aimX = dx;
               let aimZ = dz;
-              if (enemy.distance > squadComponent.attackRange) {
+              if (enemy.distance > combatRange) {
                 const huntTarget = updateMoverRoute(squadComponent, squadComponent.position, enemyMeshComponent.root.position, { tag: 'hunt', keyPrecision: 4 }) || enemyMeshComponent.root.position;
                 aimX = huntTarget.x - squadComponent.position.x;
                 aimZ = huntTarget.z - squadComponent.position.z;
               }
               const alen = Math.hypot(aimX, aimZ) || 1;
               squadComponent.facing.set(aimX / alen, 0, aimZ / alen);
-              if (enemy.distance > squadComponent.attackRange) {
+              if (enemy.distance > combatRange) {
                 if (!exitsStraight(squadComponent, squadComponent.position.x, squadComponent.position.z)) {
                   _steerSquadFacing(squadComponent, length);
                 }
@@ -426,6 +441,9 @@ export function systemSquad(world: any, deltaTime: number) {
           squadComponent.position.x = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.x));
           squadComponent.position.z = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.z));
         }
+      } else if (squadComponent.attackMove && squadComponent.moveOrder && enemy && enemy.distance <= combatRange && !squadComponent.stopped) {
+        // Keep the destination while engaging, then resume the advance.
+        moving = false;
       } else if (squadComponent.moveOrder && !squadComponent.stopped) {
         const dx = squadComponent.moveOrder.x - squadComponent.position.x;
         const dz = squadComponent.moveOrder.z - squadComponent.position.z;
@@ -433,6 +451,7 @@ export function systemSquad(world: any, deltaTime: number) {
         const holdSp = _captureHoldTarget(world, squadComponent);
         if (distance < .6) {
           squadComponent.moveOrder = null;
+          squadComponent.attackMove = false;
         } else if (holdSp) {
           const hx = holdSp.position.x - squadComponent.position.x;
           const hz = holdSp.position.z - squadComponent.position.z;
@@ -458,7 +477,7 @@ export function systemSquad(world: any, deltaTime: number) {
           squadComponent.position.x = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.x));
           squadComponent.position.z = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.z));
         }
-      } else if (enemy && !squadComponent.stopped && enemy.distance <= squadComponent.detectionRange && enemy.distance > squadComponent.attackRange && squadComponent.autoChase && (squadComponent.team !== PLAYER || attackMode === 'melee')) {
+      } else if (enemy && !squadComponent.stopped && enemy.distance <= squadComponent.detectionRange && enemy.distance > combatRange && squadComponent.autoChase && (squadComponent.team !== PLAYER || squadAttackMode === 'melee' || squadComponent.stance === 'ranged')) {
         moving = true;
         const enemyPosition = world.get(enemy.soldierEntityId, 'mesh')?.root.position;
         if (enemyPosition) {
@@ -479,7 +498,7 @@ export function systemSquad(world: any, deltaTime: number) {
           squadComponent.position.x = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.x));
           squadComponent.position.z = Math.max(-currentBounds(), Math.min(currentBounds(), squadComponent.position.z));
         }
-      } else if (enemy && !squadComponent.stopped && enemy.distance <= squadComponent.detectionRange && !squadComponent.autoChase && enemy.distance <= squadComponent.attackRange) {
+      } else if (enemy && !squadComponent.stopped && enemy.distance <= squadComponent.detectionRange && !squadComponent.autoChase && enemy.distance <= combatRange) {
         const enemyPosition = world.get(enemy.soldierEntityId, 'mesh')?.root.position;
         if (enemyPosition) {
           const dx = enemyPosition.x - squadComponent.position.x;
@@ -487,7 +506,7 @@ export function systemSquad(world: any, deltaTime: number) {
           const length = Math.hypot(dx, dz) || 1;
           squadComponent.facing.set(dx / length, 0, dz / length);
         }
-      } else if (enemy && !squadComponent.stopped && enemy.distance <= squadComponent.detectionRange && enemy.distance > squadComponent.attackRange && attackMode === 'ranged') {
+      } else if (enemy && !squadComponent.stopped && enemy.distance <= squadComponent.detectionRange && enemy.distance > combatRange && squadAttackMode === 'ranged') {
         const enemyPosition = world.get(enemy.soldierEntityId, 'mesh')?.root.position;
         if (enemyPosition) {
           const dx = enemyPosition.x - squadComponent.position.x;
@@ -501,7 +520,7 @@ export function systemSquad(world: any, deltaTime: number) {
     }
     // Logic plane follows the rendered surface: 3D range checks stay true on hills.
     squadComponent.position.y = _groundAt(squadComponent.position.x, squadComponent.position.z);
-    if (enemy && enemy.distance <= squadComponent.attackRange) {
+    if (enemy && enemy.distance <= combatRange) {
       const enemyPosition = world.get(enemy.soldierEntityId, 'mesh')?.root.position;
       if (enemyPosition) {
         const dx = enemyPosition.x - squadComponent.position.x;
@@ -524,13 +543,13 @@ export function systemSquad(world: any, deltaTime: number) {
         }
       }
       const holdFire = (moving && fireUnit?.stationaryFireOnly) || airborne;
-      if (!holdFire && !window._multiplayerMode) {
+      if (!meleeMode && !holdFire && !window._multiplayerMode) {
         _squadFireAll(world, squadEntityId, squadComponent, aliveSols, deltaTime, enemy);
       }
-    } else {
+    } else if (!meleeMode) {
       for (const soldierId of aliveSols) {
         const soldierComponent = world.get(soldierId, 'soldier');
-        if (soldierComponent) {
+        if (soldierComponent && !soldierComponent.meleeEngaged) {
           soldierComponent.attackCooldown = Math.max(0, soldierComponent.attackCooldown - deltaTime);
         }
       }
@@ -544,9 +563,9 @@ export function systemSquad(world: any, deltaTime: number) {
       }
       const grenadierSolIds = aliveSols.filter((soldierId: any) => {
         const soldierComponent = world.get(soldierId, 'soldier');
-        return soldierComponent && soldierComponent.isGrenadier;
+        return soldierComponent && soldierComponent.isGrenadier && !soldierComponent.meleeEngaged;
       });
-      if (squadComponent.idleTime >= 1 && squadComponent.grenadeCd <= 0 && grenadierSolIds.length > 0 && enemy && enemy.distance <= squadComponent.attackRange + 8) {
+      if (!meleeMode && squadComponent.idleTime >= 1 && squadComponent.grenadeCd <= 0 && grenadierSolIds.length > 0 && enemy && enemy.distance <= squadComponent.attackRange + 8) {
         const enemyMesh = world.get(enemy.soldierEntityId, 'mesh')?.root;
         if (enemyMesh) {
           squadComponent.grenadeCd = squadComponent.grenadeReloadTime;
@@ -631,12 +650,12 @@ export function systemSquad(world: any, deltaTime: number) {
     // appeared. Anim switches cut instantly on this frame (bypass the
     // shoot lock). Arrival (order cleared, stopped untouched) is not an
     // edge: the squad settles into formation naturally.
-    const edgeNow = (squadComponent.stopped ? 4 : 0)
+    const edgeNow = (meleeMode ? 8 : 0) | (squadComponent.stopped ? 4 : 0)
       | (squadComponent.moveOrder ? 2 : 0)
       | (squadComponent.forcedSoldierId ? 1 : 0);
     const edgePrev = squadComponent._animEdgePrev;
     const orderEdge = edgePrev !== undefined && edgePrev !== edgeNow
-      && (((edgePrev ^ edgeNow) & 4) !== 0 || (edgeNow & 3) !== 0);
+      && (((edgePrev ^ edgeNow) & 12) !== 0 || (edgeNow & 3) !== 0);
     squadComponent._animEdgePrev = edgeNow;
     const engagedSp = squadComponent.capturingSpId != null
       ? world.get(squadComponent.capturingSpId, 'strategicPoint')
@@ -654,6 +673,9 @@ export function systemSquad(world: any, deltaTime: number) {
       if (!soldierComponent || !soldierMeshComponent) {
         continue;
       }
+      const soldierMeleeMode = meleeMode || !!soldierComponent.meleeEngaged;
+      const soldierOrderEdge = orderEdge || (soldierComponent._meleeAnimMode !== undefined && soldierComponent._meleeAnimMode !== soldierMeleeMode);
+      soldierComponent._meleeAnimMode = soldierMeleeMode;
       const f = FORMATION[soldierComponent.formIdx];
       if (soldierComponent.scatter) {
         const scatter = soldierComponent.scatter;
@@ -711,6 +733,20 @@ export function systemSquad(world: any, deltaTime: number) {
       const isPlanter = onCaptureDuty && aliveSols.indexOf(soldierId) === 0;
       let tx = squadComponent.position.x + f.x * SQUAD_SCATTER;
       let tz = squadComponent.position.z + f.z * SQUAD_SCATTER;
+      const meleeTargetId = soldierComponent.meleeTargetId;
+      const meleeTarget = soldierMeleeMode && (!squadComponent.stopped || soldierComponent.meleeEngaged)
+        && (!squadComponent.moveOrder || squadComponent.attackMove)
+        && world.get(meleeTargetId, 'soldier')?.hp > 0
+        ? world.get(meleeTargetId, 'mesh')?.root : null;
+      if (meleeTarget) {
+        // Keep a short gap on this fighter's side of the opponent. A pair
+        // closes toward each other instead of circling one shared victim.
+        const dx = soldierMeshComponent.root.position.x - meleeTarget.position.x;
+        const dz = soldierMeshComponent.root.position.z - meleeTarget.position.z;
+        const length = Math.hypot(dx, dz);
+        tx = meleeTarget.position.x + (length > 0.001 ? dx / length : (soldierId < meleeTargetId ? -1 : 1)) * 1.2;
+        tz = meleeTarget.position.z + (length > 0.001 ? dz / length : 0) * 1.2;
+      }
       let planterLeaving = false;
       if (onCaptureDuty) {
         const strategicPoint = world.get(squadComponent.capturingSpId, 'strategicPoint');
@@ -788,10 +824,11 @@ export function systemSquad(world: any, deltaTime: number) {
         soldierMeshComponent.root.position.z += mdz * step;
         moveAngle = Math.atan2(mdx, mdz);
       }
-      soldierComponent._fleeing = moving && soldierMoving && isFleeingMove(moveAngle, yawAngle);
+      soldierComponent._fleeing = !meleeTarget && moving && soldierMoving && isFleeingMove(moveAngle, yawAngle);
       // Pre-plant the planter squares up to the post (with the rod-side yaw
       // offset) so the flag_plant_1 end pose drops the butt in the socket.
       let aimAngle = yawAngle + soldierComponent.idleYawOffset;
+      if (meleeTarget) aimAngle = Math.atan2(meleeTarget.position.x - soldierMeshComponent.root.position.x, meleeTarget.position.z - soldierMeshComponent.root.position.z);
       if (isPlanter && engagedSp && !isPlantingDone({
         captureStage: soldierComponent.captureStage,
         hasPlantAnims: _planterHasPlantAnims(soldierMeshComponent.root),
@@ -805,7 +842,7 @@ export function systemSquad(world: any, deltaTime: number) {
         });
       }
       soldierMeshComponent.root.rotation.y = computeSoldierYaw({
-        shooting: soldierComponent.shootTimer > 0,
+        shooting: soldierComponent.shootTimer > 0 || (!!meleeTarget && soldierMeshComponent.root.position.distanceTo(meleeTarget.position) <= MELEE_RANGE),
         moving: soldierMoving,
         moveAngle,
         aimAngle,
@@ -815,6 +852,20 @@ export function systemSquad(world: any, deltaTime: number) {
       });
       const soldierGroundY = _groundAt(soldierMeshComponent.root.position.x, soldierMeshComponent.root.position.z);
       soldierMeshComponent.root.position.y = soldierGroundY + (soldierComponent.flyAlt || 0);
+      if (soldierMeleeMode) {
+        soldierComponent.shootTimer = 0;
+        soldierComponent.attackCooldown = Math.max(0, soldierComponent.attackCooldown - deltaTime);
+        if (meleeTarget && !window._multiplayerMode && (soldierComponent._flyStage || 0) === 0
+          && soldierMeshComponent.root.position.distanceTo(meleeTarget.position) <= MELEE_RANGE
+          && soldierComponent.attackCooldown <= 0 && world.get(meleeTargetId, 'soldier')?.hp > 0) {
+          const duration = soldierMeshComponent.root._animGroups?.melee?.getDuration?.() || 0.65;
+          soldierComponent.meleeTimer = duration;
+          soldierComponent.attackCooldown = Math.max(1 / soldierComponent.attackRate, duration);
+          _soldierTakeDamage(world, meleeTargetId, MELEE_DAMAGE_BASE * (soldierComponent.damageMult || 1));
+        }
+      } else {
+        soldierComponent.meleeTimer = 0;
+      }
       const isWalking = soldierMoving || moving;
       if (soldierMeshComponent.root._playAnim) {
         const isShooting = soldierComponent.shootTimer > 0;
@@ -858,14 +909,16 @@ export function systemSquad(world: any, deltaTime: number) {
             flyRoot._playAnim('flyLand', false, true);
             soldierComponent._flyLanded = true;
           }
+        } else if (soldierMeleeMode && (!squadComponent.stopped || soldierComponent.meleeEngaged) && soldierComponent.meleeTimer > 0) {
+          soldierMeshComponent.root._playAnim('melee', false, soldierOrderEdge);
         } else if (isShooting) {
           if (isWalking) {
-            soldierMeshComponent.root._playAnim('shootMove', false, orderEdge);
+            soldierMeshComponent.root._playAnim('shootMove', false, soldierOrderEdge);
           } else {
-            soldierMeshComponent.root._playAnim('shoot', false, orderEdge);
+            soldierMeshComponent.root._playAnim('shoot', false, soldierOrderEdge);
           }
         } else if (isWalking) {
-          soldierMeshComponent.root._playAnim('run', undefined, orderEdge);
+          soldierMeshComponent.root._playAnim('run', undefined, soldierOrderEdge);
           if (isPlanter) {
             // Walking plays 'run': the carried banner stays hidden until
             // flag_plant_1 itself starts.
@@ -906,7 +959,7 @@ export function systemSquad(world: any, deltaTime: number) {
             engagedSp.raiseFrom = Math.min(1, Math.abs(engagedSp.captureProgress || 0));
           }
         } else {
-          soldierMeshComponent.root._playAnim('idle', undefined, orderEdge);
+          soldierMeshComponent.root._playAnim('idle', undefined, soldierOrderEdge);
         }
       }
       soldierComponent.walkTime += deltaTime * (isWalking ? 9 : 1.8);
@@ -935,6 +988,10 @@ export function systemSquad(world: any, deltaTime: number) {
           soldierMeshComponent.root._armR.rotation.z = -sway - 0.08;
         }
         soldierMeshComponent.root.position.y = soldierGroundY + (soldierComponent.flyAlt || 0) + breathe * 0.3;
+      }
+      if (soldierMeleeMode && soldierComponent.meleeTimer > 0 && !soldierMeshComponent.root._playAnim && soldierMeshComponent.root._armR) {
+        const swing = Math.sin((1 - Math.min(1, soldierComponent.meleeTimer / 0.65)) * Math.PI * 2);
+        soldierMeshComponent.root._armR.rotation.x = -0.8 + swing;
       }
       if (soldierMeshComponent.root._blobShadow) {
         soldierMeshComponent.root._blobShadow.position.y = 0.015 - (soldierMeshComponent.root.position.y - soldierGroundY);
@@ -986,7 +1043,7 @@ export function systemSquad(world: any, deltaTime: number) {
     }
     const hasGrenadier = aliveSols.some((soldierId: any) => {
       const soldierComponent = world.get(soldierId, 'soldier');
-      return soldierComponent && soldierComponent.isGrenadier;
+      return soldierComponent && soldierComponent.isGrenadier && !soldierComponent.meleeEngaged;
     });
     const enemyNearby = enemy && enemy.distance <= squadComponent.attackRange + 8;
     const showSetupBar = hasGrenadier && !moving && squadComponent.grenadeCd <= 0 && squadComponent.idleTime < 1 && enemyNearby;
@@ -1042,12 +1099,17 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
     if (!soldierComponent) {
       continue;
     }
-    if (soldierComponent._fleeing) {
+    if (soldierComponent._fleeing || soldierComponent.meleeEngaged) {
       continue;
     }
     // Beam/laser/lightning visuals fire at a slower cadence. Per-shot damage
     // is scaled by the same factor so effective DPS is unchanged.
-    const cadence = squadComponent.projectileType === 'laser' || squadComponent.projectileType === 'beam' || squadComponent.projectileType === 'lightning' ? 2.5 : 1;
+    const tunedHellgun = isKasrkinHellgun(soldierComponent, squadComponent);
+    const cadence = tunedHellgun ? soldierComponent.attackRate / kasrkinFireRate()
+      : (squadComponent.projectileType === 'laser' || squadComponent.projectileType === 'beam' || squadComponent.projectileType === 'lightning' ? 2.5 : 1);
+    const interval = (1 / soldierComponent.attackRate) * cadence;
+    // A faster slider setting also shortens an already pending burst.
+    if (tunedHellgun) soldierComponent.attackCooldown = Math.min(soldierComponent.attackCooldown, interval);
     soldierComponent.attackCooldown = Math.max(0, soldierComponent.attackCooldown - deltaTime);
     if (soldierComponent.attackCooldown <= 0) {
       const soldierMeshComponent = world.get(soldierId, 'mesh');
@@ -1056,22 +1118,28 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
         if (soldierComponent.cloaked) {
           soldierComponent.revealTimer = 2.5;
         }
-        const projectileType = soldierComponent.projectileType || squadComponent.projectileType || 'bullet';
+        const projectileType = squadComponent.projectileType === PLASMA_CLOUD_PUFF && !soldierComponent.isGrenadier
+          ? PLASMA_CLOUD_PUFF : soldierComponent.projectileType || squadComponent.projectileType || 'bullet';
         const targetSoldier = world.get(enemy.soldierEntityId, 'soldier');
         const targetArmor = (targetSoldier?.armorClass || DEFAULT_ARMOR_CLASS) as ArmorClass;
         const weapon = getWeapon(soldierComponent.weapon);
         // Wiki weapon stats drive ordinary gunfire. Special projectile
         // upgrades (plasma, blaster, ...) keep their own damage profiles.
-        const statDamage = weapon && (projectileType === 'bullet' || projectileType === 'beam')
+        const statDamage = weapon && (projectileType === 'bullet' || projectileType === 'beam' || tunedHellgun)
           ? damagePerShot(weapon, targetArmor, cadence) * damageMult
           : null;
+        const shotOrigin = tunedHellgun
+          ? getSoldierMuzzlePos(world, soldierId, 'hellgun')
+          : soldierMeshComponent.root.position;
         if (projectileType === 'beam') {
-          createBeamEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, false, statDamage);
+          createBeamEntity(world, shotOrigin, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, tunedHellgun, statDamage);
         } else if (projectileType === 'lightning') {
           const muzzlePos = getSoldierMuzzlePos(world, soldierId);
           createLightningEntity(world, muzzlePos, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'laser') {
-          createLaserBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
+          createLaserBulletEntity(world, shotOrigin, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage, tunedHellgun);
+        } else if (projectileType === PLASMA_CLOUD_PUFF) {
+          createPlasmaCloudPuffVolley(world, getSoldierMuzzlePos(world, soldierId, PLASMA_CLOUD_PUFF), squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'plasma') {
           createPlasmaBulletEntity(world, soldierMeshComponent.root.position, squadComponent.team, soldierId, enemy.soldierEntityId, damageMult, statDamage);
         } else if (projectileType === 'plasma-final') {
@@ -1087,7 +1155,7 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
         soldierComponent.flashTimer = .06;
         soldierComponent.shootTimer = 0.4;
       }
-      soldierComponent.attackCooldown = (1 / soldierComponent.attackRate) * cadence;
+      soldierComponent.attackCooldown = interval;
     }
   }
 }

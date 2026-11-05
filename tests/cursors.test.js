@@ -22,10 +22,12 @@ function makeTga(width, height, topDown, rowsTopFirst) {
 }
 
 describe('cursors', () => {
-  it('maps the six requested cursors to their tga files', () => {
+  it('maps the requested cursors to their tga files', () => {
     assert.deepEqual(CURSOR_FILES, {
       default: 'default.tga',
+      attack: 'attack.tga',
       capture: 'modal_capturepoint.tga',
+      melee: 'modal_melee.tga',
       repair: 'modal_repair.tga',
       teleport: 'modal_teleport.tga',
       droppod: 'modal_droppod.tga',
@@ -71,6 +73,8 @@ describe('cursors', () => {
 
   it('resolves hover cursors with modal and command modes winning', () => {
     assert.equal(resolveCursor({}), 'default');
+    assert.equal(resolveCursor({ hover: { kind: 'enemy' } }), 'attack');
+    assert.equal(resolveCursor({ hover: { kind: 'friendly' } }), 'default');
     assert.equal(resolveCursor({ hover: { kind: 'sp' } }), 'capture');
     assert.equal(resolveCursor({ hover: { kind: 'loadable' }, infantrySelected: true }), 'load');
     assert.equal(resolveCursor({ hover: { kind: 'loadable' }, infantrySelected: false }), 'default');
@@ -85,6 +89,12 @@ describe('cursors', () => {
     );
     assert.equal(resolveCursor({ pendingCommand: 'repair', hover: { kind: 'sp' } }), null);
     assert.equal(resolveCursor({ pendingCommand: 'move', hover: { kind: 'sp' } }), null);
+    assert.equal(resolveCursor({ pendingCommand: 'melee' }), 'melee');
+    assert.equal(resolveCursor({ pendingCommand: 'melee', hover: { kind: 'enemy' } }), 'melee');
+    assert.equal(resolveCursor({ buildMode: 'hq', hover: { kind: 'enemy' } }), null);
+    assert.equal(resolveCursor({ modal: 'teleport', hover: { kind: 'enemy' } }), 'teleport');
+    assert.equal(resolveCursor({ pendingCommand: 'melee', hover: { kind: 'sp' } }), 'melee');
+    assert.equal(resolveCursor({ pendingCommand: 'melee', hover: { kind: 'loadable' }, infantrySelected: true }), 'melee');
     assert.equal(resolveCursor({ buildMode: 'hq', hover: { kind: 'sp' } }), null);
     assert.equal(resolveCursor({ modal: 'teleport', hover: { kind: 'sp' } }), 'teleport');
     assert.equal(resolveCursor({ modal: 'droppod' }), 'droppod');

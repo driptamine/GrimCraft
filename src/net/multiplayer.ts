@@ -489,7 +489,7 @@ export function _injectConnectUI() {
     '.webTransport-load-fill { height:100%; width:0%; background:#50c8ff; transition:width .15s; }',
     '.webTransport-load-label { margin-top:6px; font-size:9px; letter-spacing:.1em; color:rgba(255,255,255,0.55); min-height:13px; }',
     '.webTransport-load-timer { margin-top:4px; font-size:10px; letter-spacing:.15em; color:#ffc850; min-height:14px; }',
-    '.webTransport-panel.webTransport-panel-skirmish { max-width:900px; }',
+    '.webTransport-panel.webTransport-panel-skirmish { max-width:900px; width:calc(100% - 24px); box-sizing:border-box; align-self:flex-start; margin-top:clamp(16px,5vh,48px); max-height:calc(100dvh - 176px); overflow-y:auto; }',
     '.webTransport-map-label { font-size:9px; letter-spacing:.2em; color:#50c8ff; opacity:.7; margin:2px 0 8px; }',
     '.webTransport-map-body { display:flex; gap:10px; align-items:flex-start; margin-bottom:14px; }',
     '.webTransport-map-grid { flex:1; min-width:0; display:grid; grid-template-columns:1fr; gap:8px; max-height:360px; overflow-y:auto; }',
@@ -856,10 +856,13 @@ let _r2Peak = 0;
 // Stable denominator for "done / all": the manifest size known from the
 // preflight, so the "all" number never increments mid-download.
 let _r2ExpectedTotal = 0;
-// Paint throttle: progress events fire dozens of times per second; the DOM
-// updates at most every 150ms (or on percent change) to stop flicker.
+// Coalesce progress events into at most one DOM update every 150ms,
+// including percent changes and fast cache hits. Keep the latest update.
 let _r2LastPaint = 0;
-let _r2LastPct = -1;
+let _r2PaintTimer: ReturnType<typeof setTimeout> | null = null;
+let _r2LatestSnapshot: any = null;
+let _r2Loading = false;
+let _r2Session = 0;
 // Set when the preflight finds every expected file already in Cache Storage:
 // the download bar stays hidden, only the "already downloaded" note shows.
 let _r2AllCached = false;
@@ -879,7 +882,7 @@ function _ensureR2Bar(): HTMLElement | null {
   bar = document.createElement('div');
   bar.id = 'r2-progress';
   bar.style.cssText = [
-    'display:none', 'position:fixed', 'left:50%', 'bottom:56px',
+    'display:none', 'position:fixed', 'left:50%', 'bottom:max(12px,env(safe-area-inset-bottom))',
     'transform:translateX(-50%)', 'width:min(640px,92vw)', 'z-index:10001',
     'pointer-events:none', 'font-family:Courier New,monospace',
     'background:rgba(5,8,18,0.88)', 'border:1px solid rgba(80,200,255,0.4)',
@@ -896,7 +899,7 @@ function _ensureR2Bar(): HTMLElement | null {
   track.appendChild(fill);
   const label = document.createElement('div');
   label.id = 'r2-progress-label';
-  label.style.cssText = 'margin-top:6px;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,0.75);min-height:13px';
+  label.style.cssText = 'margin-top:6px;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,0.75);height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
   const cacheLine = document.createElement('div');
   cacheLine.id = 'r2-progress-path';
   cacheLine.style.cssText = 'margin-top:2px;font-size:8px;letter-spacing:.08em;color:rgba(80,200,255,0.6);min-height:11px';
@@ -923,31 +926,41 @@ function _setR2CacheLine(text: string): void {
 }
 
 function _renderR2Bar(snapshot: any): void {
-  if (_r2AllCached) {
+  if (!_r2Loading || _r2AllCached || !snapshot || snapshot.totalFiles === 0) {
     return;
   }
+  _r2LatestSnapshot = snapshot;
+  const remaining = 150 - (Date.now() - _r2LastPaint);
+  if (_r2LastPaint > 0 && remaining > 0) {
+    if (_r2PaintTimer === null) {
+      _r2PaintTimer = setTimeout(() => {
+        _r2PaintTimer = null;
+        _paintR2Bar(_r2LatestSnapshot);
+      }, remaining);
+    }
+    return;
+  }
+  if (_r2PaintTimer !== null) {
+    clearTimeout(_r2PaintTimer);
+    _r2PaintTimer = null;
+  }
+  _paintR2Bar(snapshot);
+}
+
+function _paintR2Bar(snapshot: any): void {
+  if (!_r2Loading || _r2AllCached || !snapshot) return;
   const bar = _ensureR2Bar();
   if (!bar) {
     return;
   }
   const fill = document.getElementById('r2-progress-fill');
   const text = document.getElementById('r2-progress-label');
-  if (!snapshot || snapshot.totalFiles === 0) {
-    bar.style.display = 'none';
-    return;
-  }
   // Stable "all files" number: the manifest size from the preflight, not the
   // growing count of registered downloads.
   const all = _r2ExpectedTotal > 0 ? _r2ExpectedTotal : snapshot.totalFiles;
   bar.style.display = 'block';
   _r2Peak = Math.max(_r2Peak, snapshot.percent);
-  const now = typeof Date !== 'undefined' && Date.now ? Date.now() : 0;
-  const settled = snapshot.complete || snapshot.percent !== _r2LastPct;
-  if (!settled && now - _r2LastPaint < 150) {
-    return;
-  }
-  _r2LastPaint = now;
-  _r2LastPct = snapshot.percent;
+  _r2LastPaint = Date.now();
   const total = snapshot.totalBytes > 0 ? _formatR2MB(snapshot.totalBytes) : '…';
   if (fill) {
     fill.style.width = `${_r2Peak}%`;
@@ -960,16 +973,8 @@ function _renderR2Bar(snapshot: any): void {
       : '';
     text.textContent = `R2 — ${_formatR2MB(snapshot.loadedBytes)}/${total} · ${ongoing} ongoing / ${all} files${current}${failed}`;
   }
-  if (snapshot.complete) {
-    setTimeout(() => {
-      const el = typeof document !== 'undefined' && document.getElementById
-        ? document.getElementById('r2-progress')
-        : null;
-      if (el && snapshot.complete && !_r2AllCached) {
-        el.style.display = 'none';
-      }
-    }, 1500);
-  }
+  // A snapshot only covers files registered so far. During sequential
+  // loading it becomes complete between files; hide only when boot ends.
 }
 
 // Where the R2 bytes live on this device, for the "already downloaded" note.
@@ -981,6 +986,7 @@ function _runR2Preflight() {
   if (typeof document === 'undefined' || !document.getElementById) {
     return;
   }
+  const session = _r2Session;
   const text = document.getElementById('r2-progress-label');
   if (text) {
     text.textContent = 'Checking downloaded files…';
@@ -1004,6 +1010,7 @@ function _runR2Preflight() {
     urls = [];
   }
   probeR2Cache(urls).then((result) => {
+    if (!_r2Loading || session !== _r2Session) return;
     if (!result.checked || result.total === 0) {
       _r2ExpectedTotal = 0;
       _setR2CacheLine('');
@@ -1021,19 +1028,11 @@ function _runR2Preflight() {
         label.textContent = `✔ Already downloaded — no download needed`;
       }
       _setR2CacheLine(`${_r2CacheLabel(result.cacheName)} · ${result.cached}/${result.total} files on this device`);
-      setTimeout(() => {
-        if (_r2AllCached) {
-          const el = document.getElementById('r2-progress');
-          if (el) {
-            el.style.display = 'none';
-          }
-        }
-      }, 2200);
       return;
     }
     _setR2CacheLine(`${_r2CacheLabel(result.cacheName)} · ✔ ${result.cached}/${result.total} already here`);
   }).catch(() => {
-    _setR2CacheLine('');
+    if (_r2Loading && session === _r2Session) _setR2CacheLine('');
   });
 }
 
@@ -1051,6 +1050,13 @@ function _tickBootTimer() {
 }
 
 function _setLoadingUI(loading: boolean): void {
+  _r2Loading = loading;
+  _r2Session += 1;
+  if (_r2PaintTimer !== null) {
+    clearTimeout(_r2PaintTimer);
+    _r2PaintTimer = null;
+  }
+  _r2LatestSnapshot = null;
   const form = document.getElementById('webTransport-connect-form');
   const wrap = document.getElementById('webTransport-load-wrap');
   if (form) {
@@ -1064,7 +1070,6 @@ function _setLoadingUI(loading: boolean): void {
     _r2Peak = 0;
     _r2ExpectedTotal = 0;
     _r2LastPaint = 0;
-    _r2LastPct = -1;
     _r2AllCached = false;
     _ensureR2Bar();
     if (_r2Unsubscribe) {

@@ -440,7 +440,7 @@ export function computeSquadData(): {
   const chaseOnCount = alive.filter((sqId) => world.get(sqId, 'squad')?.autoChase).length;
   const chaseActive = chaseOnCount > (alive.length / 2);
 
-  const ptCounts: Record<string, number> = { bullet: 0, beam: 0, plasma: 0, 'plasma-final': 0 };
+  const ptCounts: Record<string, number> = { bullet: 0, beam: 0, plasma: 0, 'plasma-final': 0, 'plasma-cloud-puff': 0 };
   alive.forEach((sqId) => {
     const sq = world.get(sqId, 'squad');
     if (sq) {
@@ -450,6 +450,7 @@ export function computeSquadData(): {
   });
   let curPtSq = 'bullet';
   if (ptCounts['plasma-final'] > 0) curPtSq = 'plasma-final';
+  else if (ptCounts['plasma-cloud-puff'] > 0) curPtSq = 'plasma-cloud-puff';
   else if (ptCounts.plasma > 0) curPtSq = 'plasma';
   else if (ptCounts.beam >= ptCounts.bullet) curPtSq = 'beam';
 

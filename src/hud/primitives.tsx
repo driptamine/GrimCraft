@@ -162,6 +162,7 @@ export const QueueItem = styled.div`
   width: 34px; height: 34px; background: rgba(80, 200, 255, 0.07);
   border: 1px solid rgba(80, 200, 255, 0.22); position: relative;
   display: flex; align-items: center; justify-content: center; font-size: 15px;
+  & img { width: 30px; height: 30px; object-fit: contain; display: block; }
   & .q-prog { position: absolute; bottom: 0; left: 0; height: 3px; background: #50c8ff; }
 `;
 

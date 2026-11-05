@@ -7,6 +7,7 @@ import {
   resolveFactionKey,
 } from '../factions.js';
 import { instantiateGltf, type AnimGroup, type GltfContainer } from '../render/gltf-models.js';
+import { findMeleeClip, makeMeleeFallbackClip } from '../render/melee-animation.js';
 import { getMat } from '../render/mat-cache.js';
 import { useProceduralModels } from '../render/model-source.js';
 import { _assetContainer, _cloneCustomModel } from '../render/model-upload.js';
@@ -327,10 +328,17 @@ export function applyGuardsmanHead(root: AnyGroup, soldierEntityId: unknown): nu
 
 export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: string, metaPayload: MetaPayload, factionKey: string, role = 'soldier'): AnyGroup {
   const config = TEAM_COLOR[teamKey as keyof typeof TEAM_COLOR] || TEAM_COLOR.builder;
-  const instance = instantiateGltf(container);
+  const animConfig = (getFactionAnimations(factionKey, role) || {}) as Record<string, string | undefined>;
+  const meleeClip = findMeleeClip(container.animations || [], animConfig.melee);
+  const instance = instantiateGltf(meleeClip ? container : {
+    ...container,
+    animations: [...(container.animations || []), makeMeleeFallbackClip(container.scene)],
+  });
   instance.animationGroups.forEach((animationGroup) => animationGroup.stop());
 
   const root = mkGroup('faction_soldier_root') as AnyGroup;
+  // Keep every clip (including unmapped/death clips) reachable for teardown.
+  root._instanceData = instance;
 
   instance.rootNodes.forEach((rootNode) => {
     root.add(rootNode);
@@ -402,7 +410,6 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
   const isMeleeName = (name: string): boolean => /(melee|attack|slash|swing|punch|stab|combat|knife|damage|thrown)/.test(name);
   const isFiringName = (name: string): boolean => /(fir|shoot|gun|weapon)/.test(name) && !name.startsWith('vis_');
   const findAnim = (pred: (name: string) => boolean): AnimGroup | undefined => instance.animationGroups.find((g) => pred(animName(g)));
-  const animConfig = (getFactionAnimations(factionKey, role) || {}) as Record<string, string | undefined>;
   const findByName = (wantedName: string | null | undefined): AnimGroup | null => {
     if (!wantedName) return null;
     const wanted = wantedName.toLowerCase();
@@ -439,6 +446,7 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
   const shootAnim = findByName(animConfig.firing)
     || findAnim((n) => isFiringName(n) && !isMeleeName(n) && /^(idle|stand)_?(fir|shoot)/.test(n))
     || findAnim((n) => isFiringName(n) && !isMeleeName(n));
+  const meleeAnim = instance.animationGroups.find((group) => group.name === (meleeClip?.name || 'melee_attack_fallback'));
   const buildAnim = findByName(animConfig.build)
     || findAnim((n) => !isMeleeName(n) && /^build/.test(n))
     || null;
@@ -477,6 +485,7 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
   if (moveTrackingAnim) root._animGroups.move_tracking = moveTrackingAnim;
   if (runAnim) root._animGroups.run = runAnim;
   if (shootAnim) root._animGroups.shoot = shootAnim;
+  if (meleeAnim) root._animGroups.melee = meleeAnim;
   if (shootMoveAnim) root._animGroups.shootMove = shootMoveAnim;
   if (flyLaunchAnim) root._animGroups.flyLaunch = flyLaunchAnim;
   if (flyIdleAnim) root._animGroups.flyIdle = flyIdleAnim;
@@ -495,7 +504,7 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
   if (!root._animGroups.shoot) root._animGroups.shoot = firstNonMelee() || root._animGroups.idle;
 
   root._playAnim = function (name: string, loop?: boolean, force?: boolean): void {
-    if (loop === undefined) loop = (name !== 'shoot' && name !== 'shootMove');
+    if (loop === undefined) loop = (name !== 'shoot' && name !== 'shootMove' && name !== 'melee');
     if (animSwitchBlocked({ currentAnim: root._currentAnim, shootDone: root._shootDone, name, force })) return;
     let resolvedName = name;
     if (name === 'idle' && root._animGroups.idle_tracking) {
@@ -531,12 +540,12 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
       if (found) resolvedName = found;
       else return;
     }
-    const resolvedLoop = loop && resolvedName !== 'shoot' && resolvedName !== 'shootMove';
+    const resolvedLoop = loop && resolvedName !== 'shoot' && resolvedName !== 'shootMove' && resolvedName !== 'melee';
     (Object.values(root._animGroups) as AnimGroup[]).forEach((ag) => {
       try { ag.stop(); } catch (e) { /* ignore */ }
     });
     root._currentAnim = resolvedName;
-    root._shootDone = (resolvedName !== 'shoot') && (resolvedName !== 'shootMove');
+    root._shootDone = (resolvedName !== 'shoot') && (resolvedName !== 'shootMove') && (resolvedName !== 'melee');
     const ag = root._animGroups[resolvedName];
     if (!ag) return;
     try {

@@ -9,7 +9,9 @@
 
 export const CURSOR_FILES = {
   default: 'default.tga',
+  attack: 'attack.tga',
   capture: 'modal_capturepoint.tga',
+  melee: 'modal_melee.tga',
   repair: 'modal_repair.tga',
   teleport: 'modal_teleport.tga',
   droppod: 'modal_droppod.tga',
@@ -86,7 +88,7 @@ export interface HoverState {
 }
 
 // Hover -> cursor name. `hover` is null or { kind, damaged? } with kind one
-// of 'sp' | 'repairable' | 'loadable'. Returns null when the active mode owns
+// of 'enemy' | 'sp' | 'repairable' | 'loadable'. Returns null when the active mode owns
 // the cursor (crosshair) and must not be overridden.
 export function resolveCursor({ modal = null, buildMode = null, pendingCommand = null, hover = null, infantrySelected = false }: {
   modal?: string | null;
@@ -101,6 +103,9 @@ export function resolveCursor({ modal = null, buildMode = null, pendingCommand =
   if (buildMode) {
     return null;
   }
+  if (pendingCommand === 'melee') {
+    return 'melee';
+  }
   if (pendingCommand === 'repair') {
     return hover?.kind === 'repairable' && hover.damaged ? 'repair' : null;
   }
@@ -109,6 +114,9 @@ export function resolveCursor({ modal = null, buildMode = null, pendingCommand =
   }
   if (!hover) {
     return 'default';
+  }
+  if (hover.kind === 'enemy') {
+    return 'attack';
   }
   if (hover.kind === 'sp') {
     return 'capture';
