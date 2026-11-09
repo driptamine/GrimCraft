@@ -235,6 +235,9 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
     flashTimer: 0,
     shootTimer: 0,
     meleeTimer: 0,
+    hitReactionTimer: 0,
+    hitReactionAnim: null,
+    _hitReactionSide: null,
     scatter: null,
     stagger: 0,
     flyAlt: 0,
@@ -643,6 +646,12 @@ export function createStrategicPointEntity(world: any, x: number, z: number, kin
     // |progress| latched when the planter finished flag_plant_2 (null until
     // then): the assembly rise scrubs from this mark to full capture.
     raiseFrom: null,
+    // Open/close gate for a capture order that is still on its way: elapsed
+    // wait, whether the planter has started approaching, and his last
+    // distance (to detect the distance actually shrinking).
+    _openWaited: 0,
+    _openApproaching: false,
+    _openLastDistance: null,
     // Covers the ~7-8 wide point/relic models so stands and clicks on the
     // model register; the guard ring (CAPTURE_GUARD_DISTANCE) sits outside it.
     captureRadius: 4.5,

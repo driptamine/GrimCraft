@@ -73,7 +73,7 @@ describe('Kasrkin live fire rate', () => {
     setKasrkinFireRate(4);
   });
 
-  it('fires four bursts per second by default while preserving hellgun DPS', () => {
+  it('fires four bursts per second when tuned to 4 while preserving hellgun DPS', () => {
     const { world, soldier, fire } = setup();
     fire();
     assert.equal(soldier.attackCooldown, 0.25);
@@ -165,7 +165,7 @@ describe('Kasrkin live fire rate', () => {
     assert.ok(laser.getWorldDirection(new THREE.Vector3()).distanceTo(velocity) < 1e-9);
   });
 
-  it('gives hellgun lasers a light red core, dark red edges, and independent fading', () => {
+  it('gives hellgun lasers a warm orange-white core, orange edges, and independent fading', () => {
     const { world, fire } = setup();
     fire();
     const firstId = world.query('beam')[0];
@@ -176,7 +176,7 @@ describe('Kasrkin live fire rate', () => {
     const edgeColor = first.material.color;
     const coreColor = core.material.color;
     assert.ok(coreColor.r > edgeColor.r && coreColor.g > edgeColor.g);
-    assert.ok(edgeColor.r > 5 * edgeColor.g && edgeColor.r > 5 * edgeColor.b, 'saturated red edges');
+    assert.ok(edgeColor.r > edgeColor.g && edgeColor.g > edgeColor.b, 'orange edges (r > g > b)');
     assert.ok(core.scale.x < 1 && core.scale.z < 1, 'light core lies inside the outer tube');
     let freedMaterials = 0;
     let freedGeometry = 0;
@@ -222,7 +222,7 @@ describe('Kasrkin live fire rate', () => {
     assert.equal(kasrkinFireRate(), 6.5);
     assert.equal(setKasrkinFireRate(100), 10);
     assert.equal(setKasrkinFireRate(0.1), 0.4);
-    assert.equal(setKasrkinFireRate('invalid'), 4);
+    assert.equal(setKasrkinFireRate('invalid'), 10);
     const storage = globalThis.localStorage;
     try {
       delete globalThis.localStorage;

@@ -10,9 +10,9 @@
     "models:r2:sync": "bash scripts/upload-models-r2.sh",
     "assets:r2:sync": "bash scripts/upload-assets-r2.sh",
     "preview": "vite preview",
-    "test": "node --import ./tests/register-hooks.mjs --test tests/*.test.js",
-    "test:ts": "node --import tsx --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "test": "NODE_OPTIONS=--max-old-space-size=4096 node --import ./tests/register-hooks.mjs --test tests/*.test.js",
+    "test:ts": "NODE_OPTIONS=--max-old-space-size=4096 node --import tsx --test tests/*.test.ts",
+    "typecheck": "NODE_OPTIONS=--max-old-space-size=4096 tsc --noEmit"
   },
   "dependencies": {
     "@linaria/core": "^8.1.1",

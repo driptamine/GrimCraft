@@ -46,3 +46,19 @@ describe('pwa', () => {
     execFileSync(process.execPath, ['--check', swPath]);
   });
 });
+
+it('fresh map requests bypass the service worker cache', async () => {
+  const vm = await import('node:vm');
+  const listeners = new Map();
+  const fresh = { ok: true, source: 'network' };
+  let calls = 0;
+  vm.runInNewContext(readFileSync(swPath, 'utf8'), {
+    self: { addEventListener: (name, callback) => listeners.set(name, callback) },
+    fetch: async () => { calls++; return fresh; },
+    caches: { match: () => { throw new Error('fresh grid must not read stale cache'); } },
+  });
+  let response;
+  listeners.get('fetch')({ request: { method: 'GET', cache: 'no-store' }, respondWith: (value) => { response = value; } });
+  assert.equal(await response, fresh);
+  assert.equal(calls, 1);
+});

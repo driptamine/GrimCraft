@@ -114,16 +114,33 @@ export function factionBasePosition(mapKey: string, team: unknown, faction: stri
   return pos ? { x: pos.x, z: pos.z } : null;
 }
 
-// Starting troops: the given side's IG base fields two guardsmen squads
-// flanking its HQ (unitType 'guardsmen' -> guardsmen.glb + sergeant lead).
+// Keep both Guardsmen squads together between the two strategic points
+// nearest their former spawn area on the IG side of the map.
 export function startingGuardsmenSpawns(mapKey: string, team: unknown): SpawnPoint[] {
   const spawns: SpawnPoint[] = [];
+  const points = strategicPointsFor(mapKey).filter((point) => point.kind === 'point');
   for (const pos of layoutFor(mapKey).positions) {
-    if (pos.team === team && pos.faction === 'ig') {
-      spawns.push(
-        { team: pos.team, x: pos.x + 16, z: pos.z + 10, size: 5, unitType: 'guardsmen', faction: pos.faction },
-        { team: pos.team, x: pos.x + 16, z: pos.z - 10, size: 5, unitType: 'guardsmen', faction: pos.faction },
-      );
+    if (pos.team !== team || pos.faction !== 'ig') continue;
+    const oldX = pos.x + 16;
+    const nearest = [...points].sort((a, b) =>
+      Math.hypot(a.x - oldX, a.z - pos.z) - Math.hypot(b.x - oldX, b.z - pos.z),
+    ).slice(0, 2);
+    let x = oldX;
+    let z = pos.z;
+    let dx = 0;
+    let dz = 10;
+    if (nearest.length === 2) {
+      const [a, b] = nearest;
+      x = (a.x + b.x) / 2;
+      z = (a.z + b.z) / 2;
+      const distance = Math.hypot(b.x - a.x, b.z - a.z);
+      const spacing = Math.min(6, distance / 4);
+      dx = distance > 0 ? (b.x - a.x) / distance * spacing : 0;
+      dz = distance > 0 ? (b.z - a.z) / distance * spacing : 6;
+    }
+    for (const side of [1, -1]) {
+      spawns.push({ team: pos.team, x: x + dx * side, z: z + dz * side,
+        size: 5, unitType: 'guardsmen', faction: pos.faction });
     }
   }
   return spawns;

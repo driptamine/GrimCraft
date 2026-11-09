@@ -1,5 +1,6 @@
+import { updateStrategicPointOwnershipRim } from '../meshes/points.js';
 import { updateHUD } from '../core/hud.js';
-import { nextStrategicPointAnim, shouldShowCaptureFlag, updatePointFlag } from '../meshes.js';
+import { nextPointOpenState, nextStrategicPointAnim, shouldShowCaptureFlag, updatePointFlag } from '../meshes.js';
 import { world } from '../core/scene.js';
 import { decayedCaptureProgress } from '../entities/soldier-aim.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
@@ -8,12 +9,26 @@ import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
 export function systemStrategicPoint(world: any, deltaTime: number) {
   const capturingSpIds = new Set();
   const capturingFactions = new Map();
+  // Closest planter distance per point: a squad carrying a capture order is
+  // "on the way" even before it enters the capture radius.
+  const planterDistances = new Map();
   for (const squadId of world.query('squad')) {
     const squad = world.get(squadId, 'squad');
-    if (squad?.capturingSpId != null) {
+    if (!squad) continue;
+    if (squad.capturingSpId != null) {
       capturingSpIds.add(squad.capturingSpId);
       if (!capturingFactions.has(squad.capturingSpId)) {
         capturingFactions.set(squad.capturingSpId, squad.faction);
+      }
+    }
+    if (squad.captureOrderSpId != null) {
+      const orderedPoint = world.get(squad.captureOrderSpId, 'strategicPoint');
+      if (orderedPoint) {
+        const distance = squad.position.distanceTo(orderedPoint.position);
+        const prev = planterDistances.get(squad.captureOrderSpId);
+        if (prev == null || distance < prev) {
+          planterDistances.set(squad.captureOrderSpId, distance);
+        }
       }
     }
   }
@@ -24,6 +39,7 @@ export function systemStrategicPoint(world: any, deltaTime: number) {
     if (!strategicPoint || !meshComponent) {
       continue;
     }
+    updateStrategicPointOwnershipRim(meshComponent.model, strategicPoint.owner != null);
     // Idle decay (single-player only; multiplayer progress is server-owned):
     // the moment capping stops, unowned progress drains toward 0.
     if (!window._multiplayerMode) {
@@ -45,10 +61,25 @@ export function systemStrategicPoint(world: any, deltaTime: number) {
     if (strategicPoint.owner == null && !beingCaptured) {
       strategicPoint.raiseFrom = null;
     }
+    // Opens the moment a capture order is issued, waits for the planter to
+    // start approaching, and closes after the grace window when he never does.
+    const openState = nextPointOpenState({
+      owner: strategicPoint.owner,
+      beingCaptured,
+      orderedCapture: planterDistances.has(id),
+      planterDistance: planterDistances.get(id) ?? null,
+      deltaTime,
+      waited: strategicPoint._openWaited,
+      approaching: strategicPoint._openApproaching,
+      lastDistance: strategicPoint._openLastDistance,
+    });
+    strategicPoint._openWaited = openState.waited;
+    strategicPoint._openApproaching = openState.approaching;
+    strategicPoint._openLastDistance = openState.lastDistance;
     if (meshComponent.model && meshComponent.model._playAnim) {
       const decision = nextStrategicPointAnim({
         owner: strategicPoint.owner,
-        beingCaptured,
+        beingCaptured: openState.open,
         animState: strategicPoint._animState,
         currentAnim: meshComponent.model._currentAnim,
         progress: strategicPoint.captureProgress,
@@ -118,15 +149,5 @@ export function _strategicPointUpdateOwner(world: any, spId: number, strategicPo
     }
   }
   const meshComponent = world.get(spId, 'mesh');
-  if (meshComponent && meshComponent.capRing && meshComponent.capRingMat) {
-    const time = (strategicPoint.captureProgress + 1) / 2;
-    const r = time > .5 ? 0.13 : 0.87;
-    const g = time > .5 ? 0.4 : 0.13;
-    const b = time > .5 ? 1 : 0.07;
-    meshComponent.capRingMat.color.setRGB(r, g, b);
-    meshComponent.capRingMat.opacity = .35 + .45 * Math.abs(strategicPoint.captureProgress);
-    meshComponent.capRingMat.transparent = true;
-    const scale = .3 + .7 * Math.abs(strategicPoint.captureProgress);
-    meshComponent.capRing.scale.set(scale, 1, scale);
-  }
+  updateStrategicPointOwnershipRim(meshComponent?.model, strategicPoint.owner != null);
 }

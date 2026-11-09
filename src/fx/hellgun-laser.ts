@@ -4,14 +4,14 @@ import { mkSharedMesh } from '../render/three-helpers.js';
 export const HELLGUN_LASER_NAME = 'hellgun_laser';
 
 // Nested unlit tubes keep the nearly white center visible from every angle.
-// Normal blending preserves the deep red edges on both render backends.
+// Normal blending preserves the deep red-orange edges on both render backends.
 const LAYERS = [
-  { radius: 1, color: 0x82000c },
-  { radius: 0.86, color: 0xb90018 },
-  { radius: 0.72, color: 0xf4384b },
-  { radius: 0.56, color: 0xfff2f2 },
+  { radius: 1, color: 0xb52b24 },
+  { radius: 0.86, color: 0xe83e34 },
+  { radius: 0.72, color: 0xff594a },
+  { radius: 0.56, color: 0xffb3a8 },
 ];
-const beamGeometry = new THREE.CylinderGeometry(0.06, 0.06, 1, 12);
+const beamGeometry = new THREE.CylinderGeometry(0.048, 0.048, 1, 12);
 const boltGeometry = beamGeometry.clone();
 boltGeometry.rotateX(Math.PI / 2);
 boltGeometry.translate(0, 0, 0.5);

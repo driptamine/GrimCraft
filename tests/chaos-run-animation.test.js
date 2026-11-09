@@ -71,3 +71,16 @@ describe('chaos space marine move-firing animation', () => {
     assert.equal(mapping.moveFiring, 'marine_heavy_bolter_run_1');
   });
 });
+
+describe('chaos marine melee animations', () => {
+  for (const model of CHAOS_MODELS) {
+    it(`${model} contains attacks, damage reactions and block`, () => {
+      const json = glbJson(model);
+      for (const name of ['melee_1', 'melee_2', 'melee_3', 'melee_damage_l', 'melee_damage_r', 'melee_block']) {
+        const clip = json.animations.find((a) => a.name === name);
+        assert.ok(clip?.channels.length > 30, name);
+        for (const channel of clip.channels) assert.ok(json.nodes[channel.target.node]);
+      }
+    });
+  }
+});

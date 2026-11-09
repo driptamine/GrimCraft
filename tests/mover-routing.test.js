@@ -26,10 +26,10 @@ const grid = JSON.parse(
   fs.readFileSync(path.join(root, 'maps/6p_alvarus/6p_alvarus_path.json'), 'utf8'),
 );
 
-// Closed wall on row 88 (world z=98): cells 69..90. Straight WEST->EAST
+// Closed wall on row 92 (world z=57): cells 69..90. Straight WEST->EAST
 // drills through it on local avoidance alone; A* must route around.
-const WEST = new THREE.Vector3(10, 0, 98);
-const EAST = new THREE.Vector3(118, 0, 98);
+const WEST = new THREE.Vector3(5, 0, 57);
+const EAST = new THREE.Vector3(59, 0, 57);
 const DT = 1 / 60;
 const TICKS = 2400;
 
@@ -76,7 +76,7 @@ describe('movers respect closed paint', () => {
     const squad = world.get(id, 'squad');
     // Raw click just inside the block edge (cell 72,88); same path as
     // issueRightClick: snap before assigning.
-    const raw = new THREE.Vector3(-256 + 72.5 * 4, 0, -256 + 88.5 * 4);
+    const raw = new THREE.Vector3(-128 + 72.5 * 2, 0, -128 + 92.5 * 2);
     assert.equal(sgbPassBlockedAt(grid, raw.x, raw.z), true, 'fixture sits on closed paint');
     const snapped = snapOrderToFree(raw.x, raw.z, grid);
     assert.ok(snapped, 'snapped to the edge');
@@ -127,4 +127,29 @@ describe('movers respect closed paint', () => {
     assert.equal(builder.moveTarget, null, 'order completes');
     assert.equal(crossings(trail), 0, 'no blocked cells stepped on');
   });
+});
+
+it('individual soldiers route around 7 cells while following a moving squad', () => {
+  window.__sgbPassGrid = grid;
+  const world = new World();
+  const id = entities.createSquadEntity(world, 'blue', WEST.x, WEST.z, 2, null, 'ig');
+  const squad = world.get(id, 'squad');
+  const soldiers = squad.soldiers.filter((sid) => sid != null);
+  for (const sid of soldiers) world.get(sid, 'mesh').root.position.copy(WEST);
+  squad.moveOrder = EAST.clone();
+  squad.stopped = false;
+  let crossings = 0;
+  for (let tick = 0; tick < TICKS; tick++) {
+    systems.systemSquad(world, DT);
+    for (const sid of soldiers) {
+      const position = world.get(sid, 'mesh').root.position;
+      if (sgbPassBlockedAt(grid, position.x, position.z)) crossings++;
+    }
+  }
+  assert.equal(crossings, 0, 'no individual soldier steps onto closed paint');
+  assert.equal(squad.moveOrder, null, 'squad reaches its order');
+  for (const sid of soldiers) {
+    const position = world.get(sid, 'mesh').root.position;
+    assert.ok(position.distanceTo(EAST) < 10, 'soldiers follow around the wall instead of staying behind it');
+  }
 });

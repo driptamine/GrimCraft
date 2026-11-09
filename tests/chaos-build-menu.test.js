@@ -37,10 +37,9 @@ describe('heretic build grid', () => {
     }
   });
 
-  it('greater circle icon is a real 242x242 PNG from the TGA', () => {
+  it('greater circle icon is a real runtime 242x242 PNG', () => {
     const icon = chaos.icons.greater_sacrificial_circle;
     assert.ok(icon.endsWith('greater_sacrifice_icon.png'));
-    assert.ok(fs.existsSync(path.join(ROOT, 'models/ingame/chaos_icons/greater_sacrifice_icon.tga')), 'TGA source exists');
     const buf = fs.readFileSync(path.join(ROOT, icon));
     assert.equal(buf.subarray(1, 4).toString(), 'PNG');
     assert.equal(buf.readUInt32BE(16), 242);

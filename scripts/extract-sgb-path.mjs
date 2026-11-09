@@ -6,9 +6,8 @@
 // game's own root transform (applySgbRootTransform from src/sgb-mirror.js
 // with the sgb-upload defaults: rotY 90 + horizontal mirror), so JSON rows
 // map to world z/x bands directly with no transform needed to consume them.
-// Verified: blocked border bands land on world borders; hill cells (e.g. the
-// 1.06-slope face at world (42,-102)) read free, matching the finding that
-// hills are slope-blocked at runtime, not paint-blocked.
+// DATAIMPA has a 12-byte header: width, height, FLOAT cellWorld. Its
+// authored extent is 256 units, while the terrain mesh covers 512 units.
 // Run: node scripts/extract-sgb-path.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,8 +21,7 @@ const srcPath = join(rootDir, 'maps', '6p_alvarus', '6p_alvarus.sgb');
 const outPath = join(rootDir, 'maps', '6p_alvarus', '6p_alvarus_path.json');
 
 const GRID = 128;
-const CELL = 4; // world units per cell (512-unit heightfield / 128)
-const HALF = 256;
+// DATAIMPA stores its own cell size; it is not the terrain extent / 128.
 // Mirrors _sgbRotate/_sgbFlipH defaults in src/sgb-upload.js.
 const ROOT_ROT_DEG = 90;
 const ROOT_FLIP_H = true;
@@ -49,11 +47,15 @@ function readImpaGrid(buf) {
   const sx = rr.readU32();
   const sz = rr.readU32();
   if (sx !== GRID || sz !== GRID) throw new Error(`unexpected IMPA dims ${sx}x${sz}`);
-  return rr.readData(sx * sz);
+  const cellWorld = rr.readFloat();
+  if (!Number.isFinite(cellWorld) || cellWorld <= 0) throw new Error('invalid IMPA cell size');
+  if (end - rr.position !== sx * sz) throw new Error('IMPA payload size mismatch');
+  return { raw: rr.readData(sx * sz), cellWorld };
 }
 
 const buf = readFileSync(srcPath);
-const raw = readImpaGrid(buf);
+const { raw, cellWorld: CELL } = readImpaGrid(buf);
+const HALF = GRID * CELL / 2;
 
 const root = new THREE.Object3D();
 applySgbRootTransform(root, ROOT_ROT_DEG, ROOT_FLIP_H);
@@ -86,7 +88,7 @@ const doc = {
     file: '6p_alvarus.sgb',
     chunk: 'FOLDWSTC/FOLDMSTC/FOLDPFDR/DATAIMPA',
     chunkName: 'Passability Map',
-    note: 'Raw bytes reprojected to world frame. Hills are NOT marked here (slope-blocked at runtime); 7 = painted closed ground (borders, cliff/flat zones). 5 of 22 objective sites read 7 (incl. 1 relic inside a 60u+ flat 7-zone), so capture logic must tolerate blocked cells at objectives.',
+    note: 'Read DATAIMPA width, height and FLOAT cell size before the cell bytes. Reprojected through the game terrain root transform; all strategic points and relics lie on open paint.',
   },
   grid: {
     sizeX: GRID,
@@ -95,15 +97,13 @@ const doc = {
     originX: -HALF,
     originZ: -HALF,
     frame: 'world',
-    layout: 'rows[r][c]: world x in [originX + c*4, originX + (c+1)*4), z in [originZ + r*4, originZ + (r+1)*4)',
+    layout: `rows[r][c]: world x in [originX + c*${CELL}, originX + (c+1)*${CELL}), z in [originZ + r*${CELL}, originZ + (r+1)*${CELL})`,
     transform: 'applySgbRootTransform(rotY=90, flipH=true) per src/sgb-mirror.js and src/sgb-upload.js defaults',
   },
   legend: {
     2: 'free ground',
     7: 'closed paint (borders, cliff/flat zones) — route around',
     3: 'fringe at closed-zone edges (treat as closed for movement)',
-    0: 'unknown/unused (3 corner cells)',
-    64: 'unknown/unused (1 corner cell)',
   },
   counts,
   rows,
@@ -115,7 +115,7 @@ writeFileSync(outPath, head + ',\n  ' + body + '\n');
 console.log('wrote', outPath);
 console.log('counts:', JSON.stringify(counts));
 console.log('unknown cells:', JSON.stringify(unknowns));
-// Anchors: borders must read blocked, map center + known hill cells must read free.
+// Anchors: passability borders closed; map center and objective free.
 const at = (wx, wz) => rows[Math.floor((wz + HALF) / CELL)][Math.floor((wx + HALF) / CELL)];
-console.log('anchor east-border (254,0)=', at(254, 0), 'west-border (-254,0)=', at(-254, 0), 'south-border (0,254)=', at(0, 254));
+console.log('anchors: east=', at(HALF - 1, 0), 'west=', at(1 - HALF, 0), 'south=', at(0, HALF - 1));
 console.log('anchor center (0,0)=', at(0, 0), 'hill-face (42,-102)=', at(42, -102), 'hill-point (110,-88)=', at(110, -88));

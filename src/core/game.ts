@@ -182,9 +182,8 @@ export function resetGame(mapKey: string = window._currentMapKey || 'arena'): vo
     const builderX = team === PLAYER ? x + 10 : x - 10;
     createBuilderEntity(entityWorld, builderX, z, team, faction);
   }
-  // Chaos Space Marine squads start at the wiki's 4/10 squad size.
-  createSquadEntity(entityWorld, 'red', 30, 10, 4);
-  createSquadEntity(entityWorld, 'red', 30, -10, 4);
+  // One four-man Chaos squad; systemAI replaces it only after all four die.
+  createSquadEntity(entityWorld, 'red', 30, 10, 4, 'chaos_space_marine', 'chaos');
   // Faction starter squads for both sides: blue hosts IG/Necrons/Tau/Orks
   // bases, red hosts Eldar/Space Marine/Dark Eldar bases on the shipped maps.
   const starterSpawns = [

@@ -2,6 +2,7 @@
 // This barrel preserves the original public import surface.
 export { findClosestEnemySoldier, disposeMeshComponent, spawnParticles } from '../systems/combat.js';
 export { systemSoldier, systemSquad } from '../systems/squad.js';
+export { resolveMeleeBodyCollision, systemMeleeCollision } from '../systems/melee-collision.js';
 export { systemBuilder } from '../systems/builder.js';
 export { systemBuilding, systemStructure, systemStructureCollision } from '../systems/structures.js';
 export { systemStrategicPoint } from '../systems/points.js';

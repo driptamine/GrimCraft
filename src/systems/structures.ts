@@ -1,3 +1,4 @@
+import { clampStepToRoute } from '../../pathfinding/astar-integrated.js';
 import * as THREE from 'three';
 import {
   _finishConstruction,
@@ -306,6 +307,8 @@ export function systemStructureCollision(world: any, deltaTime: number) {
     return;
   }
   const resolve = (px: number, pz: number, r: number) => {
+    const fromX = px;
+    const fromZ = pz;
     for (let i = 0; i < blockers.length; i++) {
       const bx = blockers[i][0];
       const bz = blockers[i][1];
@@ -323,7 +326,8 @@ export function systemStructureCollision(world: any, deltaTime: number) {
         }
       }
     }
-    return [px, pz];
+    const step = clampStepToRoute({}, fromX, fromZ, px - fromX, pz - fromZ);
+    return [fromX + step[0], fromZ + step[1]];
   };
   for (const id of world.query('squad')) {
     const s = world.get(id, 'squad');

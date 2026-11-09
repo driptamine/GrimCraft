@@ -97,10 +97,31 @@ function stopUnit(unit: any, kind: string): void {
   }
 }
 
+// Builders are selected on their own (selBuilder), not through selSquads, and
+// they have no `stopped` flag: holding position means dropping every queued
+// job and leaving combat stance. Build progress is reset so a cancelled
+// construction cannot resume from the halfway mark.
+function stopBuilder(builder: any): void {
+  builder.moveTarget = null;
+  builder.buildTarget = null;
+  builder.buildTargetSP = null;
+  builder.buildProgress = 0;
+  builder.isBuilding = false;
+  builder.repairTarget = null;
+  builder.attackMove = false;
+  builder.meleeOrder = false;
+  builder.meleeTimer = 0;
+  builder.stance = 'stand';
+}
+
 export function stopSelectedTroops(): void {
   clearUnitCommand();
+  clearBuilderCommand();
   cancelFlyTargeting();
+  if (buildMode) cancelBuild();
   for (const { unit, kind } of selectedTroops()) stopUnit(unit, kind);
+  const builder = selBuilder != null ? world?.get(selBuilder, 'builder') : null;
+  if (builder && canCommand(builder.team)) stopBuilder(builder);
   updateHUD();
 }
 

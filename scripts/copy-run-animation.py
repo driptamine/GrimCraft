@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Copy the run_1 animation from space_marine.glb into chaos marine GLB file(s).
+"""Copy an animation from space_marine.glb into chaos marine GLB file(s).
 
+Defaults to run_1; pass --clip to copy another clip (for example melee_1,
+melee_damage_l or melee_damage_r).
 Retargets channels by bone name. Rotation/scale tracks are copied verbatim;
 translation tracks are transferred as per-key deltas from the source rest pose
 onto the target rest pose, so the chaos bulk keeps its own proportions while
 the bobbing/swing of the run is preserved. Channels that target bones missing
 in the destination (weapon markers, attachments) are skipped and reported.
 
-Idempotent: refuses to run when the destination already has run_1 unless
+Idempotent: refuses to run when the destination already has the clip unless
 --force is given (which replaces the animation entry).
 
 Usage:
@@ -51,6 +53,9 @@ def save_glb(path, doc, binary):
     json_bytes = json.dumps(doc, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     json_bytes += b' ' * (-len(json_bytes) % 4)
     binary += b'\x00' * (-len(binary) % 4)
+    doc['buffers'][0]['byteLength'] = len(binary)
+    json_bytes = json.dumps(doc, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    json_bytes += b' ' * (-len(json_bytes) % 4)
     total = 12 + 8 + len(json_bytes) + 8 + len(binary)
     with open(path, 'wb') as f:
         f.write(struct.pack('<III', 0x46546C67, 2, total))

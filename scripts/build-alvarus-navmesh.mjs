@@ -4,7 +4,7 @@
 // sgbPassBlockedAt); every other value is blocked. Open cells are merged
 // greedily into maximal rectangles, then neighboring rects are linked
 // through shared-border portal segments. All coordinates are integer
-// world units (cell 4). Output is deterministic: same bytes on every run.
+// world units (cell size from the source grid). Output is deterministic: same bytes on every run.
 // Run: node scripts/build-alvarus-navmesh.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

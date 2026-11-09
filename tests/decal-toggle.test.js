@@ -102,7 +102,7 @@ describe('decals tab hover toggle', () => {
 
   it('hover name pill respects the flag', () => {
     const input = readInputSource();
-    assert.ok(input.includes("from '../sgb-decals.js'"), 'flag imported (acyclic: sgb-decals never imports input)');
+    assert.ok(input.includes("from '../maps/sgb-decals.js'"), 'flag imported (acyclic: sgb-decals never imports input)');
     const tip = input.slice(
       input.indexOf('function _updateDecalHover'),
       input.indexOf("canvas.addEventListener('pointermove'"),

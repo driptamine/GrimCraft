@@ -10,3 +10,9 @@
 
 # Local deployment value cheat-sheets (may contain real tokens).
 values-links.md
+
+# OS metadata and intermediate local map previews.
+.DS_Store
+/artifacts/*
+!/artifacts/alvarus-true-grid-scale.png
+!/artifacts/alvarus-eldar-true-grid-scale.png

@@ -30,9 +30,13 @@ function hoveredUnits(world: any, meta: HoverMeta | null): HoverUnit[] {
   const add = (id: number, ownerId: number, kind: string, unit: any): void => {
     const root = world.get(id, 'mesh')?.root;
     if (!unit || !root || root.visible === false || root.userData.disposed || unit.hp <= 0) return;
+    // Уже выбранный отряд показывает свой торус выделения — внешний ховер-торус не дублируем.
+    if (unit.selected || root._selDisc?.visible) return;
     units.push({ id, ownerId, kind, team: unit.team || squad?.team, root });
   };
   if (squad) {
+    // Весь выбранный отряд уже подсвечен торусами выделения.
+    if (squad.selected) return units;
     for (const id of squad.soldiers || []) {
       if (id != null) add(id, squadId, 'soldier', world.get(id, 'soldier'));
     }

@@ -181,3 +181,46 @@ describe('strategic point model', () => {
     }
   });
 });
+
+
+it('recolors only the existing small base rim, without adding another torus', async () => {
+  const { wireStrategicPointOwnershipRim, updateStrategicPointOwnershipRim } = await import('../src/meshes/points.js');
+  const file = readFileSync(new URL('../models/points/strategic_point.glb', import.meta.url));
+  const length = file.readUInt32LE(12);
+  const doc = JSON.parse(file.subarray(20, 20 + length).toString());
+  const binary = file.subarray(28 + length);
+  const primitive = doc.meshes.find((mesh) => mesh.name === 'base').primitives[0];
+  const read = (i, components) => {
+    const accessor = doc.accessors[i];
+    const view = doc.bufferViews[accessor.bufferView];
+    const offset = (view.byteOffset || 0) + (accessor.byteOffset || 0);
+    const bytes = accessor.componentType === 5123 ? 2 : 4;
+    const method = accessor.componentType === 5126 ? 'readFloatLE' : bytes === 2 ? 'readUInt16LE' : 'readUInt32LE';
+    return Array.from({ length: accessor.count * components }, (_, j) => binary[method](offset + j * bytes));
+  };
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(read(primitive.attributes.POSITION, 3), 3));
+  geometry.setIndex(read(primitive.indices, 1));
+  const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+  const base = new THREE.Mesh(geometry, material);
+  base.name = 'base';
+  const model = new THREE.Group();
+  model.add(base);
+  wireStrategicPointOwnershipRim(model);
+  assert.equal(model.children.length, 1, 'no additional ring');
+  assert.equal(geometry.groups.length, 0, 'shared source geometry untouched');
+  const groups = base.geometry.groups.filter((group) => group.materialIndex === 1);
+  assert.ok(groups.length > 0, 'actual GLB small rim found');
+  for (const group of groups) {
+    for (let i = group.start; i < group.start + group.count; i++) {
+      const vertex = base.geometry.index.getX(i);
+      const p = base.geometry.getAttribute('position');
+      assert.ok(Math.hypot(p.getX(vertex), p.getZ(vertex)) < 1.9);
+    }
+  }
+  updateStrategicPointOwnershipRim(model, true);
+  assert.equal(base.material[1].color.getHex(), 0x44ff88);
+  assert.equal(base.material[0], material, 'rest of base retains original material');
+  updateStrategicPointOwnershipRim(model, false);
+  assert.equal(base.material[1].color.getHex(), 0xaaaaaa);
+});

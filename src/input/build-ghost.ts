@@ -101,10 +101,18 @@ export function _startBuildGhost(type: string): void {
   // Ghosts never touch the shadow map, and the pulse loop reuses one cached
   // mesh list instead of traversing the subtree every frame.
   _buildGhostMeshes = [];
+  const previewGreen = new THREE.Color(0.15, 1.0, 0.3);
   childMeshes(_buildGhost).forEach((mesh) => {
     mesh.castShadow = false;
     mesh.receiveShadow = false;
-    if (mesh.material) _buildGhostMeshes.push(mesh);
+    if (mesh.material) {
+      // Only the placement preview is green. makeGhostMesh clones materials,
+      // so the placed building and its construction scaffold keep their colors.
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      if (material.isMeshStandardMaterial) material.emissive.copy(previewGreen);
+      else if (material.color) material.color.copy(previewGreen);
+      _buildGhostMeshes.push(mesh);
+    }
   });
   _ghostPending = false;
   const footprintDiameter = _getFootprintDiameter(type);

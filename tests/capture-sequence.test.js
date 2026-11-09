@@ -184,3 +184,34 @@ describe('capture sequence integration', () => {
     assert.equal(sp.owner, 'blue');
   });
 });
+
+it('shows the point banner and rod as soon as flagPlant1 seats them, during flagPlant2', () => {
+  const { world, spId, soldiers } = setupCapture();
+  const planterId = soldiers[1];
+  const planter = world.get(planterId, 'soldier');
+  const root = world.get(planterId, 'mesh').root;
+  const banner = { visible: false };
+  const rod = { visible: false };
+  world.get(spId, 'mesh').model = { _flagNodes: { banners: { ig: [banner, rod] } } };
+  for (let tick = 0; tick < 1000; tick++) {
+    systems.systemSquad(world, DT);
+    if (root._currentAnim === 'flagPlant1') {
+      assert.equal(world.get(spId, 'strategicPoint').raiseFrom == null, true);
+      systems.systemStrategicPoint(world, DT);
+      assert.equal(rod.visible, false);
+      // Finish seating the carried rod, leaving the release clip unplayed.
+      root._currentAnim = null;
+      root._pendingEnd = null;
+      systems.systemSquad(world, DT);
+      assert.equal(planter.captureStage, 1);
+      assert.equal(root._currentAnim, 'flagPlant2');
+      assert.equal(planter._bannerShown, false);
+      assert.equal(typeof world.get(spId, 'strategicPoint').raiseFrom, 'number');
+      systems.systemStrategicPoint(world, DT);
+      assert.equal(banner.visible, true);
+      assert.equal(rod.visible, true);
+      return;
+    }
+  }
+  assert.fail('planter never reached flagPlant1');
+});

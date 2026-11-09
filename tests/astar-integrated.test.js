@@ -23,13 +23,13 @@ const passGrid = JSON.parse(
 );
 const flat = () => 0;
 
-// Wall on row 88 (world z=98): cells 69..90 closed, free ground both sides.
-const WEST = { x: 10, z: 98 };
-const EAST = { x: 118, z: 98 };
+// Wall on row 92 (world z=57): cells 69..90 closed, free ground both sides.
+const WEST = { x: 5, z: 57 };
+const EAST = { x: 59, z: 57 };
 
 describe('astar integrated with the game grid', () => {
   it('maps world<->cell exactly like the steering predicate', () => {
-    for (const [x, z] of [[10, 98], [-250, -250], [0, 0], [250, 250]]) {
+    for (const [x, z] of [[10, 98], [-125, -125], [0, 0], [125, 125]]) {
       const cell = worldToCell(passGrid, x, z);
       assert.ok(cell, `in grid (${x},${z})`);
       const center = cellToWorld(passGrid, cell.x, cell.y);
@@ -55,11 +55,11 @@ describe('astar integrated with the game grid', () => {
 
   it('snaps a blocked goal to nearby free ground', () => {
     // Just inside the closed block edge (cell 72,88), free ground 4 cells out.
-    const goal = { x: -256 + 72.5 * 4, z: -256 + 88.5 * 4 };
+    const goal = { x: -128 + 72.5 * 2, z: -128 + 92.5 * 2 };
     assert.equal(sgbPassBlockedAt(passGrid, goal.x, goal.z), true);
     const route = findSquadPath(WEST, goal, { passGrid, groundAt: flat });
     assert.ok(route, 'still routes to the snapped goal');
-    assert.deepEqual(route[route.length - 1], goal);
+    assert.equal(sgbPassBlockedAt(passGrid, route[route.length - 1].x, route[route.length - 1].z), false, 'route ends on free ground');
   });
 
   it('smooths without cutting closed paint', () => {
@@ -77,7 +77,7 @@ describe('astar integrated with the game grid', () => {
     assert.equal(snapOrderToFree(WEST.x, WEST.z, passGrid), null);
     assert.equal(snapOrderToFree(WEST.x, WEST.z, null), null);
     // Inside the closed block edge (cell 72,88).
-    const snapped = snapOrderToFree(-256 + 72.5 * 4, -256 + 88.5 * 4, passGrid);
+    const snapped = snapOrderToFree(-128 + 72.5 * 2, -128 + 92.5 * 2, passGrid);
     assert.ok(snapped, 'snapped to free ground');
     assert.equal(sgbPassBlockedAt(passGrid, snapped.x, snapped.z), false);
   });
@@ -98,7 +98,7 @@ describe('astar integrated with the game grid', () => {
   it('nearestFreeCell snaps and reports boxed-in cells', () => {
     const free = worldToCell(passGrid, WEST.x, WEST.z);
     assert.deepEqual(nearestFreeCell(passGrid, free.x, free.y), free);
-    const deep = worldToCell(passGrid, -256 + 72.5 * 4, -256 + 88.5 * 4);
+    const deep = worldToCell(passGrid, -128 + 72.5 * 2, -128 + 92.5 * 2);
     const snapped = nearestFreeCell(passGrid, deep.x, deep.y);
     const center = cellToWorld(passGrid, snapped.x, snapped.y);
     assert.ok(snapped && !sgbPassBlockedAt(passGrid, center.x, center.z));
@@ -117,7 +117,7 @@ describe('astar integrated with the game grid', () => {
 
   it('routes from a start deep inside closed paint instead of drilling', () => {
     // Cell (86,22) is 7 in the shipped grid: start inside the wall block.
-    const start = { x: -256 + 86.5 * 4, z: -256 + 22.5 * 4 };
+    const start = { x: -128 + 86.5 * 2, z: -128 + 26.5 * 2 };
     assert.equal(sgbPassBlockedAt(passGrid, start.x, start.z), true);
     const route = findSquadPath(start, EAST, { passGrid, groundAt: flat });
     assert.ok(route && route.length > 1, 'exits the wall with a real route');

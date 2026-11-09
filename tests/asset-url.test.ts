@@ -49,7 +49,7 @@ describe('asset url', () => {
   it('routes HUD image points through assetUrl', () => {
     const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const read = (rel: string) => fs.readFileSync(path.join(root, rel), 'utf8');
-    assert.ok(read('src/hud/bits.tsx').includes("import { assetUrl } from '../assets.js'"), 'bits imports assetUrl');
+    assert.ok(read('src/hud/bits.tsx').includes("import { assetUrl } from '../render/assets.js'"), 'bits imports assetUrl');
     assert.ok(read('src/hud/bits.tsx').includes('<R2Img src={assetUrl(src)}'), 'Icon renders through assetUrl');
     assert.ok(read('src/hud/bits.tsx').includes('<R2Img src={assetUrl(icon)}'), 'StatRow renders through assetUrl');
     assert.ok(read('src/hud/components/Portrait.tsx').includes('<R2Img src={assetUrl(icon)}'), 'portrait renders through assetUrl');

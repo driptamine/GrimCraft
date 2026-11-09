@@ -19,6 +19,7 @@ import { FACTIONS } from '../factions.js';
 import { DEFAULT_ARMOR_CLASS, damagePerShot, getWeapon, type ArmorClass } from '../combat/stats.js';
 import { isKasrkinHellgun, kasrkinFireRate } from '../combat/fire-rate.js';
 import { updateMeleeEngagements } from '../combat/melee-engagements.js';
+import { triggerMeleeHitReaction } from '../combat/melee-hit-reaction.js';
 import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../fx/plasma-bolt.js';
@@ -43,6 +44,7 @@ import { HILL_SLOT_RELEASE_DIST } from '../../pathfinding/avoid.js';
 import {
   MELEE_DAMAGE_BASE,
   MELEE_RANGE,
+  MELEE_STANDOFF,
   CAPTURE_PROGRESS_RATE,
   CAPTURE_SEQUENCE,
   PLANTER_SPEED_MULT,
@@ -63,11 +65,12 @@ import {
   shouldTickCapture,
 } from '../entities/soldier-aim.js';
 import { childMeshes, disposeObj, findNodesByName } from '../render/three-helpers.js';
+import { setMeleeWeaponVisible } from '../render/melee-weapons.js';
 import { getRideInfo, yieldSlotBehind } from '../render/camera-fps.js';
 import { findClosestEnemySoldier, _soldierTakeDamage } from './combat.js';
 import { _strategicPointUpdateOwner } from './points.js';
 import { _avoidDir, _groundAt, _snapTerrainBegin, _steerSquadFacing } from './terrain.js';
-import { clampStepToRoute, exitsStraight, updateMoverRoute, updateSquadRoute } from '../../pathfinding/astar-integrated.js';
+import { clampStepToRoute, exitsStraight, snapOrderToFree, updateMoverRoute, updateSquadRoute } from '../../pathfinding/astar-integrated.js';
 
 
 export function systemSoldier(world: any, deltaTime: number) {
@@ -85,6 +88,7 @@ export function systemSoldier(world: any, deltaTime: number) {
       soldierComponent.shootTimer -= deltaTime;
     }
     soldierComponent.meleeTimer = Math.max(0, (soldierComponent.meleeTimer || 0) - deltaTime);
+    soldierComponent.hitReactionTimer = Math.max(0, (soldierComponent.hitReactionTimer || 0) - deltaTime);
     if (soldierComponent.revealTimer > 0) {
       soldierComponent.revealTimer -= deltaTime;
     }
@@ -676,6 +680,14 @@ export function systemSquad(world: any, deltaTime: number) {
       const soldierMeleeMode = meleeMode || !!soldierComponent.meleeEngaged;
       const soldierOrderEdge = orderEdge || (soldierComponent._meleeAnimMode !== undefined && soldierComponent._meleeAnimMode !== soldierMeleeMode);
       soldierComponent._meleeAnimMode = soldierMeleeMode;
+      // Knife out for the whole melee engagement (not just the swing), so
+      // slow attackers do not flash their bolter between hits. Tracked on the
+      // root because reinforce rebuilds the mesh while the soldier keeps his
+      // component state.
+      if (soldierMeshComponent.root._meleeWeaponState !== soldierMeleeMode) {
+        setMeleeWeaponVisible(soldierMeshComponent.root, soldierMeleeMode);
+        soldierMeshComponent.root._meleeWeaponState = soldierMeleeMode;
+      }
       const f = FORMATION[soldierComponent.formIdx];
       if (soldierComponent.scatter) {
         const scatter = soldierComponent.scatter;
@@ -744,8 +756,8 @@ export function systemSquad(world: any, deltaTime: number) {
         const dx = soldierMeshComponent.root.position.x - meleeTarget.position.x;
         const dz = soldierMeshComponent.root.position.z - meleeTarget.position.z;
         const length = Math.hypot(dx, dz);
-        tx = meleeTarget.position.x + (length > 0.001 ? dx / length : (soldierId < meleeTargetId ? -1 : 1)) * 1.2;
-        tz = meleeTarget.position.z + (length > 0.001 ? dz / length : 0) * 1.2;
+        tx = meleeTarget.position.x + (length > 0.001 ? dx / length : (soldierId < meleeTargetId ? -1 : 1)) * MELEE_STANDOFF;
+        tz = meleeTarget.position.z + (length > 0.001 ? dz / length : 0) * MELEE_STANDOFF;
       }
       let planterLeaving = false;
       if (onCaptureDuty) {
@@ -801,6 +813,11 @@ export function systemSquad(world: any, deltaTime: number) {
         tx = soldierMeshComponent.root.position.x + (tx - soldierMeshComponent.root.position.x) * lagInv * MAX_LAG;
         tz = soldierMeshComponent.root.position.z + (tz - soldierMeshComponent.root.position.z) * lagInv * MAX_LAG;
       }
+      const grounded = (soldierComponent._flyStage || 0) === 0 && !(soldierComponent.flyAlt > 0);
+      if (grounded) {
+        const freeSlot = snapOrderToFree(tx, tz);
+        if (freeSlot) { tx = freeSlot.x; tz = freeSlot.z; }
+      }
       const distanceToSlot = Math.hypot(tx - soldierMeshComponent.root.position.x, tz - soldierMeshComponent.root.position.z);
       const pace = isPlanter ? PLANTER_SPEED_MULT : Math.min(2.0, 0.3 + distanceToSlot * 0.6);
       const soldierRunSpeed = soldierComponent.moveSpeed * pace;
@@ -813,15 +830,24 @@ export function systemSquad(world: any, deltaTime: number) {
       }
       let moveAngle = 0;
       if (soldierMoving) {
-        const inverse = 1 / distanceToSlot;
-        let mdx = (tx - soldierMeshComponent.root.position.x) * inverse;
-        let mdz = (tz - soldierMeshComponent.root.position.z) * inverse;
-        const _steered = _avoidDir(soldierComponent, soldierMeshComponent.root.position.x, soldierMeshComponent.root.position.z, mdx, mdz, distanceToSlot, HILL_SLOT_RELEASE_DIST);
-        mdx = _steered.x;
-        mdz = _steered.z;
-        const step = Math.min(distanceToSlot, soldierRunSpeed * deltaTime);
-        soldierMeshComponent.root.position.x += mdx * step;
-        soldierMeshComponent.root.position.z += mdz * step;
+        const route = grounded ? updateMoverRoute(soldierComponent, soldierMeshComponent.root.position,
+          { x: tx, z: tz }, { tag: 'formation', groundAt: _groundAt }) : null;
+        const moveX = (route?.x ?? tx) - soldierMeshComponent.root.position.x;
+        const moveZ = (route?.z ?? tz) - soldierMeshComponent.root.position.z;
+        const moveDistance = Math.hypot(moveX, moveZ) || 1;
+        let mdx = moveX / moveDistance;
+        let mdz = moveZ / moveDistance;
+        if (grounded && !exitsStraight(soldierComponent, soldierMeshComponent.root.position.x, soldierMeshComponent.root.position.z)) {
+          const steered = _avoidDir(soldierComponent, soldierMeshComponent.root.position.x, soldierMeshComponent.root.position.z, mdx, mdz, distanceToSlot, HILL_SLOT_RELEASE_DIST);
+          mdx = steered.x;
+          mdz = steered.z;
+        }
+        const step = Math.min(moveDistance, distanceToSlot, soldierRunSpeed * deltaTime);
+        const delta = grounded ? clampStepToRoute(soldierComponent,
+          soldierMeshComponent.root.position.x, soldierMeshComponent.root.position.z, mdx * step, mdz * step)
+          : [mdx * step, mdz * step];
+        soldierMeshComponent.root.position.x += delta[0];
+        soldierMeshComponent.root.position.z += delta[1];
         moveAngle = Math.atan2(mdx, mdz);
       }
       soldierComponent._fleeing = !meleeTarget && moving && soldierMoving && isFleeingMove(moveAngle, yawAngle);
@@ -840,6 +866,13 @@ export function systemSquad(world: any, deltaTime: number) {
           centerZ: engagedSp.position.z,
           kind: engagedSp.kind,
         });
+        if (!soldierMoving) {
+          // Remove the formation stop tolerance before playing the plant:
+          // the rod must land in the socket, not merely near its target.
+          soldierMeshComponent.root.position.x = tx;
+          soldierMeshComponent.root.position.z = tz;
+          soldierMeshComponent.root.rotation.y = aimAngle;
+        }
       }
       soldierMeshComponent.root.rotation.y = computeSoldierYaw({
         shooting: soldierComponent.shootTimer > 0 || (!!meleeTarget && soldierMeshComponent.root.position.distanceTo(meleeTarget.position) <= MELEE_RANGE),
@@ -858,10 +891,12 @@ export function systemSquad(world: any, deltaTime: number) {
         if (meleeTarget && !window._multiplayerMode && (soldierComponent._flyStage || 0) === 0
           && soldierMeshComponent.root.position.distanceTo(meleeTarget.position) <= MELEE_RANGE
           && soldierComponent.attackCooldown <= 0 && world.get(meleeTargetId, 'soldier')?.hp > 0) {
-          const duration = soldierMeshComponent.root._animGroups?.melee?.getDuration?.() || 0.65;
+          const duration = soldierMeshComponent.root._nextMeleeAttack?.()
+            || soldierMeshComponent.root._animGroups?.melee?.getDuration?.() || 0.65;
           soldierComponent.meleeTimer = duration;
           soldierComponent.attackCooldown = Math.max(1 / soldierComponent.attackRate, duration);
           _soldierTakeDamage(world, meleeTargetId, MELEE_DAMAGE_BASE * (soldierComponent.damageMult || 1));
+          triggerMeleeHitReaction(world, meleeTargetId, !!soldierMeshComponent.root._animGroups?.hitBlock);
         }
       } else {
         soldierComponent.meleeTimer = 0;
@@ -909,6 +944,11 @@ export function systemSquad(world: any, deltaTime: number) {
             flyRoot._playAnim('flyLand', false, true);
             soldierComponent._flyLanded = true;
           }
+        } else if (soldierComponent.hitReactionTimer > 0 && soldierComponent.hitReactionAnim
+          && soldierMeshComponent.root._animGroups?.[soldierComponent.hitReactionAnim]) {
+          // A melee blow landed: flinch before resuming the attack. The slot
+          // is chosen by triggerMeleeHitReaction and alternates l/r.
+          soldierMeshComponent.root._playAnim(soldierComponent.hitReactionAnim, false, true);
         } else if (soldierMeleeMode && (!squadComponent.stopped || soldierComponent.meleeEngaged) && soldierComponent.meleeTimer > 0) {
           soldierMeshComponent.root._playAnim('melee', false, soldierOrderEdge);
         } else if (isShooting) {
@@ -952,10 +992,11 @@ export function systemSquad(world: any, deltaTime: number) {
         } else if (capturing) {
           _playPlanterSequence(soldierComponent, soldierMeshComponent.root);
           if (isPlanter && engagedSp && engagedSp.raiseFrom == null
-            && isPlantingDone({
-              captureStage: soldierComponent.captureStage,
-              hasPlantAnims: _planterHasPlantAnims(soldierMeshComponent.root),
-            })) {
+            // flagPlant1 seats the rod; flagPlant2 is the release/recovery.
+            // Hand off to the point's banner on the same tick the carried
+            // banner disappears, without waiting for the recovery to end.
+            && ((soldierComponent.captureStage || 0) >= 1
+              || !_planterHasPlantAnims(soldierMeshComponent.root))) {
             engagedSp.raiseFrom = Math.min(1, Math.abs(engagedSp.captureProgress || 0));
           }
         } else {
@@ -1030,17 +1071,9 @@ export function systemSquad(world: any, deltaTime: number) {
         }
         updateHUD();
       }
-      if (meshComponent.reinBar) {
-        meshComponent.reinBar.visible = true;
-        meshComponent.reinBar.position.copy(squadComponent.position);
-        meshComponent.reinBar.position.y = 3.48;
-        updateHpBar(meshComponent.reinBar, squadComponent.reinforceProgress / reinforceTime);
-      }
-    } else {
-      if (meshComponent.reinBar) {
-        meshComponent.reinBar.visible = false;
-      }
     }
+    // Reinforcement progress stays in the HUD, without a bar over the squad.
+    if (meshComponent.reinBar) meshComponent.reinBar.visible = false;
     const hasGrenadier = aliveSols.some((soldierId: any) => {
       const soldierComponent = world.get(soldierId, 'soldier');
       return soldierComponent && soldierComponent.isGrenadier && !soldierComponent.meleeEngaged;
@@ -1051,7 +1084,7 @@ export function systemSquad(world: any, deltaTime: number) {
       if (showSetupBar) {
         meshComponent.grenadeSetupBar.visible = true;
         meshComponent.grenadeSetupBar.position.copy(squadComponent.position);
-        meshComponent.grenadeSetupBar.position.y = squadComponent.reinforceQueue.length > 0 ? 3.72 : 3.48;
+        meshComponent.grenadeSetupBar.position.y = 3.48;
         updateHpBar(meshComponent.grenadeSetupBar, squadComponent.idleTime / 1.0);
       } else {
         meshComponent.grenadeSetupBar.visible = false;

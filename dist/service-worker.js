@@ -14,7 +14,7 @@
  */
 
 // NOTE: plain static file, copied verbatim from public/ — no Vite defines here.
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const APP_CACHE = `grimcraft-app-v${CACHE_VERSION}`;
 const MODELS_CACHE = `grimcraft-models-v${CACHE_VERSION}`;
 // models/ holds ~270 GLBs (~950MB); trim oldest-first past this cap.
@@ -110,6 +110,11 @@ async function staleWhileRevalidate(request, cacheName) {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') {
+    return;
+  }
+  // Explicit fresh map/grid loads must bypass stale runtime caches.
+  if (request.cache === 'no-store') {
+    event.respondWith(fetch(request));
     return;
   }
   const url = new URL(request.url);

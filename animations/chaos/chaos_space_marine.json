@@ -1,7 +1,7 @@
 {
   "idle": "idle_1",
   "run": "run_1",
-  "melee": "",
+  "melee": "melee_1",
   "firing": "fire",
   "moveFiring": "marine_heavy_bolter_run_1"
 }

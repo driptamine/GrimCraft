@@ -9,7 +9,7 @@
 // - Straight line free -> null: no waypoint state, zero overhead per tick.
 // - Blocked/boxed with no route -> escape: standing on closed paint, the
 //   mover steps out to the nearest free cell first (never straight through
-//   the wall); a truly disconnected pocket still falls back to straight.
+//   the wall); the step guard stops movement when no free route exists.
 // - Route state lives on the squad component (_astarPath/_astarKey, local
 //   only): recomputed deterministically when the order changes, so there is
 //   nothing extra to sync for multiplayer.
@@ -264,7 +264,9 @@ export function findSquadPath(from, to, opts = {}) {
     const exit = cellToWorld(passGrid, start.x, start.y);
     smooth.unshift({ x: exit.x, z: exit.z });
   }
-  smooth.push({ x: to.x, z: to.z });
+  const finalGoal = sgbPassBlockedAt(passGrid, to.x, to.z)
+    ? cellToWorld(passGrid, goal.x, goal.y) : to;
+  smooth.push({ x: finalGoal.x, z: finalGoal.z });
   return smooth;
 }
 
@@ -382,31 +384,16 @@ export function exitsStraight(mover, x, z) {
   );
 }
 
-// Hard step guard for routed movers: while any route (order or pursuit) still
-// has waypoints, a step that would land on closed paint slides along the
-// wall or stops — follower wobble can no longer undo the route. Without an
-// active route (straight fallback, arrival dash, giveup escape) or when
-// already standing on closed paint, the step passes through unchanged.
+// Enforce painted walls for every grounded step, including arrival dashes,
+// formation settling and straight-mode movement. Check the entire segment
+// so a long frame cannot jump across a closed cell and land on free ground.
+// Units already inside closed paint may escape to their routed free cell.
 export function clampStepToRoute(mover, fromX, fromZ, dx, dz) {
   const passGrid = (typeof window !== 'undefined') ? window.__sgbPassGrid : undefined;
-  let routing = false;
-  for (const key of Object.keys(mover)) {
-    if (key.startsWith('_astarPath') && mover[key] && mover[key].length) {
-      routing = true;
-      break;
-    }
-  }
-  if (!routing || !passGrid || sgbPassBlockedAt(passGrid, fromX, fromZ)) {
-    return [dx, dz];
-  }
-  if (!sgbPassBlockedAt(passGrid, fromX + dx, fromZ + dz)) {
-    return [dx, dz];
-  }
-  if (!sgbPassBlockedAt(passGrid, fromX + dx, fromZ)) {
-    return [dx, 0];
-  }
-  if (!sgbPassBlockedAt(passGrid, fromX, fromZ + dz)) {
-    return [0, dz];
-  }
+  if (!passGrid || sgbPassBlockedAt(passGrid, fromX, fromZ)) return [dx, dz];
+  const clear = (sx, sz) => hasLineOfSight(passGrid, fromX, fromZ, fromX + sx, fromZ + sz);
+  if (clear(dx, dz)) return [dx, dz];
+  if (dx !== 0 && clear(dx, 0)) return [dx, 0];
+  if (dz !== 0 && clear(0, dz)) return [0, dz];
   return [0, 0];
 }

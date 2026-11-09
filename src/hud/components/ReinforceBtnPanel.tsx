@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
-import { world, canCommand, requisition, setRequisition, energy, setEnergy, SQUAD_MAX, COSTS } from '../../core/scene.js';
+import { world, canCommand, requisition, setRequisition, energy, setEnergy, COSTS } from '../../core/scene.js';
+import { reinforceSelectedSquads } from '../../core/reinforce.js';
 import { updateHUD } from '../../core/hud.js';
 import { applySquadWeaponVisuals } from '../../entities/entities.js';
 import { netPlasmaUpgrade, netSetProjectileType } from '../../net/multiplayer.js';
@@ -208,33 +209,7 @@ export function ReinforceButtonsPanel(): JSX.Element {
   const data = computeSquadData();
 
   const reinforceAdd = () => {
-    if (requisition < data.reinCost) return;
-    let added = 0;
-    for (let j = 0; j < data.alive.length; j += 1) {
-      const sqId = data.alive[j];
-      const sq = world.get(sqId, 'squad');
-      if (!sq) continue;
-      const cost = sq.reinforceCost ?? data.reinCost;
-      const maxSquadSize = sq.maxSquadSize ?? SQUAD_MAX;
-      if (requisition < cost) continue;
-      const aliveSols = sq.soldiers.filter((sid: any) => sid !== null && world.has(sid, 'soldier'));
-      const occupied = new Set([
-        ...aliveSols.map((sid: any) => {
-          const sol = world.get(sid, 'soldier');
-          return sol ? sol.formIdx : -1;
-        }),
-        ...sq.reinforceQueue.map((q: any) => q.formIdx),
-      ]);
-      for (let i = 1; i < maxSquadSize; i += 1) {
-        if (!occupied.has(i)) {
-          setRequisition(requisition - cost);
-          sq.reinforceQueue.push({ formIdx: i, cost, time: sq.reinforceTime ?? 7 });
-          added += 1;
-          break;
-        }
-      }
-      if (added > 0) break;
-    }
+    reinforceSelectedSquads();
     updateHUD();
   };
 
@@ -259,7 +234,7 @@ export function ReinforceButtonsPanel(): JSX.Element {
           icon="assets/command_icons/reinforce.png"
           label={data.autoOn ? 'AUTO REINF' : 'REINFORCE'}
           cost={`${data.reinCost}R`}
-          tooltip={`REINFORCE\nCost ${data.reinCost}R — add a soldier to the squad\nRight-click to toggle auto-reinforce`}
+          tooltip={`REINFORCE\nCost ${data.reinCost}R — add a soldier to the squad\nRight-click to toggle auto-reinforce\nHotkey: R`}
           disabled={!(requisition >= data.reinCost || data.autoOn)}
           style={autoStyle}
           onClick={reinforceAdd}

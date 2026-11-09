@@ -9,6 +9,7 @@ import {
 } from '../ui/cursors.js';
 import { preloadTaskbarIcons } from '../ui/taskbar-icons.js';
 import { updateHUD } from '../core/hud.js';
+import { reinforceSelectedSquads } from '../core/reinforce.js';
 import { buildMenuOpen, setBuildMenuOpen } from '../hud/store.js';
 import {
   buildMode,
@@ -606,6 +607,10 @@ export function initInput(): void {
     if (!typing && selBuilder === null && selSquads.length > 0) {
       if (event.code === 'KeyM') setUnitCommand('move');
       if (event.code === 'KeyT') setUnitCommand('melee');
+      if (event.code === 'KeyR' && !event.repeat) {
+        reinforceSelectedSquads();
+        updateHUD();
+      }
     }
     if (selBuilder !== null && world.has(selBuilder, 'builder')) {
       if (event.code === 'KeyM') {

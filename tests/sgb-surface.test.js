@@ -39,7 +39,7 @@ describe('sgb surface snap', () => {
 
   it('point system snaps mesh roots every frame, logic untouched', () => {
     const src = readSystemsSource();
-    assert.ok(src.includes("from '../sgb-surface.js'"), 'helper imported');
+    assert.ok(src.includes("from '../maps/sgb-surface.js'"), 'helper imported');
     const body = src.slice(
       src.indexOf('export function systemStrategicPoint'),
       src.indexOf('function _strategicPointUpdateOwner'),

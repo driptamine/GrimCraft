@@ -146,7 +146,7 @@ export const STRATEGIC_POINT_BANNERS = {
 };
 
 // The planter seats his banner+rod into the centerpost socket the moment
-// flag_plant_2 ends (planted): the point's own banner pair pops in on the
+// flag_plant_1 ends (seated): the point's own banner pair pops in on the
 // same tick his carried pair pops out. Progress can tick while he is still
 // walking/planting, so the unowned clauses wait for planted too; owned
 // points keep the old behavior.
@@ -212,6 +212,52 @@ export function raiseScrubProgress(progress: number, raiseFrom = 0): number {
   const from = Math.min(0.999, Math.max(0, raiseFrom || 0));
   const raw = Math.min(1, Math.max(0, (m - from) / (1 - from)));
   return POINT_PRE_PLANT_RISE + (1 - POINT_PRE_PLANT_RISE) * raw;
+}
+
+
+// A capture order opens the point right away, but only while the planter is
+// still on his way. If he never starts closing the distance within this
+// window, the point closes again instead of standing open forever.
+export const POINT_OPEN_GRACE_SEC = 1;
+
+// Minimum distance decrease that counts as "the planter is coming". Kept
+// small: the tracker stores the previous frame's distance, so even a slow
+// walk (well under one unit per second) clears it.
+export const POINT_APPROACH_EPSILON = 0.001;
+
+
+// Drives the open/close gate for an unowned point. `orderedCapture` is true
+// while any squad carries a capture order for this point; `planterDistance`
+// is the closest such squad's distance to the point. The point opens on the
+// order, stays open once the planter starts approaching (or his boots reach
+// the point), and closes after the grace window if no approach begins.
+export function nextPointOpenState({ owner, beingCaptured, orderedCapture, planterDistance, deltaTime, waited = 0, approaching = false, lastDistance = null }: {
+  owner?: string | null;
+  beingCaptured?: boolean;
+  orderedCapture?: boolean;
+  planterDistance?: number | null;
+  deltaTime: number;
+  waited?: number;
+  approaching?: boolean;
+  lastDistance?: number | null;
+}): { open: boolean; waited: number; approaching: boolean; lastDistance: number | null } {
+  const reset = { open: !!beingCaptured, waited: 0, approaching: false, lastDistance: null };
+  if (owner != null || !orderedCapture) {
+    return reset;
+  }
+  if (beingCaptured) {
+    return { open: true, waited: 0, approaching: true, lastDistance: planterDistance ?? null };
+  }
+  const movedCloser = planterDistance != null && lastDistance != null
+    && planterDistance < lastDistance - POINT_APPROACH_EPSILON;
+  const started = approaching || movedCloser;
+  const nextWaited = waited + deltaTime;
+  return {
+    open: started || nextWaited <= POINT_OPEN_GRACE_SEC,
+    waited: nextWaited,
+    approaching: started,
+    lastDistance: planterDistance ?? lastDistance,
+  };
 }
 
 
@@ -358,6 +404,61 @@ export async function preloadObjectiveModel(): Promise<GltfContainer | null> {
 }
 
 
+// The small gray circular rim belongs to the base mesh itself. Give only
+// its triangles a material slot; never tint the hatch, doors or support legs.
+export function wireStrategicPointOwnershipRim(model: AnyGroup): void {
+  const rims: { mesh: THREE.Mesh; slot: number; neutral: THREE.MeshStandardMaterial; green: THREE.MeshBasicMaterial }[] = [];
+  model.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh || !/^base(?:_|$)/.test(mesh.name) || Array.isArray(mesh.material)) return;
+    const source = mesh.geometry;
+    const positions = source.getAttribute('position');
+    const index = source.index;
+    if (!positions || !index) return;
+    const isRimVertex = (i: number): boolean => {
+      const radius = Math.hypot(positions.getX(i), positions.getZ(i));
+      return radius > 1.70 && radius < 1.90 && positions.getY(i) < 0.12;
+    };
+    const rimTriangles: boolean[] = [];
+    for (let i = 0; i < index.count; i += 3) {
+      rimTriangles.push([0, 1, 2].every((offset) => isRimVertex(index.getX(i + offset))));
+    }
+    if (!rimTriangles.some(Boolean)) return;
+    const geometry = source.clone();
+    geometry.userData.shared = false;
+    geometry.clearGroups();
+    for (let i = 0; i < rimTriangles.length;) {
+      let end = i + 1;
+      while (end < rimTriangles.length && rimTriangles[end] === rimTriangles[i]) end++;
+      geometry.addGroup(i * 3, (end - i) * 3, rimTriangles[i] ? 1 : 0);
+      i = end;
+    }
+    const neutral = mesh.material as THREE.MeshStandardMaterial;
+    const green = new THREE.MeshBasicMaterial({ color: neutral.color, map: neutral.map,
+      transparent: neutral.transparent, opacity: neutral.opacity, side: neutral.side,
+      toneMapped: neutral.toneMapped });
+    mesh.geometry = geometry;
+    mesh.material = [neutral, green];
+    rims.push({ mesh, slot: 1, neutral, green });
+  });
+  model._ownershipRims = rims;
+}
+
+const OWNED_POINT_RIM_COLOR = new THREE.Color(0x44ff88);
+
+export function updateStrategicPointOwnershipRim(model: AnyGroup | null | undefined, owned: boolean): void {
+  for (const rim of model?._ownershipRims || []) {
+    const map = owned ? null : rim.neutral.map;
+    if (rim.green.map !== map) {
+      rim.green.map = map;
+      rim.green.needsUpdate = true;
+    }
+    rim.green.color.copy(owned ? OWNED_POINT_RIM_COLOR : rim.neutral.color);
+    rim.green.toneMapped = owned ? false : rim.neutral.toneMapped;
+  }
+}
+
+
 export interface StrategicPointMesh {
   group: AnyGroup;
   model: AnyGroup | null;
@@ -380,6 +481,7 @@ export function makeStrategicPointMesh(x: number, z: number, kind = 'point'): St
     _wirePointFlagNodes(pointModel);
     patchStrategicPointGroundPlane(pointModel);
     patchStrategicPointCenterpost(pointModel);
+    wireStrategicPointOwnershipRim(pointModel);
     pointModel.scale.setScalar(SP_MODEL_SCALES[kind as keyof typeof SP_MODEL_SCALES] || SP_MODEL_SCALES.point);
     root.add(pointModel);
   } else {

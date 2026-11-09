@@ -25,7 +25,11 @@ function fixture(nativeMelee = true) {
     scene: model, meshes: [], _hiddenNodes: [], dispose() {},
     animations: [clip('idle_1'), clip('move_run_1'), clip('idle_firing_1')],
   };
-  if (nativeMelee) container.animations.push(clip('melee_attack_1', true));
+  if (nativeMelee) {
+    for (const name of ['melee_attack_1', 'melee_attack_2', 'melee_attack_3', 'melee_damage_l', 'melee_damage_r', 'melee_block']) {
+      container.animations.push(clip(name, true));
+    }
+  }
   const root = _makeFactionSoldierMesh(container, 'blue', { unitType: 'guardsmen' }, 'ig');
   roots.push(root);
   return { root, sourceArm: arm, arm: root.getObjectByName(arm.name), container };
@@ -78,4 +82,73 @@ describe('melee animation clips', () => {
     const staticClip = makeMeleeFallbackClip(new THREE.Group());
     assert.equal(staticClip.tracks[0].name, '.quaternion', 'static models get a small body strike');
   });
+});
+
+const { triggerMeleeHitReaction } = await import('../src/combat/melee-hit-reaction.js');
+describe('melee attack and reaction cycles', () => {
+  it('cycles attack clips once per swing and keeps the current swing on repeated frame requests', () => {
+    const { root } = fixture();
+    for (const index of [1, 2, 3, 1]) {
+      assert.equal(root._nextMeleeAttack(), 0.65);
+      root._playAnim('melee', false, true);
+      assert.equal(root._animGroups.melee.name, `melee_attack_${index}`);
+      root._playAnim('melee', false);
+      assert.equal(root._animGroups.melee.name, `melee_attack_${index}`);
+      updateMixers(0.7);
+    }
+  });
+  it('cycles left/right/block, with left/right only for models without a block', () => {
+    for (const block of [true, false]) {
+      const { root } = fixture();
+      if (!block) delete root._animGroups.hitBlock;
+      const soldier = { hp: 100 };
+      const world = { get: (_, type) => type === 'soldier' ? soldier : { root } };
+      const expected = block ? ['hitL', 'hitR', 'hitBlock', 'hitL'] : ['hitL', 'hitR', 'hitL', 'hitR'];
+      for (const name of expected) {
+        assert.equal(triggerMeleeHitReaction(world, 1), true);
+        assert.equal(soldier.hitReactionAnim, name);
+      }
+      soldier.hp = 0;
+      assert.equal(triggerMeleeHitReaction(world, 1), false);
+    }
+  });
+});
+
+describe('authored melee damage playback', () => {
+  for (const model of ['space marines/troops/space_marine', 'chaos/infantry/chaos_space_marine', 'ig/infantry/guardsmen']) {
+    for (const side of ['l', 'r']) {
+      it(`${model}: damage_${side} visibly moves before the reaction window expires`, () => {
+        const file = readFileSync(new URL(`../models/${model}.glb`, import.meta.url));
+        const jsonLength = file.readUInt32LE(12);
+        const doc = JSON.parse(file.subarray(20, 20 + jsonLength).toString());
+        const binary = file.subarray(28 + jsonLength);
+        const animation = doc.animations.find((a) => a.name === `melee_damage_${side}`);
+        const channel = animation.channels.find((c) => c.target.path === 'rotation' && doc.nodes[c.target.node].name === 'bip01 spine');
+        const sampler = animation.samplers[channel.sampler];
+        const values = (index, size) => {
+          const accessor = doc.accessors[index];
+          const view = doc.bufferViews[accessor.bufferView];
+          const offset = (view.byteOffset || 0) + (accessor.byteOffset || 0);
+          return Array.from({ length: accessor.count * size }, (_, i) => binary.readFloatLE(offset + i * 4));
+        };
+        const bone = new THREE.Bone();
+        bone.name = 'spine';
+        const source = new THREE.Group();
+        source.add(bone);
+        const clip = new THREE.AnimationClip(animation.name, 2.5, [
+          new THREE.QuaternionKeyframeTrack('spine.quaternion', values(sampler.input, 1), values(sampler.output, 4)),
+        ]);
+        const root = _makeFactionSoldierMesh({ scene: source, animations: [clip], meshes: [], _hiddenNodes: [], dispose() {} }, 'blue', {}, 'ig');
+        roots.push(root);
+        const spine = root.getObjectByName('spine');
+        root._playAnim(side === 'l' ? 'hitL' : 'hitR', false, true);
+        updateMixers(0.01);
+        const initial = spine.quaternion.clone();
+        updateMixers(0.39);
+        assert.ok(initial.angleTo(spine.quaternion) > 0.05, 'reaction has reached the flinch by 0.4 seconds');
+        updateMixers(0.41);
+        assert.equal(root._currentAnim, null, 'entire reaction finishes within 0.8 seconds');
+      });
+    }
+  }
 });

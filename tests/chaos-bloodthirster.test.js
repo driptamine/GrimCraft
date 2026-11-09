@@ -253,7 +253,10 @@ describe('bloodthirster flight', () => {
     assert.ok(input.includes('if (_flyArmed) {'), 'RMB issues the fly order while armed');
     assert.ok(input.includes('squad.flyOrder = destination;'), 'fly order set from click');
     const q = input.slice(input.indexOf("event.code === 'KeyQ'"), input.indexOf("event.code === 'KeyL'"));
-    assert.ok(q.includes('squad.flyOrder = null;'), 'Q cancels flight');
+    assert.ok(q.includes('stopSelectedTroops();'), 'Q uses the shared troop stop command');
+    const commands = fs.readFileSync(path.join(ROOT, 'src/input/unit-commands.ts'), 'utf8');
+    assert.ok(commands.includes('unit.flyOrder = null;'), 'stop command clears the flight order');
+    assert.ok(commands.includes('cancelFlyTargeting();'), 'stop command disarms flight targeting');
     const move = input.slice(input.indexOf('const active = selSquads.filter'), input.indexOf('const activeApcs'));
     assert.ok(move.includes('squad.flyOrder = null;'), 'ground move cancels flight');
     const esc = input.slice(input.indexOf("event.code === 'Escape'"), input.indexOf("event.code === 'AltLeft'"));

@@ -23,7 +23,7 @@ import {
   _hitboxDebug,
   scene,
 } from '../core/scene.js';
-import { IDLE_TRACKING_HOLD_SEC, animSwitchBlocked, resolveIdleAnim } from '../entities/soldier-aim.js';
+import { MELEE_HIT_REACTION_SEC, IDLE_TRACKING_HOLD_SEC, animSwitchBlocked, resolveIdleAnim } from '../entities/soldier-aim.js';
 import {
   childMeshes,
   descendants,
@@ -447,6 +447,15 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
     || findAnim((n) => isFiringName(n) && !isMeleeName(n) && /^(idle|stand)_?(fir|shoot)/.test(n))
     || findAnim((n) => isFiringName(n) && !isMeleeName(n));
   const meleeAnim = instance.animationGroups.find((group) => group.name === (meleeClip?.name || 'melee_attack_fallback'));
+  // Authored flinch clips. The DoW export names them melee_damage_l/_r; the
+  // chaos marine gets the same names when they are copied over. Match the
+  // exact names first, then accept prefixed variants from other exports.
+  const hitLAnim = findExact('melee_damage_l')
+    || findAnim((n) => /melee[_-]?damage[_-]?l$/.test(n))
+    || undefined;
+  const hitRAnim = findExact('melee_damage_r')
+    || findAnim((n) => /melee[_-]?damage[_-]?r$/.test(n))
+    || undefined;
   const buildAnim = findByName(animConfig.build)
     || findAnim((n) => !isMeleeName(n) && /^build/.test(n))
     || null;
@@ -486,6 +495,25 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
   if (runAnim) root._animGroups.run = runAnim;
   if (shootAnim) root._animGroups.shoot = shootAnim;
   if (meleeAnim) root._animGroups.melee = meleeAnim;
+  const meleeSequence = [1, 2, 3].map((index) =>
+    findExact(`melee_${index}`) || findExact(`melee_attack_${index}`),
+  ).filter((group): group is AnimGroup => !!group);
+  meleeSequence.forEach((group, index) => { root._animGroups[`meleeVariant${index + 1}`] = group; });
+  let meleeIndex = 0;
+  root._nextMeleeAttack = () => {
+    if (root._currentAnim === 'melee') {
+      root._animGroups.melee?.stop();
+      root._currentAnim = null;
+    }
+    if (meleeSequence.length) {
+      root._animGroups.melee = meleeSequence[meleeIndex++ % meleeSequence.length];
+    }
+    return root._animGroups.melee?.getDuration?.() || 0.65;
+  };
+  const blockAnim = findExact('melee_block');
+  if (blockAnim) root._animGroups.hitBlock = blockAnim;
+  if (hitLAnim) root._animGroups.hitL = hitLAnim;
+  if (hitRAnim) root._animGroups.hitR = hitRAnim;
   if (shootMoveAnim) root._animGroups.shootMove = shootMoveAnim;
   if (flyLaunchAnim) root._animGroups.flyLaunch = flyLaunchAnim;
   if (flyIdleAnim) root._animGroups.flyIdle = flyIdleAnim;
@@ -552,7 +580,11 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
       ag.loopAnimation = resolvedLoop;
       ag.onAnimationGroupEndObservable.clear();
       ag.reset();
-      ag.start(resolvedLoop, 1.0);
+      // Exported reactions have a long neutral lead-in. Play the whole clip
+      // inside the reaction window so the flinch is visible before resuming.
+      const isHitReaction = ['hitL', 'hitR', 'hitBlock'].includes(resolvedName);
+      const speed = isHitReaction ? Math.max(1, ag.getDuration() / MELEE_HIT_REACTION_SEC) : 1;
+      ag.start(resolvedLoop, speed);
       if (!resolvedLoop) {
         ag.onAnimationGroupEndObservable.addOnce(() => {
           root._shootDone = true;

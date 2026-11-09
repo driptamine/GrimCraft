@@ -160,12 +160,12 @@ describe('map layout', () => {
     assert.equal(startPositionsFor('bogus').length, 8);
   });
 
-  it('fields two guardsmen squads at the blue IG base', () => {
+  it('fields two guardsmen squads together between nearby strategic points', () => {
     const spawns = startingGuardsmenSpawns('arena', 'blue');
     assert.equal(spawns.length, 2);
     assert.deepEqual(spawns, [
-      { team: 'blue', x: -58, z: -100, size: 5, unitType: 'guardsmen', faction: 'ig' },
-      { team: 'blue', x: -58, z: -120, size: 5, unitType: 'guardsmen', faction: 'ig' },
+      { team: 'blue', x: -34, z: -104, size: 5, unitType: 'guardsmen', faction: 'ig' },
+      { team: 'blue', x: -34, z: -116, size: 5, unitType: 'guardsmen', faction: 'ig' },
     ]);
     assert.deepEqual(startingGuardsmenSpawns('arena', 'red'), []);
     for (const mapKey of ['/maps/6p_alvarus/6p_alvarus.sgb', '/maps/6p_mortalis/mortalis.sgb']) {

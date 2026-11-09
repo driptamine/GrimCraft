@@ -64,19 +64,45 @@ describe('unit hover torus', () => {
     }
   });
 
-  it('supports engineers, vehicles, APCs, and aircraft independently of selection', () => {
+  it('hides the outer hover torus on selected engineers, vehicles, APCs, and aircraft', () => {
     const f = fixture();
     for (const [kind, key] of [['builder', 'builderEntityId'], ['vehicle', 'vehicleEntityId'], ['apc', 'apcEntityId'], ['jet', 'jetEntityId']]) {
       const unit = f.add(kind, 'blue');
+      f.hover.update(f.world, { [key]: unit.id });
+      assert.equal(f.rings().length, 1, `${kind} unselected`);
+      f.hover.clear();
+      unit.unit.selected = true;
+      f.hover.update(f.world, { [key]: unit.id });
+      assert.equal(f.rings().length, 0, `${kind} selected flag`);
+      f.hover.clear();
+      unit.unit.selected = false;
       unit.root._selDisc.visible = true;
       f.hover.update(f.world, { [key]: unit.id });
-      assert.equal(f.rings().length, 1, kind);
+      assert.equal(f.rings().length, 0, `${kind} selection ring visible`);
       f.hover.clear();
       assert.equal(f.rings().length, 0);
       assert.equal(unit.root._selDisc.visible, true, 'selected ring stays visible after hover ends');
       assert.equal(unit.root._selMat.opacity, 0.9);
       assert.equal(unit.hpBar.visible, false);
+      unit.root._selDisc.visible = false;
     }
+  });
+
+  it('hides the outer hover torus on an already selected squad', () => {
+    const f = fixture();
+    const squad = f.squad();
+    f.hover.update(f.world, { squadEntityId: squad.id });
+    assert.equal(f.rings().length, 3, 'unselected squad shows hover rings');
+    f.hover.clear();
+    squad.unit.selected = true;
+    f.hover.update(f.world, { squadEntityId: squad.id });
+    assert.equal(f.rings().length, 0, 'selected squad hides hover rings');
+    f.hover.clear();
+    squad.unit.selected = false;
+    for (const member of squad.members) member.root._selDisc.visible = true;
+    f.hover.update(f.world, { squadEntityId: squad.id });
+    assert.equal(f.rings().length, 0, 'squad with visible selection rings hides hover rings');
+    f.hover.clear();
   });
 
   it('follows motion at terrain height and removes stale rings on death, hiding, and world reset', () => {

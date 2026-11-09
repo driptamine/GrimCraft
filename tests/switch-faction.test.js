@@ -122,7 +122,8 @@ describe('switch faction', () => {
       'towers fire for their team',
     );
     assert.ok(
-      src.includes("createSquadEntity(world, PLAYER === 'blue' ? 'red' : 'blue',"),
+      src.includes("const enemyTeam = PLAYER === 'blue' ? 'red' : 'blue';")
+        && src.includes("createSquadEntity(world, enemyTeam,"),
       'AI reinforces the side you do not command',
     );
     assert.ok(src.includes("PLAYER === 'blue' ? 'RED WINS' : 'BLUE WINS'"), 'win text follows the loser');

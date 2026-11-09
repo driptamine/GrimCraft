@@ -31,16 +31,16 @@ describe('capture slots', () => {
 
   it('plant yaw faces the socket minus the rod-side offset', () => {
     const yaw = planterPlantYaw({ soldierX: 0, soldierZ: 0, centerX: 0, centerZ: 10 });
-    assert.ok(Math.abs(yaw - (Math.atan2(-0.0414, 9.8995) - PLANTER_PLANT_YAW_OFF)) < 1e-9);
+    assert.ok(Math.abs(yaw - (Math.atan2(POINT_SOCKET_OFFSET.x, 10 + POINT_SOCKET_OFFSET.z) - PLANTER_PLANT_YAW_OFF)) < 1e-9);
     const yawW = planterPlantYaw({ soldierX: 10, soldierZ: 0, centerX: 0, centerZ: 0, kind: 'relic' });
-    assert.ok(Math.abs(yawW - (Math.atan2(-10.0297, -0.1216) - PLANTER_PLANT_YAW_OFF)) < 1e-9);
+    assert.ok(Math.abs(yawW - (Math.atan2(RELIC_SOCKET_OFFSET.x - 10, RELIC_SOCKET_OFFSET.z) - PLANTER_PLANT_YAW_OFF)) < 1e-9);
   });
 
   it('socket offsets are measured per kind with a point default', () => {
-    assert.deepEqual(planterSocketXZ({ centerX: 100, centerZ: 200, kind: 'point' }), { x: 100 - 0.0414, z: 200 - 0.1005 });
-    assert.deepEqual(planterSocketXZ({ centerX: 100, centerZ: 200, kind: 'relic' }), { x: 100 - 0.0297, z: 200 - 0.1216 });
-    assert.deepEqual(planterSocketXZ({ centerX: 100, centerZ: 200 }), { x: 100 - 0.0414, z: 200 - 0.1005 });
-    assert.deepEqual([POINT_SOCKET_OFFSET.x, RELIC_SOCKET_OFFSET.x], [-0.0414, -0.0297]);
+    assert.deepEqual(planterSocketXZ({ centerX: 100, centerZ: 200, kind: 'point' }), { x: 100 + POINT_SOCKET_OFFSET.x, z: 200 + POINT_SOCKET_OFFSET.z });
+    assert.deepEqual(planterSocketXZ({ centerX: 100, centerZ: 200, kind: 'relic' }), { x: 100 + RELIC_SOCKET_OFFSET.x, z: 200 + RELIC_SOCKET_OFFSET.z });
+    assert.deepEqual(planterSocketXZ({ centerX: 100, centerZ: 200 }), { x: 100 + POINT_SOCKET_OFFSET.x, z: 200 + POINT_SOCKET_OFFSET.z });
+
   });
 
   it('planted planter backs toward his squad but stays on the point', () => {

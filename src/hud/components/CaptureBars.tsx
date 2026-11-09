@@ -21,7 +21,7 @@ export function CaptureBars(): JSX.Element[] | null {
       return;
     }
     const progress = sp.captureProgress;
-    if (Math.abs(progress) <= 0.005) {
+    if (Math.abs(progress) <= 0.005 || Math.abs(progress) >= 1) {
       return;
     }
     const proj = projectToScreen(sp.position.x, 2.0, sp.position.z);

@@ -45,7 +45,7 @@ async function loadPassGridForMap(mapPath: string): Promise<void> {
   window.__sgbPassGrid = null;
   const url = String(mapPath || '').replace(/\.sgb$/i, '') + '_path.json';
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) {
       return;
     }
@@ -59,7 +59,7 @@ async function loadPassGridForMap(mapPath: string): Promise<void> {
     // Hand paint lives in the sidecar edits file so path.json keeps
     // matching the SGB bytes exactly; missing file means no overrides.
     try {
-      const eres = await fetch(String(mapPath || '').replace(/\.sgb$/i, '') + '_path_edits.json');
+      const eres = await fetch(String(mapPath || '').replace(/\.sgb$/i, '') + '_path_edits.json', { cache: 'no-store' });
       if (eres.ok) {
         const edoc = await eres.json();
         const { applyPathEdits } = await import('../../pathfinding/astar-integrated.js');
@@ -68,7 +68,7 @@ async function loadPassGridForMap(mapPath: string): Promise<void> {
     } catch (_) {
       // No overrides: SGB-derived paint stands as is.
     }
-    window.__sgbPassGrid = doc;
+    if (token === _passGridToken) window.__sgbPassGrid = doc;
   } catch (_) {
     // Maps without path data behave as before.
   }
@@ -133,7 +133,7 @@ export async function loadSgbFile(file: File): Promise<void> {
 export async function loadSgbUrl(url: string, label: string, mapPath = ''): Promise<void> {
   setSgbStatus('LOADING ' + (label || url).slice(0, 24) + '…', 'loading');
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) {
       throw new Error('HTTP ' + res.status);
     }
@@ -171,7 +171,7 @@ async function loadSgbBuffer(buffer: ArrayBuffer, label = 'map', mapPath = ''): 
     _sgbMapData = mapData;
     window.__sgbSampleHeight = (x, z) => parser.sampleHeight(x, z);
     window.__sgbTerrainRoot = root;
-    loadPassGridForMap(mapPath || label);
+    await loadPassGridForMap(mapPath || label);
     import('./terrain-upload.js').then((module) => module.linkSgbRoot(root, parser.numTilesX, parser.numTilesZ));
     import('./sgb-decals.js').then((module) =>
       module.buildSgbDecals(root, mapData, (x, z) => parser.sampleHeight(x, z)),

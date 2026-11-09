@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { childMeshes, descendants, matchHiddenNodeName } from './three-helpers.js';
+import { MELEE_WEAPON_NODES } from './melee-weapons.js';
 import { extractGroupGeometry, meshCallCount } from './merge-static.js';
 
 // Merge skinned infantry geometry per material to cut draw calls.
@@ -51,6 +52,7 @@ export const SOLDIER_SWITCHED_NODES = [
   'guardsmen_lasgun', 'guardsmen_plasma_pistol',
   'guardsmen_grenade_launcher', 'guardsmen_flamer',
   'karskin_plasmagun',
+  ...MELEE_WEAPON_NODES,
 ];
 
 function _animatedNodeNames(animations: THREE.AnimationClip[] | null | undefined): Set<string> {

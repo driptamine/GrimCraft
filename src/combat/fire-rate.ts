@@ -1,6 +1,6 @@
 // Live Kasrkin hellgun cadence. Damage per burst is adjusted by the caller
 // so changing visual frequency preserves the weapon's effective DPS.
-export const KASRKIN_FIRE_RATE_DEFAULT = 4;
+export const KASRKIN_FIRE_RATE_DEFAULT = 10;
 export const KASRKIN_FIRE_RATE_MIN = 0.4;
 export const KASRKIN_FIRE_RATE_MAX = 10;
 export const KASRKIN_FIRE_RATE_STORAGE_KEY = 'grimcraft-kasrkin-fire-rate';

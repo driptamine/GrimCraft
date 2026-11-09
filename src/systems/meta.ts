@@ -10,6 +10,7 @@ import {
 } from '../core/scene.js';
 import { systemAirfield, systemJet } from './air.js';
 import { systemBuilder } from './builder.js';
+import { systemMeleeCollision } from './melee-collision.js';
 import { systemStrategicPoint } from './points.js';
 import { systemBeam, systemBlasterBullet, systemBullet, systemGrenade, systemLaserBullet, systemMissile, systemParticle, systemPlasmaBullet, systemReaperBullet } from './projectiles.js';
 import { systemSoldier, systemSquad } from './squad.js';
@@ -35,10 +36,21 @@ export function systemAI(world: any, deltaTime: number) {
   if (controlBoth) {
     return;
   }
+  const enemyTeam = PLAYER === 'blue' ? 'red' : 'blue';
+  const hasLivingChaosMarine = world.query('squad').some((id: any) => {
+    const squad = world.get(id, 'squad');
+    return squad?.team === enemyTeam && squad.faction === 'chaos'
+      && (!squad.unitType || squad.unitType === 'chaos_space_marine')
+      && squad.soldiers.some((soldierId: any) => world.get(soldierId, 'soldier')?.hp > 0);
+  });
+  if (hasLivingChaosMarine) {
+    counters.aiT = 0;
+    return;
+  }
   counters.aiT += deltaTime;
   if (counters.aiT >= 28) {
     counters.aiT = 0;
-    createSquadEntity(world, PLAYER === 'blue' ? 'red' : 'blue', 30 + (Math.random() - .5) * 10, (Math.random() - .5) * 40, 4);
+    createSquadEntity(world, enemyTeam, 30 + (Math.random() - .5) * 10, (Math.random() - .5) * 40, 4, 'chaos_space_marine', 'chaos');
   }
 }
 
@@ -65,6 +77,7 @@ export function systemWinCheck(world: any) {
 export function _initSystems(w: any) {
   w.addSystem(systemSoldier);
   w.addSystem(systemSquad);
+  w.addSystem(systemMeleeCollision);
   w.addSystem(systemBuilder);
   w.addSystem(systemBuilding);
   w.addSystem(systemStructure);

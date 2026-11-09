@@ -18,8 +18,8 @@ const passGrid = JSON.parse(
   fs.readFileSync(path.join(root, 'maps/6p_alvarus/6p_alvarus_path.json'), 'utf8'),
 );
 const flat = () => 0;
-const WEST = { x: 10, z: 98 };
-const EAST = { x: 118, z: 98 };
+const WEST = { x: 5, z: 57 };
+const EAST = { x: 59, z: 57 };
 
 describe('pathfinding tab wiring', () => {
   it('has a toolbar button, a panel with a mode list, and a binding', () => {

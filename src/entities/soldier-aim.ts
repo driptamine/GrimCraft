@@ -101,18 +101,17 @@ export function planterStandTarget({ centerX, centerZ, squadX, squadZ, standDist
 // as a deliberate advance instead of a sprint. Tune to taste.
 export const PLANTER_SPEED_MULT = 1.0;
 
-// Plant spot: at flag_plant_1 end the rod butt lands 2.52 out from the
-// soldier, 0.401 rad off his facing (measured off guardsmen.glb) — so he
-// stops on that ring facing the socket with the matching yaw offset, and
-// the butt drops into the hole instead of past it. Tune to taste.
-export const PLANTER_PLANT_DISTANCE = 2.52;
-export const PLANTER_PLANT_YAW_OFF = 0.401;
+// World-space rod butt at flag_plant_1 end, measured with the animated
+// skeleton and mesh transforms applied (not the unposed accessor bounds).
+const PLANTER_ROD_X = 0.0016879153;
+const PLANTER_ROD_Z = 3.0045565826;
+export const PLANTER_PLANT_DISTANCE = Math.hypot(PLANTER_ROD_X, PLANTER_ROD_Z);
+export const PLANTER_PLANT_YAW_OFF = Math.atan2(PLANTER_ROD_X, PLANTER_ROD_Z);
 
-// Socket (post-top hole) XZ offset from the entity center in world units,
-// measured off the GLBs at the 20% pre-rise (stable across the raise);
-// relic values already include its 0.8 in-game scale.
-export const POINT_SOCKET_OFFSET = { x: -0.0414, z: -0.1005 };
-export const RELIC_SOCKET_OFFSET = { x: -0.0297, z: -0.1216 };
+// Centerpost top ring in captured_raise at the pre-plant hold. Relic uses
+// its native banner socket with the model's 0.8 world scale applied.
+export const POINT_SOCKET_OFFSET = { x: 0.0028192258, z: 0.0043139010 };
+export const RELIC_SOCKET_OFFSET = { x: 0.0000365841, z: -0.0357806645 };
 
 export function planterSocketXZ({ centerX, centerZ, kind }: { centerX: number; centerZ: number; kind: string }): { x: number; z: number } {
   const off = kind === 'relic' ? RELIC_SOCKET_OFFSET : POINT_SOCKET_OFFSET;
@@ -266,6 +265,14 @@ export function numberOfUpgrades(soldiers: { isGrenadier?: boolean }[] | null | 
 // Base melee damage per swing; long animation clips can limit attack cadence.
 export const MELEE_DAMAGE_BASE = 8.0;
 export const MELEE_RANGE = 2.4;
+// Center-to-center gap duelists hold. Must stay above the collision body
+// diameter (see systems/melee-collision.ts) so the two systems do not fight
+// each other every frame; models are up to ~1.7 wide at the torso.
+export const MELEE_STANDOFF = 1.9;
+// How long a melee hit reaction holds before the soldier returns to his own
+// animation. Every DoW clip here is exported at 2.5 s, which would otherwise
+// replace attacks and firing for a full clip length after a single hit.
+export const MELEE_HIT_REACTION_SEC = 0.8;
 
 export function meleeDamageEstimate(soldiers: { attackRate?: number }[] | null | undefined): number {
   const list = (soldiers || []).filter(Boolean);

@@ -11,6 +11,8 @@ const {
   POINT_PRE_PLANT_RISE,
   nextStrategicPointAnim,
   raiseScrubProgress,
+  nextPointOpenState,
+  POINT_OPEN_GRACE_SEC,
   _wirePointAnims,
   makeStrategicPointMesh,
 } = await import('../src/meshes.js');
@@ -190,5 +192,62 @@ describe('strategic point capture anims', () => {
   it('exposes the model slot on the viz (null without a container)', () => {
     const viz = makeStrategicPointMesh(1, 2);
     assert.equal(viz.model, null);
+  });
+});
+
+describe('strategic point open gate', () => {
+  const base = { owner: null, beingCaptured: false, orderedCapture: false, planterDistance: null, deltaTime: 0.1 };
+
+  it('stays closed without a capture order', () => {
+    const state = nextPointOpenState(base);
+    assert.equal(state.open, false);
+    assert.equal(state.waited, 0);
+  });
+
+  it('opens immediately when the capture order is issued', () => {
+    const state = nextPointOpenState({ ...base, orderedCapture: true, planterDistance: 40 });
+    assert.equal(state.open, true);
+    assert.equal(state.approaching, false);
+    assert.equal(state.lastDistance, 40);
+  });
+
+  it('closes after the grace window when the planter never starts approaching', () => {
+    let state = { waited: 0, approaching: false, lastDistance: null };
+    for (let t = 0; t <= POINT_OPEN_GRACE_SEC + 0.5; t += 0.1) {
+      state = nextPointOpenState({
+        ...base, orderedCapture: true, planterDistance: 40, ...state,
+      });
+    }
+    assert.equal(state.open, false, 'no approach → closed after one second');
+  });
+
+  it('stays open once the planter starts closing the distance', () => {
+    let state = nextPointOpenState({ ...base, orderedCapture: true, planterDistance: 40 });
+    state = nextPointOpenState({ ...base, orderedCapture: true, planterDistance: 39.5, ...state });
+    assert.equal(state.approaching, true);
+    // Past the grace window: still open because the approach has begun.
+    state = nextPointOpenState({ ...base, orderedCapture: true, planterDistance: 39, deltaTime: 5, ...state });
+    assert.equal(state.open, true);
+  });
+
+  it('keeps the point open while the planter is engaged', () => {
+    const state = nextPointOpenState({
+      ...base, orderedCapture: true, beingCaptured: true, planterDistance: 3,
+    });
+    assert.equal(state.open, true);
+    const left = nextPointOpenState({
+      ...base, orderedCapture: true, planterDistance: 6, deltaTime: 5, ...state,
+    });
+    assert.equal(left.open, true, 'arrival keeps it open until the order ends');
+  });
+
+  it('closes when the capture order is cancelled', () => {
+    const state = nextPointOpenState({
+      ...base, orderedCapture: false, waited: 5, approaching: true, lastDistance: 10,
+    });
+    assert.equal(state.open, false);
+    assert.equal(state.waited, 0);
+    assert.equal(state.approaching, false);
+    assert.equal(state.lastDistance, null);
   });
 });

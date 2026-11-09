@@ -11,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // (own chunk walk, own index math): the committed JSON must match it cell
 // for cell. World->local uses the game root mapping (rotY 90 + horizontal
 // mirror, same as hq_position.json: local x = -worldZ, local z = -worldX);
-// the raw chunk is heightfield-local, row-major, 4 world units per cell.
+// the raw chunk is heightfield-local, row-major, 2 world units per cell, stored explicitly after the dimensions.
 function sgbImpaRaw() {
   const buf = fs.readFileSync(path.join(root, 'maps/6p_alvarus/6p_alvarus.sgb'));
   const rr = createChunkReader(buf);
@@ -33,6 +33,8 @@ function sgbImpaRaw() {
   }
   assert.equal(rr.readU32(), 128);
   assert.equal(rr.readU32(), 128);
+  assert.equal(rr.readFloat(), 2, 'DATAIMPA cell size precedes its cell bytes');
+  assert.equal(end - rr.position, 128 * 128, 'exact byte payload after the 12-byte header');
   return rr.readData(128 * 128);
 }
 
@@ -41,15 +43,15 @@ function loadPathJson() {
 }
 
 describe('alvarus path grid', () => {
-  it('declares a 128x128 world-frame grid over the full map', () => {
+  it('declares the SGB passability extent with its authored 2-unit cell size', () => {
     const doc = loadPathJson();
     assert.equal(doc.map, '6p_alvarus');
     assert.equal(doc.grid.frame, 'world');
     assert.equal(doc.grid.sizeX, 128);
     assert.equal(doc.grid.sizeZ, 128);
-    assert.equal(doc.grid.cellWorld, 4);
-    assert.equal(doc.grid.originX, -256);
-    assert.equal(doc.grid.originZ, -256);
+    assert.equal(doc.grid.cellWorld, 2);
+    assert.equal(doc.grid.originX, -128);
+    assert.equal(doc.grid.originZ, -128);
     assert.equal(doc.rows.length, 128);
     for (const row of doc.rows) assert.equal(row.length, 128);
   });
@@ -60,10 +62,10 @@ describe('alvarus path grid', () => {
     assert.equal(raw.length, 128 * 128);
     for (let r = 0; r < 128; r++) {
       for (let c = 0; c < 128; c++) {
-        const wx = -256 + (c + 0.5) * 4;
-        const wz = -256 + (r + 0.5) * 4;
-        const i = Math.floor((-wz + 256) / 4);
-        const j = Math.floor((-wx + 256) / 4);
+        const wx = -128 + (c + 0.5) * 2;
+        const wz = -128 + (r + 0.5) * 2;
+        const i = Math.floor((-wz + 128) / 2);
+        const j = Math.floor((-wx + 128) / 2);
         assert.equal(doc.rows[r][c], raw[j * 128 + i], `cell c=${c} r=${r}`);
       }
     }
@@ -71,29 +73,29 @@ describe('alvarus path grid', () => {
 
   it('carries the known value histogram (no silent corruption)', () => {
     const doc = loadPathJson();
-    assert.deepEqual(doc.counts, { 0: 3, 2: 11694, 3: 441, 7: 4245, 64: 1 });
+    assert.deepEqual(doc.counts, { 2: 11694, 3: 441, 7: 4249 });
     const seen = new Set();
     for (const row of doc.rows) for (const v of row) seen.add(v);
-    assert.deepEqual([...seen].sort((a, b) => a - b), [0, 2, 3, 7, 64]);
+    assert.deepEqual([...seen].sort((a, b) => a - b), [2, 3, 7]);
   });
 
   it('orientation: spawns read free, borders read closed', () => {
     const doc = loadPathJson();
-    const at = (wx, wz) => doc.rows[Math.floor((wz + 256) / 4)][Math.floor((wx + 256) / 4)];
+    const at = (wx, wz) => doc.rows[Math.floor((wz + 128) / 2)][Math.floor((wx + 128) / 2)];
     const layout = JSON.parse(fs.readFileSync(path.join(root, 'maps/6p_alvarus/6p_alvarus.json'), 'utf8'));
     assert.ok(layout.positions.length >= 6);
-    for (const p of layout.positions) {
+    for (const p of [...layout.positions, ...layout.strategicPoints]) {
       assert.equal(at(p.x, p.z), 2, `spawn (${p.x},${p.z}) free`);
     }
-    assert.equal(at(254, 0), 7, 'east border closed');
-    assert.equal(at(-254, 0), 7, 'west border closed');
+    assert.equal(at(127, 0), 7, 'east border closed');
+    assert.equal(at(-127, 0), 7, 'west border closed');
     assert.equal(at(0, 0), 2, 'map center free');
   });
 
-  it('hills are unmarked: the steep face reads free', () => {
+  it('keeps the known hill-side fringe closed without moving its point', () => {
     const doc = loadPathJson();
-    const at = (wx, wz) => doc.rows[Math.floor((wz + 256) / 4)][Math.floor((wx + 256) / 4)];
-    // 1.06-slope face: hills are slope-blocked at runtime, not paint-blocked.
-    assert.equal(at(42, -102), 2);
+    const at = (x, z) => doc.rows[Math.floor((z + 128) / 2)][Math.floor((x + 128) / 2)];
+    assert.equal(at(42, -102), 3);
+    assert.equal(at(110, -88), 2);
   });
 });
