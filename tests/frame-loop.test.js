@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as THREE from 'three';
+import { updateSunShadowCamera } from '../src/render/lighting.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const src = fs.readFileSync(path.join(root, 'src/core/game.ts'), 'utf8');
@@ -17,7 +19,12 @@ describe('frame loop perf wiring', () => {
 
   it('follows the shadow frustum to the camera target', () => {
     assert.ok(src.includes('updateShadowFollow()'), 'called every frame');
-    assert.ok(src.includes('sun.target.updateMatrixWorld()'), 'moved target takes effect');
-    assert.ok(src.includes('Math.max(90, Math.min(150'), 'box sized to the zoom radius');
+    assert.ok(src.includes('updateSunShadowCamera(sun, camera.target, camera.radius)'), 'frame loop delegates the current target and zoom');
+    const sun = new THREE.DirectionalLight(), target = new THREE.Vector3(100, 12, -40);
+    updateSunShadowCamera(sun, target, 30);
+    assert.ok(sun.target.getWorldPosition(new THREE.Vector3()).equals(target), 'moved target takes effect');
+    const closeBox = sun.shadow.camera.right;
+    updateSunShadowCamera(sun, target, 100);
+    assert.ok(sun.shadow.camera.right > closeBox, 'shadow coverage follows the zoom radius');
   });
 });

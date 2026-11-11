@@ -1,8 +1,13 @@
 import * as THREE from 'three';
-import { PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
+import { PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, plasmaCloudPuffOffset, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
 import { attachPlasmaCloudBlaster, updatePlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
 
 const SAMPLE_SPACING = 0.55;
+
+/** Full A→B length of the preview row; puffs cluster on its front 55%. */
+export function pathPreviewLength(): number {
+  return (PLASMA_CLOUD_PUFF_COUNT - 1) * SAMPLE_SPACING;
+}
 
 /** Find open ground beside the first selected guardsmen squad, clear of building footprints. */
 export function findPlasmaPuffPreviewCenter(
@@ -53,7 +58,7 @@ export function findPlasmaPuffPreviewCenter(
       const center = anchor.clone().add(new THREE.Vector3(Math.cos(angle) * distance, 0, Math.sin(angle) * distance));
       let clear = true;
       for (let index = 0; index < PLASMA_CLOUD_PUFF_COUNT && clear; index++) {
-        sample.copy(center).addScaledVector(row, (index - (PLASMA_CLOUD_PUFF_COUNT - 1) / 2) * SAMPLE_SPACING);
+        sample.copy(center).addScaledVector(row, plasmaCloudPuffOffset(index, pathPreviewLength()) - pathPreviewLength() / 2);
         clear = !blockers.some((box) => sample.x >= box.min.x && sample.x <= box.max.x && sample.z >= box.min.z && sample.z <= box.max.z)
           && !soldiers.some((position) => Math.hypot(sample.x - position.x, sample.z - position.z) < 0.8);
       }
@@ -74,15 +79,19 @@ export function createPlasmaPuffPreview(scene: THREE.Object3D, center: THREE.Vec
   const direction = right.clone().setY(0);
   if (direction.lengthSq() < 1e-8) direction.set(1, 0, 0);
   direction.normalize();
+  const pathLength = pathPreviewLength();
+  const start = center.clone().addScaledVector(direction, -pathLength / 2);
+  const place = (puff: THREE.Group, index: number): void => {
+    puff.position.copy(start).addScaledVector(direction, plasmaCloudPuffOffset(index, pathLength));
+  };
   const puffs: THREE.Group[] = [];
   for (let index = 0; index < PLASMA_CLOUD_PUFF_COUNT; index++) {
     const puff = makePlasmaCloudPuffMesh(index);
-    puff.position.copy(center).addScaledVector(direction, (index - (PLASMA_CLOUD_PUFF_COUNT - 1) / 2) * SAMPLE_SPACING);
+    place(puff, index);
     root.add(puff);
     puffs.push(puff);
   }
   scene.add(root);
-  const pathLength = (PLASMA_CLOUD_PUFF_COUNT - 1) * SAMPLE_SPACING;
   puffs[0].lookAt(puffs[0].position.clone().add(direction));
   attachPlasmaCloudBlaster(puffs[0], pathLength, false);
   let age = 0;
@@ -90,7 +99,10 @@ export function createPlasmaPuffPreview(scene: THREE.Object3D, center: THREE.Vec
     root,
     update(deltaTime: number): void {
       age += Math.max(0, deltaTime);
-      for (const puff of puffs) updatePlasmaCloudPuff(puff, age);
+      for (const [index, puff] of puffs.entries()) {
+        place(puff, index);
+        updatePlasmaCloudPuff(puff, age);
+      }
       // The clouds stay fixed while the bolt travels through its three stages.
       updatePlasmaCloudBlaster(puffs[0], (age % 4) / 4 * pathLength);
     },

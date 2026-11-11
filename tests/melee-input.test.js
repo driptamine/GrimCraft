@@ -45,7 +45,7 @@ function fixture() {
   };
   const noop = () => {};
   const builderContext = vm.createContext({
-    exports: {}, world, selBuilder: builder, canvas, THREE,
+    exports: {}, world, selBuilder: builder, canvas, THREE, sendSkirmishCommand: () => false,
     ...selection, cursorCss: (name) => name, spawnMoveMarker: noop, updateHUD: noop,
   });
   vm.runInContext(builderCode, builderContext);
@@ -64,6 +64,7 @@ function fixture() {
     if (name.endsWith('/scene.js')) return scene;
     if (name.endsWith('/hud.js')) return { updateHUD: noop };
     if (name === './orders.js') return orders;
+    if (name === './markers.js') return {spawnMoveMarkerAt:noop};
     if (name === './build-ghost.js') return { cancelBuild: noop };
     if (name === './selection.js') return selection;
     if (name.endsWith('/cursors.js')) return { cursorCss: (name) => name };
@@ -87,6 +88,7 @@ function fixture() {
     setRightDragStartPos: noop, setRightLastPos: noop,
     isSelecting: false, isOrbiting: false, isAltOrbiting: false, keys: {},
     issueRightClick: () => { ordinaryOrders += 1; },
+    _refreshHoverState: (hit) => { context.hoverRestored = hit; },
   });
   Object.defineProperties(context, {
     pendingUnitCommand: { get: () => commands.pendingUnitCommand },
@@ -141,6 +143,16 @@ describe('melee right-click targeting', () => {
     assert.equal(f.ordinary(), 0);
   });
 
+  it('restores enemy hover after a right-click attack order', () => {
+    const f = fixture();
+    f.down();
+    f.up();
+    assert.equal(f.ordinary(), 1, 'attack order issued');
+    assert.equal(f.context.hoverRestored?.meta?.squadEntityId, f.enemy);
+    assert.equal(f.context.hoverRestored?.meta?.soldierEntityId, f.soldier);
+    assert.equal(f.context.rightDown, false);
+  });
+
   it('preserves melee during camera dragging and still cancels other targeting modes on right-click', () => {
     const f = fixture();
     f.commands.setUnitCommand('melee');
@@ -189,6 +201,7 @@ describe('attack mode keyboard shortcuts', () => {
 
   it('supports the selected engineer and numpad keys', () => {
     const f = fixture();
+    f.scene.selSquads.length=0;
     f.scene.selBuilder = f.builder;
     const builder = f.world.get(f.builder, 'builder');
     f.key('Numpad1');
@@ -225,4 +238,23 @@ describe('attack mode keyboard shortcuts', () => {
     assert.equal(f.commands.pendingUnitCommand, null);
     assert.equal(f.world.get(vehicle, 'vehicle').attackMode, 'ranged');
   });
+});
+
+it('switching to Assault preserves an ongoing ranged burst before melee contact', () => {
+  const f = fixture();
+  const id = f.world.createEntity([]);
+  f.world.add(id, 'soldier', { squadId: f.own, shootTimer: 0.3, meleeTimer: 0, attackCooldown: 1, meleeEngaged: false });
+  f.world.get(f.own, 'squad').soldiers.push(id);
+  f.key('Digit1');
+  assert.equal(f.world.get(id, 'soldier').shootTimer, 0.3);
+  assert.equal(f.world.get(f.own, 'squad').attackMode, 'melee');
+});
+
+it('switches infantry stance when a box selection also includes the worker', () => {
+  const f=fixture();f.scene.selBuilder=f.builder;
+  f.commands.setSelectedAttackMode('melee');
+  assert.equal(f.world.get(f.own,'squad').attackMode,'melee');
+  assert.equal(f.world.get(f.builder,'builder').meleeOrder,false);
+  f.commands.setSelectedAttackMode('ranged');
+  assert.equal(f.world.get(f.own,'squad').attackMode,'ranged');
 });

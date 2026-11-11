@@ -1,3 +1,4 @@
+import { sendSkirmishCommand } from '../../net/skirmish-input.js';
 import type { JSX } from 'react';
 import { world, requisition, setRequisition, energy, setEnergy, COSTS } from '../../core/scene.js';
 import { updateHUD } from '../../core/hud.js';
@@ -29,6 +30,7 @@ export function ReinforceProgressPanel(): JSX.Element {
 
   const cancelActive = () => {
     if (!active) return;
+    if(sendSkirmishCommand({CancelUpgrade:{squad_id:active.sqId,kind:active.type,form_idx:active.formIdx,sol_id:active.solId}}))return;
     const sq = world.get(active.sqId, 'squad');
     if (!sq) return;
     if (active.type === 'reinforce') {
@@ -49,6 +51,7 @@ export function ReinforceProgressPanel(): JSX.Element {
   };
 
   const cancelSlot = (q: NonNullable<typeof active>) => {
+    if(sendSkirmishCommand({CancelUpgrade:{squad_id:q.sqId,kind:q.type,form_idx:q.formIdx,sol_id:q.solId}}))return;
     const sq = world.get(q.sqId, 'squad');
     if (!sq) return;
     if (q.type === 'reinforce') {

@@ -140,6 +140,18 @@ export async function loadGltf(url: string, extension = ''): Promise<GltfContain
       const gltf = await _gltfLoader.loadAsync(url, onByteProgress);
       root = gltf.scene;
       animations = gltf.animations || [];
+      // The new guardsman was exported with animation timelines twice as
+      // long as the classic model. The repaired asset carries a marker;
+      // normalize older cached/R2 exports without speeding up fixed files.
+      if (/(^|\/)models\/guardsmen\.glb$/i.test(url.split(/[?#]/)[0])
+        && gltf.asset.extras?.grimcraftAnimationTiming !== 'original-speed') {
+        animations = animations.map(source => {
+          const clip = source.clone();
+          for (const track of clip.tracks) track.scale(.5);
+          clip.duration *= .5;
+          return clip;
+        });
+      }
     }
   } catch (error) {
     // Mark finished-with-error so the progress bar never sticks on a
@@ -148,6 +160,25 @@ export async function loadGltf(url: string, extension = ''): Promise<GltfContain
     throw error;
   }
   reportR2Progress(url, { done: true });
+  // The newer guardsman/marine exports incorrectly mark the body as BLEND.
+  // Its nearly opaque atlas needs no blending; BLEND disables depth writes
+  // and draws body parts in the wrong order. Repair older cached/R2 copies
+  // as well as local exports, leaving the genuinely transparent banner alone.
+  const opaqueBodyMaterial = /(^|\/)models\/guardsmen\.glb$/i.test(url.split(/[?#]/)[0]) ? 'ig_guardsmen'
+    : /(^|\/)models\/space-marine\.glb$/i.test(url.split(/[?#]/)[0]) ? 'space_marine_unit' : null;
+  if (opaqueBodyMaterial) {
+    root.traverse(node => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        if (material.name !== opaqueBodyMaterial || (!material.transparent && material.opacity === 1 && material.depthWrite)) continue;
+        material.transparent = false;
+        material.opacity = 1;
+        material.depthWrite = true;
+        material.needsUpdate = true;
+      }
+    });
+  }
   const meshes: THREE.Object3D[] = [];
   root.traverse((child: THREE.Object3D & { isMesh?: unknown; userData?: { hidden?: unknown } }) => {
     if (child.isMesh) {

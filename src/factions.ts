@@ -4,6 +4,7 @@ import { loadGltf, type GltfContainer } from './render/gltf-models.js';
 import { loadTeamcolour, teamcolorHex } from './ui/teamcolour.js';
 import { mergeStaticContainer } from './render/merge-static.js';
 import { mergeSkinnedContainer } from './render/merge-skinned.js';
+import { resolveInfantryModel } from './render/infantry-model-variant.js';
 import { bump } from './hud/store.js';
 import type { FactionConfig, FactionKey } from './factions/types.js';
 
@@ -372,7 +373,7 @@ export async function loadFactionModels(scene: unknown, factionKeys: string[] = 
     const hqHidden = getStructureConfig(key, 'hq')?.hiddenNodes;
     target.hq = maybeMergeStatic(await safeLoad(config.hq, `${config.name} HQ`, hqHidden), hqHidden, `${config.name} HQ`);
     target.worker = maybeMergeSkinned(await safeLoad(config.infantry?.[0]?.model, `${config.name} Worker`, config.infantry?.[0]?.hiddenNodes), config.infantry?.[0]?.hiddenNodes, `${config.name} Worker`);
-    target.soldier = maybeMergeSkinned(await safeLoad(config.infantry?.[1]?.model, `${config.name} Soldier`, config.infantry?.[1]?.hiddenNodes), config.infantry?.[1]?.hiddenNodes, `${config.name} Soldier`);
+    target.soldier = maybeMergeSkinned(await safeLoad(resolveInfantryModel(config.infantry?.[1]?.model), `${config.name} Soldier`, config.infantry?.[1]?.hiddenNodes), config.infantry?.[1]?.hiddenNodes, `${config.name} Soldier`);
     await loadUnitContainers(config, target.units, config.name);
     for (const s of config.structures || []) {
       if (!s.type) {
@@ -396,4 +397,40 @@ export async function loadFactionModels(scene: unknown, factionKeys: string[] = 
   }
 
   console.log('[FACTION] ALL MODELS LOADED.');
+}
+
+// Reload just the plain-infantry containers (ig + space marines `soldier`
+// bucket) with the currently selected model variant. Called by the TopBar
+// model toggle; live soldiers are re-instantiated by the caller afterwards.
+// Containers are templates, never added to the scene, so the old ones need
+// no disposal — they drop once the last cloned mesh is swapped out.
+export async function reloadInfantryVariantContainers(hooks: LoadFactionHooks = {}): Promise<string[]> {
+  const { loadModel = loadGltf } = hooks;
+  const reloaded: string[] = [];
+  for (const key of POSITION_FACTIONS) {
+    const config = FACTIONS[key];
+    const target = factionContainers[key];
+    const entry = config?.infantry?.[1];
+    if (!config || !target || !entry?.model) {
+      continue;
+    }
+    try {
+      const url = modelUrl(resolveInfantryModel(entry.model));
+      console.log(`[FACTION] Reloading ${config.name} Soldier: ${url}`);
+      const container = await loadModel(url);
+      if (container) {
+        if (entry.hiddenNodes) container._hiddenNodes = entry.hiddenNodes;
+        const stats = mergeSkinnedContainer(container, entry.hiddenNodes || []);
+        if (stats.merged > 0) {
+          mergeStats.push({ label: `${config.name} Soldier (variant)`, ...stats });
+        }
+        target.soldier = container;
+        _applyTeamcolorToContainer(key, target);
+        reloaded.push(key);
+      }
+    } catch (error) {
+      console.warn(`[FACTION] Variant reload failed (${config.name} Soldier)`, error);
+    }
+  }
+  return reloaded;
 }

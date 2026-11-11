@@ -53,6 +53,17 @@ function collect(root) {
 }
 
 describe('necron lightning effect', () => {
+  it('simultaneous discharges keep their own muzzle and target endpoints', () => {
+    const { bolt: first } = fireBolt();
+    const second = new NecronLightning(new THREE.Scene());
+    const otherStart = new THREE.Vector3(3, 2, 5), otherTarget = new THREE.Vector3(3, 2, 25);
+    second.fire(otherStart, otherTarget);
+    first.update(1 / 60);second.update(1 / 60);
+    assert.ok(first._path[0].distanceTo(new THREE.Vector3(0, 1.05, 0)) < 1e-8);
+    assert.ok(first._path.at(-1).distanceTo(new THREE.Vector3(20, 1, 0)) < 1e-8);
+    assert.ok(second._path.at(-1).distanceTo(otherTarget) < 1e-8);
+    first.dispose();second.dispose();
+  });
   it('fire builds layered bolt attached to the scene', () => {
     const { scene, bolt } = fireBolt({ branchCount: 4 });
     assert.equal(bolt.root.parent, scene);
@@ -227,6 +238,20 @@ describe('necron lightning effect', () => {
     world.add(soldierId, 'mesh', { root });
     assert.ok(getSoldierMuzzlePos(world, soldierId).distanceTo(new THREE.Vector3(4, 1.05, 6)) < 1e-9);
     assert.ok(getSoldierMuzzlePos(world, 999).distanceTo(new THREE.Vector3(0, 1.05, 0)) < 1e-9);
+  });
+
+  it('keeps muzzle fallback and lightning strike above raised terrain', () => {
+    const world = makeStubWorld(), shooter = world.createEntity(), target = world.createEntity();
+    const shooterRoot = new THREE.Group(), targetRoot = new THREE.Group();
+    shooterRoot.position.set(4, 12, 6);targetRoot.position.set(24, 18, 6);
+    world.add(shooter, 'mesh', { root: shooterRoot });world.add(target, 'mesh', { root: targetRoot });
+    const muzzle = getSoldierMuzzlePos(world, shooter);
+    assert.ok(muzzle.distanceTo(new THREE.Vector3(4, 13.05, 6)) < 1e-9);
+    const shot = createLightningEntity(world, muzzle, 'blue', shooter, target);
+    const lightning = world.get(shot, 'mesh').lightning;
+    assert.ok(lightning._path[0].distanceTo(muzzle) < 1e-9);
+    assert.ok(lightning._path.at(-1).distanceTo(new THREE.Vector3(24, 19, 6)) < 1e-9);
+    lightning.dispose();
   });
 
   it('lightning starts exactly at the muzzle point', () => {

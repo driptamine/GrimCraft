@@ -8,18 +8,19 @@ import ts from 'typescript';
 import * as jsxRuntime from 'react/jsx-runtime';
 
 describe('unit command grid', () => {
-  function render(kinds, extras = []) {
+  function render(kinds, extras = [], mode = 'ranged') {
     const calls = [];
     const context = { exports: {}, require(name) {
       if (name === 'react/jsx-runtime') return jsxRuntime;
       if (name.endsWith('bits.jsx')) return { ActionButton: 'button' };
       if (name.endsWith('primitives.jsx')) return { CommandGridDiv: 'grid', CommandEmptySlot: 'empty' };
       if (name.endsWith('unit-commands.js')) return {
-        selectedTroops: () => kinds.map((kind) => ({ kind, unit: { stance: 'stand' } })),
+        selectedTroops: () => kinds.map((kind) => ({ kind, unit: { stance: 'stand', attackMode: mode } })),
         pendingUnitCommand: null,
         setUnitCommand: (command) => calls.push(command),
         stopSelectedTroops: () => calls.push('stop'),
         setUnitStance: (stance) => calls.push(`stance_${stance}`),
+        setSelectedAttackMode: (mode) => calls.push(`mode_${mode}`),
       };
       throw new Error(`Unexpected import ${name}`);
     } };
@@ -46,7 +47,18 @@ describe('unit command grid', () => {
     assert.equal(children[5].props.name, 'chase');
     assert.equal(children[8].props.name, 'fly');
     for (const slot of [0, 1, 2, 3, 6, 7]) children[slot].props.onClick();
-    assert.deepEqual(calls, ['move', 'stop', 'attackmove', 'melee', 'stance_stand', 'stance_ranged']);
+    assert.deepEqual(calls, ['move', 'stop', 'attackmove', 'melee', 'stance_stand', 'mode_melee']);
+  });
+
+  it('toggles Assault and Ranged with either mouse button and shows the selected mode', () => {
+    for (const mode of ['ranged', 'melee']) {
+      const { children, calls } = render(['squad'], [], mode);
+      const button = children[7];
+      assert.equal(button.props.icon, `assets/command_icons/stance_${mode === 'melee' ? 'assault' : 'ranged'}.png`);
+      button.props.onClick();
+      button.props.onRightClick();
+      assert.deepEqual(calls, [mode === 'melee' ? 'mode_ranged' : 'mode_melee', mode === 'melee' ? 'mode_ranged' : 'mode_melee']);
+    }
   });
 
   it('applies movement, stop, combat orders, and stances to the selected troops', () => {

@@ -2,14 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0a0f">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" type="image/png" href="soulstorm_icon.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="stylesheet" href="/src/net/multiplayer-lobby-ui.css">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" href="/soulstorm_icon.png">
 <title>GRIMCRAFT</title>
 <style>
 :root { color-scheme:dark; }
@@ -1165,15 +1167,14 @@
   <button onclick="resetGame()">PLAY AGAIN</button>
 </div>
 
-<script type="module" src="src/hud/index.tsx"></script>
-<script type="module" src="src/core/game.js"></script>
+<script type="module" src="/src/hud/index.tsx"></script>
+<script type="module" src="/src/core/game.ts"></script>
 <script type="module">
-import { bootGame } from './src/core/game.js';
 // _injectConnectUI(); // This needs to be imported or handled if it's in multiplayer.js
 // Only register SW in production — it caches aggressively and breaks Vite HMR
 if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
   });
   // Ask the browser not to evict the cached models under storage pressure.
   if (navigator.storage && navigator.storage.persist) {

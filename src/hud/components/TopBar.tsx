@@ -1,9 +1,13 @@
-import type { JSX } from 'react';
+import { useState, useEffect, type JSX } from 'react';
+import {necronGlowMode,setNecronGlowMode,type NecronGlowMode} from '../../fx/necron-aurora.js';
+import { LIGHTING_CHANGED, lightingMode, setLightingMode, shadowsEnabled, setShadowsEnabled } from '../../render/lighting.js';
+import { qualityTier } from '../../core/scene.js';
 import { world, PLAYER, controlBoth, canCommand, requisition, energy, kills, startTime, getPowerRate, getRequisitionRate, getRenderBackend, isBackendSwitching, supportsWebGPU, getBackendError, _gridVariant } from '../../core/scene.js';
 import { getFactionTeamcolor, getFactionTeamcolourScheme, getFactionTeamcolourSchemes, setFactionTeamcolourScheme, TEAMCOLOUR_SLOT } from '../../factions.js';
 import { teamcolorHex } from '../../ui/teamcolour.js';
 import type { TeamcolourRGB } from '../../ui/teamcolour.js';
 import { useHUDVersion } from '../useHUD.js';
+import { useNewInfantryModel } from '../../render/infantry-model-variant.js';
 import { infantryImmortal, setInfantryImmortal, getFps } from '../store.js';
 import { backendButtonState } from '../../render/render-backend.js';
 import {
@@ -32,7 +36,28 @@ function TeamcolourSelect({ faction, short }: any): JSX.Element {
   );
 }
 
+function LightingControls(): JSX.Element {
+  const [, refresh] = useState(0);
+  useEffect(() => {
+    const changed = () => refresh(version => version + 1);
+    window.addEventListener(LIGHTING_CHANGED, changed);
+    return () => window.removeEventListener(LIGHTING_CHANGED, changed);
+  }, []);
+  const enhanced = lightingMode() === 'definitive', shadows = shadowsEnabled(qualityTier());
+  return <div role="group" aria-label="Освещение и тени" style={{ position: 'absolute', top: 50, left: 150, display: 'flex', gap: 6, background: 'rgba(4,12,20,.85)' }}>
+    <InspectorBtn id="lighting-mode-toggle" aria-pressed={enhanced} title="Освещение: Classic / в духе Dawn of War: Definitive Edition. Переключение без перезапуска матча." onClick={() => setLightingMode(enhanced ? 'classic' : 'definitive')}>
+      СВЕТ: {enhanced ? 'DE' : 'CLASSIC'}
+    </InspectorBtn>
+    <InspectorBtn id="lighting-shadows-toggle" aria-pressed={shadows} title="Включить или выключить тени юнитов и зданий." onClick={() => setShadowsEnabled(!shadows)}>
+      ТЕНИ: {shadows ? 'ВКЛ.' : 'ВЫКЛ.'}
+    </InspectorBtn>
+  </div>;
+}
+
 export function TopBar(): JSX.Element {
+  const [auraMode,setAuraMode]=useState<NecronGlowMode>(necronGlowMode);
+  useEffect(()=>{const refresh=()=>setAuraMode(necronGlowMode());window.addEventListener('necron-glow-changed',refresh);return()=>window.removeEventListener('necron-glow-changed',refresh)},[]);
+  const showAuraControl=world&&[...world.query('squad'),...world.query('structure')].some((id:number)=>(world.get(id,'squad')||world.get(id,'structure'))?.faction==='necrons');
   useHUDVersion('topbar');
 
   const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -55,7 +80,10 @@ export function TopBar(): JSX.Element {
 
   return (
     <TopBarDiv>
+      <LightingControls />
       <TbSection>
+        {showAuraControl&&<InspectorBtn id="necron-aura-toggle" title="Аура некронов: новая → текущая → выключена. Сравнение без перезапуска матча." onClick={()=>{const modes=['new','current','off'] as const;const next=modes[(modes.indexOf(necronGlowMode())+1)%3];setNecronGlowMode(next);setAuraMode(next)}}>NECRON: {{new:'НОВАЯ',current:'ТЕКУЩАЯ',off:'ВЫКЛ.'}[auraMode]}</InspectorBtn>}
+
         <InspectorBtn title={backendUi.title} disabled={backendUi.disabled} onClick={() => window.switchRenderBackend?.()}>
           {backendUi.label}
         </InspectorBtn>
@@ -93,6 +121,20 @@ export function TopBar(): JSX.Element {
       </ImmortalBtn>
       <TeamcolourSelect faction="ig" short="IG" />
       <TeamcolourSelect faction="space marines" short="SM" />
+      <ImmortalBtn
+        className={useNewInfantryModel('marine') ? 'on' : ''}
+        onClick={() => window.toggleInfantryModel?.('marine')}
+        title="Space Marine model: switch between the classic space_marine.glb and the new space-marine.glb (live, no restart)"
+      >
+        {useNewInfantryModel('marine') ? 'SM MODEL: NEW' : 'SM MODEL: OLD'}
+      </ImmortalBtn>
+      <ImmortalBtn
+        className={useNewInfantryModel('guardsman') ? 'on' : ''}
+        onClick={() => window.toggleInfantryModel?.('guardsman')}
+        title="Guardsman model: switch between the classic guardsmen.glb and the new guardsmen.glb (live, no restart)"
+      >
+        {useNewInfantryModel('guardsman') ? 'IG MODEL: NEW' : 'IG MODEL: OLD'}
+      </ImmortalBtn>
       <TbSection>
         <TbStat title="FPS — frames per second"><span className="val">{getFps()} FPS</span></TbStat>
         <TbStat title="GAME TIME — elapsed match time"><span className="val">{timer}</span></TbStat>

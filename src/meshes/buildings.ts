@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { attachNecronStructureAurora } from '../fx/necron-aurora.js';
 import { getMat } from '../render/mat-cache.js';
 import { _instantiateFromContainer } from '../render/model-upload.js';
 import {
@@ -635,10 +636,13 @@ export function makeConfigStructureMesh(type: string, position: THREE.Vector3, t
           mesh.userData = { ...metaPayload };
         }
       });
+      if(metaPayload.faction==='necrons')attachNecronStructureAurora(root,type);
       return root;
     }
   }
-  return _makeProceduralStructureMesh(type, position, teamKey, metaPayload);
+  const root=_makeProceduralStructureMesh(type, position, teamKey, metaPayload);
+  if(metaPayload.faction==='necrons')attachNecronStructureAurora(root,type);
+  return root;
 }
 
 

@@ -6,6 +6,8 @@ import ts from 'typescript';
 import * as THREE from 'three';
 import { createPlasmaPuffPreview, findPlasmaPuffPreviewCenter } from '../src/render/plasma-puff-preview.js';
 import { makePlasmaCloudPuffMesh } from '../src/fx/plasma-cloud-puff.js';
+import * as puffFx from '../src/fx/plasma-cloud-puff.js';
+import * as blasterFx from '../src/fx/plasma-cloud-blaster.js';
 import { World } from '../src/core/ecs.js';
 
 describe('stationary plasma projectile preview', () => {
@@ -70,13 +72,24 @@ describe('stationary plasma projectile preview', () => {
   });
 });
 
-function element() {
+function element(tag = 'div') {
   return {
-    style: {}, children: [], listeners: {}, parent: null,
+    tag, style: {}, children: [], listeners: {}, parent: null, dataset: {},
+    textContent: '', type: '', value: '', min: '', max: '', step: '', id: '',
     append(...children) { for (const child of children) { child.parent = this; this.children.push(child); } },
     remove() { if (this.parent) this.parent.children.splice(this.parent.children.indexOf(this), 1); this.parent = null; },
     addEventListener(name, callback) { this.listeners[name] = callback; },
+    setAttribute(name, value) { this.dataset[name] = value; },
   };
+}
+
+function findByText(root, text) {
+  if (root.textContent === text) return root;
+  for (const child of root.children || []) {
+    const found = findByText(child, text);
+    if (found) return found;
+  }
+  return null;
 }
 
 function fixture() {
@@ -114,7 +127,9 @@ function fixture() {
     if (name.endsWith('/hud.js')) return { updateHUD() {} };
     if (name.endsWith('/terrain.js')) return { _groundAt: () => 5 };
     if (name.endsWith('/camera-fps.js')) return { setCameraMode() {} };
-    if (name.endsWith('/plasma-puff-preview.js')) return { createPlasmaPuffPreview, findPlasmaPuffPreviewCenter };
+    if (name.endsWith('/render/plasma-puff-preview.js')) return { createPlasmaPuffPreview, findPlasmaPuffPreviewCenter };
+    if (name.endsWith('/fx/plasma-cloud-puff.js')) return puffFx;
+    if (name.endsWith('/fx/plasma-cloud-blaster.js')) return blasterFx;
     throw new Error(`Unexpected import ${name}`);
   } });
   const source = readFileSync(new URL('../src/ui/plasma-puff-preview.ts', import.meta.url), 'utf8');
@@ -142,7 +157,7 @@ describe('projectile preview controls', () => {
     for (const tick of f.callbacks) tick();
     camera.alpha += 1;
     camera.radius = 2;
-    f.body.children[0].children[1].listeners.click();
+    findByText(f.body.children[0], 'Закрыть').listeners.click();
     assert.equal(f.isPlasmaPuffPreviewOpen(), false);
     assert.deepEqual(camera.target, saved.target);
     for (const key of ['alpha', 'beta', 'radius', 'lowerRadiusLimit']) assert.equal(camera[key], saved[key], key);

@@ -221,7 +221,8 @@ export function _builderFinish(world: any, id: any, builderComponent: any) {
   if (builderComponent.buildTargetSP !== null) {
     const strategicPoint = world.get(builderComponent.buildTargetSP, 'strategicPoint');
     if (strategicPoint && strategicPoint.owner === builderComponent.team && !strategicPoint.hasListeningPost) {
-      setRequisition(requisition - COSTS.listeningPost);
+      if(!builderComponent.listeningPostCostPaid)setRequisition(requisition - COSTS.listeningPost);
+      builderComponent.listeningPostCostPaid=false;
       strategicPoint.hasListeningPost = true;
       strategicPoint.lpTier = 1;
       strategicPoint.faction = builderComponent.faction;
@@ -233,8 +234,9 @@ export function _builderFinish(world: any, id: any, builderComponent: any) {
     if (pendingEntityId !== undefined) {
       const comp = world.get(pendingEntityId, 'building') || world.get(pendingEntityId, 'structure') || world.get(pendingEntityId, 'airfield');
       if (comp) {
+        comp.pendingWorker=false;
         if (!comp.constructing) {
-          setRequisition(requisition - COSTS[type as keyof typeof COSTS]);
+          if(!builderComponent.buildTarget.costPaid)setRequisition(requisition - COSTS[type as keyof typeof COSTS]);
           comp.constructProgress = 0;
         }
         comp.constructing = true;

@@ -4,6 +4,13 @@ export type SystemFunction = (world: World, deltaTime: number) => void;
 
 export class World {
   private _nextId = 1;
+  defaultOwner: number | null = null;
+  private _forcedEntityId: number | null = null;
+  withEntityId<T>(id: number, create: () => T): T {
+    this._forcedEntityId = id;
+    try { return create(); } finally { this._forcedEntityId = null; }
+  }
+  useReplicaIds(): void { this._nextId = 1_000_000_000; }
   private _components = new Map<string, Map<EntityId, unknown>>();
   private _entities = new Set<EntityId>();
   private _systems: SystemFunction[] = [];
@@ -11,9 +18,12 @@ export class World {
   private _toDestroy: EntityId[] = [];
 
   createEntity(tags: string[] = []): EntityId {
-    const id = this._nextId++;
+    const id = this._forcedEntityId ?? this._nextId++;
+    this._forcedEntityId = null;
+    this._nextId = Math.max(this._nextId, id + 1);
     this._entities.add(id);
     this._tags.set(id, new Set(tags));
+    if (this.defaultOwner != null) this.add(id, 'networkOwner', { id: this.defaultOwner });
     return id;
   }
 

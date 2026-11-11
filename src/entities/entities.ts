@@ -12,7 +12,13 @@ import {
   researchedTech,
   JET_ALT,
   JET_SPEED,
+  _allHitboxes,
 } from '../core/scene.js';
+import { bump } from '../hud/store.js';
+import {
+  toggleInfantryModelVariant,
+  type InfantryModelUnit,
+} from '../render/infantry-model-variant.js';
 import {
   makeSoldierMesh,
   makeHpBar,
@@ -34,7 +40,7 @@ import {
   updateHpBar,
 } from '../meshes.js';
 import { updateHUD } from '../core/hud.js';
-import { FACTIONS, playerFaction, enemyFaction, resolveFactionKey } from '../factions.js';
+import { FACTIONS, playerFaction, enemyFaction, resolveFactionKey, reloadInfantryVariantContainers } from '../factions.js';
 import { DEFAULT_ARMOR_CLASS, getWeapon } from '../combat/stats.js';
 import { NecronLightning } from '../fx/necron-lightning.js';
 import { makePlasmaBoltMesh, makePlasmaFinalBoltMesh } from '../fx/plasma-bolt.js';
@@ -42,7 +48,7 @@ import { makeBlasterBoltMesh } from '../fx/blaster-bolt.js';
 import { makeReaperBoltMesh } from '../fx/reaper-bolt.js';
 import { HELLGUN_LASER_NAME, makeHellgunLaserMesh } from '../fx/hellgun-laser.js';
 import { LASGUN_LASER_NAME, makeLasgunLaserMesh } from '../fx/lasgun-laser.js';
-import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh } from '../fx/plasma-cloud-puff.js';
+import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, plasmaCloudPuffOffset } from '../fx/plasma-cloud-puff.js';
 import { attachPlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
 import { mkBox, mkSphere, mkCylinder, mkPlane, mkGroup, disposeObj, childMeshes, descendants } from '../render/three-helpers.js';
 
@@ -135,6 +141,128 @@ export function applySquadWeaponVisuals(world: any, squadEntityId: any) {
   });
 }
 
+// Tear down one soldier root so it can be replaced: stops and disposes the
+// animation groups and the instantiated GLB data, then removes every child
+// mesh. Mirrors the soldier branch of disposeMeshComponent (combat.ts), but
+// keeps the HUD bars — they outlive the swap and are reattached to the mesh
+// component by the caller.
+function _disposeSoldierRootForSwap(root: any): void {
+  if (!root) {
+    return;
+  }
+  if (root._animGroups) {
+    Object.values(root._animGroups).forEach((ag: any) => {
+      try {
+        ag.stop();
+        ag.dispose();
+      } catch (_) { /* already disposed */ }
+    });
+    root._animGroups = {};
+  }
+  if (root._instanceData) {
+    try {
+      root._instanceData.dispose?.();
+      root._instanceData.animationGroups.forEach((ag: any) => {
+        try {
+          ag.stop();
+          ag.dispose();
+        } catch (_) { /* already disposed */ }
+      });
+      root._instanceData.rootNodes.forEach((n: any) => {
+        try {
+          childMeshes(n).forEach((m) => disposeObj(m));
+          disposeObj(n);
+        } catch (_) { /* already disposed */ }
+      });
+    } catch (_) { /* already disposed */ }
+    root._instanceData = null;
+  }
+  childMeshes(root).forEach((m) => disposeObj(m));
+  if (root.parent) {
+    root.parent.remove(root);
+  }
+  disposeObj(root);
+  for (let i = _allHitboxes.length - 1; i >= 0; i--) {
+    if (_allHitboxes[i].userData?.disposed) _allHitboxes.splice(i, 1);
+  }
+}
+
+// Re-instantiate every live basic-infantry mesh from the (possibly
+// reloaded) faction containers. Only meshes tagged `_variantSoldier` at
+// creation take part — sergeants, specialists and vehicles resolve to named
+// units[] entries and keep their models. HP bars, squad state, cooldowns
+// and selection all live outside the mesh, so they survive the swap; the
+// per-frame selection sync re-applies the squad's `selected` flag to the
+// fresh meshes on the next tick.
+export function swapInfantryVariantMeshes(targetWorld: any = world): number {
+  if (!targetWorld) {
+    return 0;
+  }
+  let swapped = 0;
+  for (const soldierId of targetWorld.query('soldier')) {
+    const soldier = targetWorld.get(soldierId, 'soldier');
+    const meshComponent = targetWorld.get(soldierId, 'mesh');
+    const old = meshComponent?.root;
+    if (!soldier || !meshComponent || !old || !old._variantSoldier) {
+      continue;
+    }
+    if ((soldier.hp ?? 1) <= 0) {
+      continue; // dying/dead: leave the death animation alone
+    }
+    const squad = targetWorld.get(soldier.squadId, 'squad');
+    const team = squad?.team ?? PLAYER;
+    const faction = resolveFactionKey(squad?.faction, team === PLAYER ? playerFaction : enemyFaction);
+    const parent = old.parent || null;
+    _disposeSoldierRootForSwap(old);
+    const mesh = makeSoldierMesh(team, {
+      soldierEntityId: soldierId,
+      squadEntityId: soldier.squadId,
+      unitType: soldier.unitType || undefined,
+      faction,
+    });
+    (mesh as any)._variantSoldier = true;
+    mesh.position.copy(old.position);
+    mesh.quaternion.copy(old.quaternion);
+    mesh.scale.copy(old.scale);
+    if (parent) {
+      parent.add(mesh);
+    } else if (scene) {
+      scene.add(mesh);
+    }
+    if (soldier.isSuperior) {
+      _applySuperiorVisuals(mesh);
+    }
+    meshComponent.root = mesh;
+    childMeshes(mesh).forEach((m) => {
+      if (m.userData) {
+        m.userData.squadEntityId = soldier.squadId;
+      }
+    });
+    swapped++;
+  }
+  // Re-apply per-squad weapon visuals (lasgun/plasma/blaster visibility).
+  for (const squadId of targetWorld.query('squad')) {
+    applySquadWeaponVisuals(targetWorld, squadId);
+  }
+  return swapped;
+}
+
+// Flip one infantry model variant (marine/guardsman), reload the matching
+// faction containers, and live-swap every affected soldier mesh. Returns
+// the selected variant ('new' | 'classic') plus the swapped mesh count.
+export async function toggleInfantryModel(targetWorld: any, unit: InfantryModelUnit): Promise<{ variant: string; swapped: number }> {
+  const variant = toggleInfantryModelVariant(unit);
+  bump('topbar');
+  try {
+    await reloadInfantryVariantContainers();
+  } catch (error) {
+    console.warn('[INFANTRY-MODEL] container reload failed, swapping against existing containers', error);
+  }
+  const swapped = swapInfantryVariantMeshes(targetWorld);
+  bump('topbar');
+  return { variant, swapped };
+}
+
 function _makeReloadBar(teamKey: any) {
   const bar = makeHpBar(1.2, teamKey);
   bar._fg.material.color = new THREE.Color(1, 1, 1);
@@ -207,6 +335,8 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
   }
   const soldierFaction = resolveFactionKey(squadComponent?.faction, squadComponent?.team === PLAYER ? playerFaction : enemyFaction);
   const unitConfig: any = findUnitConfig(soldierFaction, unitType);
+  const movementSpeedMultiplier = unitConfig?.movementSpeedMultiplier
+    ?? findUnitConfig(soldierFaction, squadComponent?.unitType)?.movementSpeedMultiplier ?? 1;
   const weaponProfile = getWeapon(unitConfig?.weapon);
 
   let maxHp = unitConfig?.hp ?? (isSuperior ? 150 : 100);
@@ -245,7 +375,7 @@ export function createSoldierEntity(world: any, squadId: any, formIdx: number, u
     isGrenadier,
     isSuperior,
     projectileType: null,
-    moveSpeed: 5.8 + Math.random() * 2.2,
+    moveSpeed: (5.8 + Math.random() * 2.2) * movementSpeedMultiplier,
     idlePhase: Math.random() * Math.PI * 2,
     idleYawOffset: (Math.random() - 0.5) * 0.08,
     cloaked,
@@ -291,7 +421,7 @@ export function createSquadEntity(world: any, team: any, cx: number, cz: number,
   const unitConfig: any = findUnitConfig(factionKey, unitType);
   const weaponProfile = getWeapon(unitConfig?.weapon);
   let attackRange = unitConfig?.attackRange ?? weaponProfile?.range ?? (22 + Math.random() * 4);
-  let speed = 5.5 + Math.random() * 1.5;
+  let speed = (5.5 + Math.random() * 1.5) * (unitConfig?.movementSpeedMultiplier ?? 1);
   const isGuardsman = !unitType || unitType === 'guardsmen';
   if (isGuardsman && researchedTech.has('satellite_targeting')) attackRange *= 1.2;
   if (unitType === 'kasrkin' && researchedTech.has('genetic_enhancement')) speed *= 1.33;
@@ -772,14 +902,18 @@ export function createPlasmaCloudPuffVolley(world: any, origin: THREE.Vector3, t
   const up = new THREE.Vector3().crossVectors(direction, right).normalize();
   const damage = (damageOverride ?? (14 + Math.random() * 6) * damageMult) / PLASMA_CLOUD_PUFF_COUNT;
   const ids: number[] = [];
+  const shotLength = origin.distanceTo(aim);
   for (let index = 0; index < PLASMA_CLOUD_PUFF_COUNT; index++) {
     const id = world.createEntity([TAG.bullet]);
     const mesh = makePlasmaCloudPuffMesh(index);
     const angle = index * Math.PI * 2 / PLASMA_CLOUD_PUFF_COUNT;
-    mesh.position.copy(origin).addScaledVector(right, Math.cos(angle) * 0.045).addScaledVector(up, Math.sin(angle) * 0.045);
+    mesh.position.copy(origin)
+      .addScaledVector(direction, plasmaCloudPuffOffset(index, shotLength))
+      .addScaledVector(right, Math.cos(angle) * 0.045).addScaledVector(up, Math.sin(angle) * 0.045);
     mesh.lookAt(aim);
     if (index === 0) attachPlasmaCloudBlaster(mesh, mesh.position.distanceTo(aim));
-    const velocity = aim.clone().sub(mesh.position).normalize().multiplyScalar(35 + index * 1.1);
+    // One shared speed keeps the arranged cluster intact for the whole flight.
+    const velocity = aim.clone().sub(mesh.position).normalize().multiplyScalar(35);
     world.add(id, 'bullet', {
       team, targetId, ownerRef: ownerId, projectileType: PLASMA_CLOUD_PUFF, puffVariant: index,
       vx: velocity.x, vy: velocity.y, vz: velocity.z, damage, age: 0, travelled: 0,
@@ -853,11 +987,11 @@ export function createReaperBulletEntity(world: any, ownerMeshPos: any, ownerTea
   return id;
 }
 
-export function createApcEntity(world: any, position: any, faction: any = null) {
+export function createApcEntity(world: any, position: any, faction: any = null, team: any = PLAYER) {
   const id = world.createEntity(['apc']);
   const factionKey = resolveFactionKey(faction, playerFaction);
   world.add(id, 'apc', {
-    team: PLAYER,
+    team,
     faction: factionKey,
     position: position.clone(),
     hp: 500,
@@ -877,8 +1011,8 @@ export function createApcEntity(world: any, position: any, faction: any = null) 
     queue: [],
   });
   const meta = { apcEntityId: id, faction: factionKey };
-  const root = makeApcMesh(position, PLAYER, meta);
-  const hpBar = makeHpBar(3, PLAYER);
+  const root = makeApcMesh(position, team, meta);
+  const hpBar = makeHpBar(3, team);
   hpBar.visible = false;
   world.add(id, 'mesh', { root, hpBar });
   return id;
@@ -994,6 +1128,7 @@ export function createBeamEntity(world: any, ownerPos: any, ownerTeam: any, owne
   }
   const damage = damageOverride ?? (10 + Math.random() * 8) * damageMult;
   world.add(id, 'beam', {
+    length,
     team: ownerTeam,
     targetId: targetSoldierId,
     ownerRef: ownerId,
@@ -1018,7 +1153,7 @@ const MUZZLE_TIP_EXTENSION = 0.5;
 export function getSoldierMuzzlePos(world: any, soldierId: any, weapon: string | null = null) {
   const root = world.get(soldierId, 'mesh')?.root;
   const fallback = root ? root.position.clone() : new THREE.Vector3();
-  fallback.y = 1.05;
+  fallback.y += 1.05;
   if (!root) {
     return fallback;
   }
@@ -1080,7 +1215,7 @@ export function createLightningEntity(world: any, ownerPos: any, ownerTeam: any,
   }
   const startPos = ownerPos.clone();
   const endPos = targetMesh.position.clone();
-  endPos.y = 1.0;
+  endPos.y += 1.0;
   const lightning = new NecronLightning(scene, {});
   lightning.fire(startPos, endPos);
   const damage = damageOverride ?? (10 + Math.random() * 8) * damageMult;
@@ -1096,12 +1231,13 @@ export function createLightningEntity(world: any, ownerPos: any, ownerTeam: any,
   return id;
 }
 
-export function createAirfieldEntity(world: any, position: any, faction: any = null) {
+export function createAirfieldEntity(world: any, position: any, faction: any = null, team: any = PLAYER) {
   const id = world.createEntity(['airfield']);
   const factionKey = resolveFactionKey(faction, playerFaction);
   const meta = { airfieldEntityId: id, faction: factionKey };
   const healthPoints = 500;
   world.add(id, 'airfield', {
+    team,
     faction: factionKey,
     position: position.clone(),
     hp: healthPoints,
@@ -1114,11 +1250,11 @@ export function createAirfieldEntity(world: any, position: any, faction: any = n
     beaconT: 0,
     rallyPoint: null,
   });
-  const scaffold = makeGhostMesh('airfield', position, meta);
+  const scaffold = makeGhostMesh('airfield', position, meta, team);
   _attachScaffoldSelRing(scaffold, 'airfield');
   const constructBar = makeConstructBar(8);
-  const hpBar = makeHpBar(7, PLAYER);
-  const prodBar = makeHpBar(7, PLAYER);
+  const hpBar = makeHpBar(7, team);
+  const prodBar = makeHpBar(7, team);
   hpBar.visible = false;
   world.add(id, 'mesh', {
     root: scaffold,
@@ -1127,18 +1263,19 @@ export function createAirfieldEntity(world: any, position: any, faction: any = n
     hpBar,
     prodBar,
     _realMeshBuilt: false,
-    _meshFactory: () => makeAirfieldMesh(position, PLAYER, meta),
+    _meshFactory: () => makeAirfieldMesh(position, team, meta),
   });
   return id;
 }
 
-export function createJetEntity(world: any, spawnPos: any) {
+export function createJetEntity(world: any, spawnPos: any, team: any = PLAYER, faction: any = null) {
   const id = world.createEntity(['jet']);
   const startAngle = Math.random() * Math.PI * 2;
   const orbitR = 28 + Math.random() * 12;
   const jetEntityId = id;
   world.add(id, 'jet', {
-    team: PLAYER,
+    team,
+    faction: resolveFactionKey(faction,playerFaction),
     hp: 250,
     maxHp: 250,
     position: new THREE.Vector3(spawnPos.x, JET_ALT, spawnPos.z),
@@ -1158,8 +1295,8 @@ export function createJetEntity(world: any, spawnPos: any) {
     holdPos: new THREE.Vector3(spawnPos.x, JET_ALT, spawnPos.z),
     forcedTargetSqId: null,
   });
-  const mesh = makeJetMesh(new THREE.Vector3(spawnPos.x, JET_ALT, spawnPos.z), PLAYER, { jetEntityId });
-  const hpBar = makeHpBar(3.5, PLAYER);
+  const mesh = makeJetMesh(new THREE.Vector3(spawnPos.x, JET_ALT, spawnPos.z), team, { jetEntityId, faction: resolveFactionKey(faction,playerFaction) });
+  const hpBar = makeHpBar(3.5, team);
   hpBar.visible = false;
   world.add(id, 'mesh', { root: mesh, hpBar });
   return id;

@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { applyObjectLighting, bindLighting, shadowsEnabled, SUN_OFFSET } from '../render/lighting.js';
+import { attachGroundShadowOverlay } from '../render/ground-shadows.js';
+import { isComputerOnlyMatch } from './local-match.js';
 import { bump } from '../hud/store.js';
 import {
   BACKEND_WEBGL, BACKEND_WEBGPU, isWebGPUSupported, readStoredBackend,
@@ -7,7 +10,7 @@ import {
 import {
   setDefaultScene, mkBox, mkCylinder, mkSphere, mkGround, mkLineSystem, disposeObj,
   ghostHitboxMaterial, classifyGPU, pixelRatioForTier, isQualityLevel,
-  resolveQualityTier, nextQualityTier, qualityShadowsEnabled,
+  resolveQualityTier, nextQualityTier,
   qualityAntialiasEnabled, QUALITY_STORAGE_KEY,
 } from '../render/three-helpers.js';
 import { macroLinePositions, microLinePositions } from '../render/grid-helper.js';
@@ -54,7 +57,9 @@ export function setControlBoth(value: any) {
 }
 // Units/owners of this team accept player orders. Strict team check so
 // null/uncaptured owners never become commandable by accident.
-export function canCommand(team: any): boolean {
+export function canCommand(team: any, entityId?: number): boolean {
+  if(entityId!=null && typeof window!=='undefined' && window._multiplayerMode && window._networkSchema===2 && world?.get(entityId,'networkOwner')?.id!==window._networkPlayerId)return false;
+  if (isComputerOnlyMatch((typeof window !== 'undefined' && window._currentMapKey) || 'arena')) return false;
   if (team !== 'blue' && team !== 'red') {
     return false;
   }
@@ -221,7 +226,7 @@ export function getPowerRate(worldRef: any = world) {
   if (!worldRef) return 0;
   const count = worldRef.query('structure').filter((id: any) => {
     const s = worldRef.get(id, 'structure');
-    return s && !s.constructing && ['thermoGen', 'thermo_generator', 'plasma_generator'].includes(s.type);
+    return s && s.team === PLAYER && canCommand(s.team,id) && !s.constructing && !s.pendingWorker && ['thermoGen', 'thermo_generator', 'plasma_generator'].includes(s.type);
   }).length;
   return Math.min(count, MAX_PLASMA) * PLASMA_RATE_PER;
 }
@@ -229,12 +234,12 @@ export function getRequisitionRate(worldRef: any = world) {
   if (!worldRef) return 0;
   const hqCount = worldRef.query('building').filter((id: any) => {
     const b = worldRef.get(id, 'building');
-    return b && b.team === PLAYER && b.type === 'hq' && !b.constructing;
+    return b && b.team === PLAYER && canCommand(b.team,id) && b.type === 'hq' && !b.constructing;
   }).length;
   let pointRate = 0;
   worldRef.query('strategicPoint').forEach((id: any) => {
     const sp = worldRef.get(id, 'strategicPoint');
-    if (sp && sp.owner === PLAYER) {
+    if (sp && sp.owner === PLAYER && canCommand(sp.owner,id)) {
       pointRate += LP_REQUISITION_RATES[Math.min(sp.lpTier || 0, 3)];
     }
   });
@@ -246,6 +251,7 @@ export let energy = 0;
 export let kills = 0;
 export let startTime = Date.now();
 export let gameOver = false;
+export let paused = false;
 export const counters = { baseReqT: 0, aiT: 0 };
 export function setRequisition(value: any) { requisition = value; }
 export function gainRequisition(world: any, amount: number) {
@@ -254,9 +260,11 @@ export function gainRequisition(world: any, amount: number) {
 export function setEnergy(value: any) { energy = value; }
 export function setKills(value: any) { kills = value; }
 export function setGameOver(value: any) { gameOver = value; }
+export function setPaused(value: any) { paused = !!value; }
 export function setStartTime(value: any) { startTime = value; }
 
-export const researchedTech = new Set();
+export let researchedTech = new Set();
+export function setResearchContext(next: Set<string>): void { researchedTech = next; }
 export function setResearchedTech(key: any) { researchedTech.add(key); }
 export function clearResearchedTech() { researchedTech.clear(); }
 
@@ -726,9 +734,8 @@ export function applyRendererSettings(r: any) {
   r.setPixelRatio(pixelRatioForTier(tier, window.devicePixelRatio));
   r.setSize(window.innerWidth, window.innerHeight);
   if (r.shadowMap) {
-    // Low tier: no shadow maps at all (skips the shadow pass AND the
-    // per-pixel PCF lookups — the biggest fill-rate cost after resolution).
-    const shadows = qualityShadowsEnabled(tier);
+    // The shadow switch is independent of quality; low uses a smaller map.
+    const shadows = shadowsEnabled(tier);
     r.shadowMap.enabled = shadows;
     if (shadows && 'type' in r.shadowMap) {
       r.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -766,6 +773,7 @@ export function adoptCanvasElement(freshCanvas: any) {
 
 export function setRendererInstance(nextRenderer: any) {
   renderer = nextRenderer;
+  if (scene) bindLighting(scene, renderer, qualityTier());
 }
 
 export function setBackendState(backend: any, switching: any, error = '') {
@@ -831,7 +839,7 @@ export async function createScene() {
 
   const sunLight = new THREE.DirectionalLight(new THREE.Color(1.0, 0.96, 0.88), 1.8);
   sunLight.name = 'sun';
-  sunLight.position.set(60, 100, 40);
+  sunLight.position.set(SUN_OFFSET.x, SUN_OFFSET.y, SUN_OFFSET.z);
   sunLight.castShadow = true;
   sunLight.shadow.mapSize.set(1024, 1024);
   sunLight.shadow.camera.left = -150;
@@ -846,19 +854,21 @@ export async function createScene() {
   scene._sunBase = 1.8;
 
   scene._registerShadows = function (root: any) {
-    if (!root) {
+    if (!root || root.userData?.groundShadowOverlay) {
       return;
     }
     if (root.isMesh) {
       root.castShadow = true;
+      applyObjectLighting(root);
       return;
     }
     if (root.traverse) {
       root.traverse((child: any) => {
-        if (child.isMesh) {
+        if (child.isMesh && !child.userData?.groundShadowOverlay) {
           child.castShadow = true;
         }
       });
+      applyObjectLighting(root);
     }
   };
 
@@ -885,6 +895,7 @@ export async function createScene() {
   ground.material = groundMaterial;
   ground.receiveShadow = true;
   scene._ground = ground;
+  attachGroundShadowOverlay(ground);
 
   // ── Two-tier grid: CELL_W x CELL_H macro cells, MICRO_DIV micro cells each ──
   (function buildGrid() {
@@ -1000,6 +1011,7 @@ export async function createScene() {
   _applyGridVisibility();
 
   setTerrain('steppe');
+  bindLighting(scene, renderer, qualityTier());
 
   return { engine: renderer, renderer, scene, camera };
 }

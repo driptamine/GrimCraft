@@ -1,11 +1,14 @@
 import * as THREE from 'three';
+import { updateSunShadowCamera } from '../render/lighting.js';
+import { spawnMatchSeat } from './match-spawn.js';
+import { localMatchFor, localMatchPositions } from './local-match.js';
 
 import { World } from './ecs.js';
 import {
   scene, renderer, camera, canvas, world, setWorld, PLAYER, ARENA, COSTS, TAG,
   JET_ALT, JET_SPEED, JET_ATTACK_RANGE, selSquads, setSelSquads, selBuildings,
   setSelBuildings, selBuilder, setSelBuilder, requisition, setRequisition, energy, setEnergy,
-  kills, setKills, startTime, setStartTime, gameOver, setGameOver, counters,
+  kills, setKills, startTime, setStartTime, gameOver, setGameOver, paused, counters,
   particles, grenadeCallbacks, SQUAD_MAX, _gridVisible, createScene,
   clearResearchedTech, updateCamera, runBeforeRender, setDeltaTime, handleResize,
   getRenderBackend, isBackendSwitching, supportsWebGPU, createBackendRenderer,
@@ -19,7 +22,10 @@ import { updatePlasmaPistolGlow } from '../fx/plasma-pistol-glow.js';
 import { preloadPlasmaBoltModel, preloadPlasmaFinalFx, updatePlasmaBoltFx } from '../fx/plasma-bolt.js';
 import { updateBlasterBoltFx } from '../fx/blaster-bolt.js';
 import { updateReaperBoltFx } from '../fx/reaper-bolt.js';
+import { updateNecronAurora } from '../fx/necron-aurora.js';
 import { updateNecronAura } from '../fx/necron-aura.js';
+import { NecronFootDust } from '../fx/necron-foot-dust.js';
+import { _groundAt } from '../systems/terrain.js';
 import { loadFactionModels, factionContainers, ARENA_POSITION_FACTIONS } from '../factions.js';
 import { useProceduralModels } from '../render/model-source.js';
 import { preloadStrategicPointModel, preloadRelicModel, preloadObjectiveModel } from '../meshes.js';
@@ -74,6 +80,7 @@ declare global {
     entitiesFilter: (value: any) => void;
     entitiesRefresh: () => void;
     toggleFactionTeamcolour: (faction: any) => Promise<string | void>;
+    toggleInfantryModel: (unit: any) => Promise<{ variant: string; swapped: number } | void>;
     toggleDecalsPanel: () => Promise<void>;
     togglePathfindingPanel: () => Promise<void>;
     toggleCameraPanel: () => Promise<void>;
@@ -122,9 +129,12 @@ declare global {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+const necronFootDust = new NecronFootDust(_groundAt);
+
 export function resetGame(mapKey: string = window._currentMapKey || 'arena'): void {
+  necronFootDust.clear();
   if (world) {
-    const tags = ['squad', 'builder', 'building', 'structure', 'bullet', 'grenade', 'strategicPoint', 'apc', 'vehicle', 'laserBullet', 'plasmaBullet', 'airfield', 'jet', 'missile', 'soldier'];
+    const tags = ['squad', 'builder', 'building', 'structure', 'bullet', 'grenade', 'strategicPoint', 'apc', 'vehicle', 'laserBullet', 'plasmaBullet', 'airfield', 'jet', 'missile', 'soldier', 'replicaShot'];
     for (const tag of tags) {
       for (const id of world.query(tag)) {
         const meshComponent = world.get(id, 'mesh');
@@ -173,6 +183,21 @@ export function resetGame(mapKey: string = window._currentMapKey || 'arena'): vo
   const factions = factionsFor(mapKey);
   for (const { x, z, kind } of strategicPointsFor(mapKey)) {
     createStrategicPointEntity(entityWorld, x, z, kind);
+  }
+
+  const localMatch = localMatchFor(mapKey);
+  if (localMatch) {
+    const matchPositions = localMatchPositions(localMatch, startPositions);
+    for (const seat of localMatch.seats) {
+      const position=matchPositions.get(seat.slot);
+      if(position)spawnMatchSeat(entityWorld,seat,position);
+    }
+    entityWorld.defaultOwner = null;
+    const human = localMatch.seats.find(seat => !seat.computer) || localMatch.seats[0];
+    const position = matchPositions.get(human.slot);
+    if (position) camera.target.set(position.x, 0, position.z);
+    updateHUD();
+    return;
   }
 
   for (const [index, { x, z, team }] of startPositions.entries()) {
@@ -247,28 +272,13 @@ export async function switchRenderBackend() {
   }
 }
 
-// Shadow frustum follows the camera target, sized to the zoom radius:
-// tight (±90) up close for crisp texels, today's ±150 at far zoom.
-const SHADOW_DIR = { x: 60, y: 100, z: 40 };
-
+// Follow the viewed battlefield with a low sun and a tight shadow frustum.
 function updateShadowFollow() {
   const sun = scene._sunLight;
   if (!sun || !sun.castShadow || !camera || !camera.target) {
     return;
   }
-  const t = camera.target;
-  sun.position.set(t.x + SHADOW_DIR.x, SHADOW_DIR.y, t.z + SHADOW_DIR.z);
-  sun.target.position.set(t.x, 0, t.z);
-  sun.target.updateMatrixWorld();
-  const half = Math.max(90, Math.min(150, camera.radius || 150));
-  const sc = sun.shadow.camera;
-  if (sc.right !== half) {
-    sc.left = -half;
-    sc.right = half;
-    sc.top = half;
-    sc.bottom = -half;
-    sc.updateProjectionMatrix();
-  }
+  updateSunShadowCamera(sun, camera.target, camera.radius);
 }
 
 export async function bootGame(loadHooks: any = {}): Promise<void> {
@@ -316,7 +326,7 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
     }
     updateShadowFollow();
 
-    if (!gameOver && world) {
+    if (!gameOver && !paused && world) {
       world.tick(deltaTime);
       for (let i = grenadeCallbacks.length - 1; i >= 0; i--) {
         if (grenadeCallbacks[i](deltaTime)) {
@@ -365,7 +375,7 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
         }
       }
 
-      systemWinCheck(world);
+      if (!window._multiplayerMode) systemWinCheck(world);
     }
 
     tickCamera(deltaTime);
@@ -395,6 +405,16 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
     updateBlasterBoltFx(performance.now() / 1000);
     updateReaperBoltFx(performance.now() / 1000);
     updateNecronAura(performance.now() / 1000);
+    updateNecronAurora(performance.now() / 1000);
+    const necronWalkers: THREE.Object3D[] = [];
+    for (const soldierId of world?.query('soldier', 'mesh') || []) {
+      const soldier: any = world.get(soldierId, 'soldier');
+      const squad: any = world.get(soldier.squadId, 'squad');
+      const mesh: any = world.get(soldierId, 'mesh');
+      if (squad?.faction === 'necrons' && soldier.hp > 0 && !soldier.scatter && !soldier.flyAlt && mesh.root)
+        necronWalkers.push(mesh.root);
+    }
+    necronFootDust.update(deltaTime, necronWalkers, scene);
     runBeforeRender();
     renderer.render(scene, camera);
   };
@@ -440,6 +460,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initNodesPanelAutoRefresh();
 
   window.toggleFactionTeamcolour = (faction: any) => import('../factions.js').then((module) => module.toggleFactionTeamcolourScheme(faction));
+  window.toggleInfantryModel = (unit: any) => import('../entities/entities.js').then((module) => module.toggleInfantryModel(world, unit));
   // Lazy chunks 404 when the page predates the last `npm run build` (vite
   // wipes dist). A failed open must say so instead of silently doing nothing.
   window.toggleDecalsPanel = () => import('../ui/decals-panel.js').then(

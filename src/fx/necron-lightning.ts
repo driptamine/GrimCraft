@@ -5,7 +5,7 @@ import { spawnParticles } from '../core/systems.js';
 // ══════════════════════════════════════════════════════════════════════════════
 //  NECRON LIGHTNING — Soulstorm-style unstable green energy discharge.
 //
-//  Layered bolt (white-hot core line + green tube layers + additive glow
+//  Layered bolt (green tube layers + additive glow
 //  sprites + secondary branch arcs + impact flash) driven through the
 //  existing beam-entity lifecycle: createLightningEntity() builds one,
 //  systemBeam ticks update() and destroys the entity when it ends.
@@ -30,7 +30,7 @@ export interface LightningOptions {
   quality: string; // 'high' | 'low'
   intensity: number; // scales brightness + flicker amplitude
   color: number; // necron green energy
-  coreColor: number; // near-white hot center
+  coreColor: number; // green impact arcs
   duration: number; // seconds the bolt lives
   segments: number; // main-path joints (sharp angles)
   branchCount: number; // secondary arc pool size
@@ -44,8 +44,8 @@ export interface LightningOptions {
 const DEFAULTS: LightningOptions = {
   quality: 'high',
   intensity: 1.0,
-  color: 0x00ff41,
-  coreColor: 0xf2fff2,
+  color: 0x18ff00,
+  coreColor: 0x32ff00,
   duration: 0.32,
   segments: 12,
   branchCount: 4,
@@ -97,6 +97,7 @@ function makeGlowSprite(color: number, opacity: number): THREE.Sprite {
     opacity,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
+    toneMapped: false,
   });
   const sprite = new THREE.Sprite(material);
   sprite.userData.pickable = false;
@@ -154,13 +155,14 @@ export class NecronLightning {
       this._path.push(new THREE.Vector3());
     }
 
-    // Layer 1: white-hot 1px core, updated in place every frame.
+    // Keep the path buffer for animation; render only the green energy layers.
     this._coreGeo = new THREE.BufferGeometry();
     this._corePos = new Float32Array(n * 3);
     this._coreGeo.setAttribute('position', new THREE.BufferAttribute(this._corePos, 3));
     this._coreBase = new THREE.Color(this.opts.coreColor).multiplyScalar(1 + this.opts.intensity);
-    this._coreMat = new THREE.LineBasicMaterial({ color: this._coreBase.clone(), transparent: true });
+    this._coreMat = new THREE.LineBasicMaterial({ color: this._coreBase.clone(), transparent: true, toneMapped: false });
     this._core = new THREE.Line(this._coreGeo, this._coreMat);
+    this._core.visible = false;
     this._core.frustumCulled = false;
     this._core.userData.pickable = false;
     this.root.add(this._core);
@@ -172,6 +174,7 @@ export class NecronLightning {
       opacity: 0.8,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
+      toneMapped: false,
     });
     this._auraMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(this.opts.color).multiplyScalar(0.4 + this.opts.intensity * 0.4),
@@ -179,6 +182,7 @@ export class NecronLightning {
       opacity: 0.28,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
+      toneMapped: false,
     });
     this._tubeMid = null;
     this._tubeAura = null;
@@ -188,7 +192,7 @@ export class NecronLightning {
     this._glowHit = makeGlowSprite(this.opts.color, 0.9 * this.opts.bloomStrength);
     this.root.add(this._glowMid);
     this.root.add(this._glowHit);
-    this._flash = makeGlowSprite(0xffffff, 1);
+    this._flash = makeGlowSprite(this.opts.color, 1);
     this.root.add(this._flash);
 
     // Secondary branch arcs: pooled lines, few frames of life each.
@@ -200,6 +204,7 @@ export class NecronLightning {
         color: new THREE.Color(this.opts.color).multiplyScalar(1 + this.opts.intensity * 0.5),
         transparent: true,
         blending: THREE.AdditiveBlending,
+        toneMapped: false,
       });
       const line = new THREE.Line(geo, mat);
       line.frustumCulled = false;
@@ -213,6 +218,7 @@ export class NecronLightning {
       color: new THREE.Color(this.opts.coreColor).multiplyScalar(1 + this.opts.intensity),
       transparent: true,
       blending: THREE.AdditiveBlending,
+      toneMapped: false,
     });
     this._impactArcs = [];
     for (let i = 0; i < 3; i++) {
@@ -266,7 +272,7 @@ export class NecronLightning {
     this._flash.position.copy(this._end);
     this._flash.scale.set(2.4, 2.4, 1);
     this._flash.material.opacity = 1;
-    this._flash.material.color.set(0xffffff);
+    this._flash.material.color.set(this.opts.color);
     for (const arc of this._impactArcs) {
       this._randomShortArc(arc, this._end, 0.6 + Math.random() * 1.4);
     }
@@ -374,7 +380,7 @@ export class NecronLightning {
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1);
       const p = this._path[i];
-      p.copy(this._start).addScaledVector(_dir, t * this._length);
+      p.copy(this._start).lerp(this._end, t);
       if (i > 0 && i < n - 1) {
         // Full kink mid-bolt, converging to an exact strike at the target.
         const a = this._amp * Math.sin(t * Math.PI) * (1 - t * t * 0.9);

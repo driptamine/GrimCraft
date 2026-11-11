@@ -191,7 +191,7 @@ export function childMeshes(root: THREE.Object3D | null | undefined): AnyMesh[] 
     return out;
   }
   root.traverse((child: MaybeMesh) => {
-    if (child !== root && child.isMesh) {
+    if (child !== root && child.isMesh && !child.userData?.groundShadowOverlay) {
       out.push(child as unknown as AnyMesh);
     }
   });
@@ -289,7 +289,7 @@ export function disposeObj(obj: MaybeMesh | null | undefined, deep = false): voi
   };
   if (obj.traverse) {
     obj.traverse((child: MaybeMesh) => {
-      if (child.geometry && !child.geometry.userData.shared) {
+      if (child.geometry && !child.geometry.userData.shared && !child.userData?.groundShadowOverlay) {
         child.geometry.dispose();
       }
       // NOTE: materials are shared/cached in several places (mat-cache), so
@@ -378,7 +378,8 @@ export function loadTexture(url: string, { onLoad = null, onError = null, onProg
 // ── GPU quality tier ────────────────────────────────────────────────
 // Weak integrated GPUs (2013-era Intel Iris/HD, old laptops) are fill-rate
 // bound at retina resolution: dpr≤2 + MSAA + PCF shadows + PBR. Such GPUs
-// get the low tier: pixelRatio 1, no MSAA, no shadow maps.
+// get the low tier: pixelRatio 1 and no MSAA. Shadow visibility is controlled
+// separately; lighting uses a smaller shadow map on this tier.
 // Pure functions (node-testable); DOM sniffing lives in scene.js.
 
 export function classifyGPU(rendererName: unknown): 'low' | 'high' {

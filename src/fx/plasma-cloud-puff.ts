@@ -1,8 +1,38 @@
 import * as THREE from 'three';
 
 export const PLASMA_CLOUD_PUFF = 'plasma-cloud-puff';
-export const PLASMA_CLOUD_PUFF_SIZES = [0.12, 0.15, 0.18, 0.21, 0.24, 0.27, 0.3] as const;
+// Biggest toward the enemy: size grows along the flight direction.
+export const PLASMA_CLOUD_PUFF_SIZES = [0.15, 0.19, 0.2, 0.21, 0.25, 0.26, 0.3] as const;
+// Fraction of the A→B path from the muzzle end; the volley clusters on the front 55%.
+export const PLASMA_CLOUD_PUFF_SPREAD = [0, 0.09, 0.18, 0.28, 0.37, 0.46, 0.55] as const;
 export const PLASMA_CLOUD_PUFF_COUNT = PLASMA_CLOUD_PUFF_SIZES.length;
+
+/** Live tuning shared by the preview sliders and the real volley. */
+export const plasmaCloudTuning = {
+  sizes: [...PLASMA_CLOUD_PUFF_SIZES],
+  spread: [...PLASMA_CLOUD_PUFF_SPREAD],
+  blasterLength: 1,
+  blasterWidth: 1,
+};
+
+export function resetPlasmaCloudTuning(): void {
+  plasmaCloudTuning.sizes = [...PLASMA_CLOUD_PUFF_SIZES];
+  plasmaCloudTuning.spread = [...PLASMA_CLOUD_PUFF_SPREAD];
+  plasmaCloudTuning.blasterLength = 1;
+  plasmaCloudTuning.blasterWidth = 1;
+}
+
+export function plasmaCloudPuffSize(index: number): number {
+  const size = plasmaCloudTuning.sizes[((Math.trunc(index) % PLASMA_CLOUD_PUFF_COUNT) + PLASMA_CLOUD_PUFF_COUNT) % PLASMA_CLOUD_PUFF_COUNT];
+  return Number.isFinite(size) ? Math.max(0.01, size) : PLASMA_CLOUD_PUFF_SIZES[0];
+}
+
+/** Path offset of a puff measured from A for a path of the given length. */
+export function plasmaCloudPuffOffset(index: number, pathLength: number): number {
+  const wrapped = ((Math.trunc(index) % PLASMA_CLOUD_PUFF_COUNT) + PLASMA_CLOUD_PUFF_COUNT) % PLASMA_CLOUD_PUFF_COUNT;
+  const fraction = plasmaCloudTuning.spread[wrapped];
+  return (Number.isFinite(fraction) ? fraction : PLASMA_CLOUD_PUFF_SPREAD[wrapped]) * pathLength;
+}
 
 let texture: THREE.DataTexture | null = null;
 const materials: THREE.SpriteMaterial[] = [];
@@ -54,7 +84,7 @@ export function makePlasmaCloudPuffMesh(variant: number): THREE.Group {
   root.name = 'plasma_cloud_puff';
   root.userData.pickable = false;
   root.userData.puffVariant = index;
-  const size = PLASMA_CLOUD_PUFF_SIZES[index];
+  const size = plasmaCloudPuffSize(index);
   for (let layer = 0; layer < layerScales.length; layer++) {
     const materialIndex = index * layerScales.length + layer;
     if (!materials[materialIndex]) {
@@ -77,7 +107,7 @@ export function makePlasmaCloudPuffMesh(variant: number): THREE.Group {
 export function updatePlasmaCloudPuff(root: THREE.Object3D, age: number): void {
   const variant = root.userData.puffVariant || 0;
   const time = Math.max(0, age);
-  const size = PLASMA_CLOUD_PUFF_SIZES[variant];
+  const size = plasmaCloudPuffSize(variant);
   root.scale.setScalar(1 + Math.min(time, 1.5) * 0.18);
   for (let layer = 0; layer < layerScales.length; layer++) {
     const sprite = root.children[layer];

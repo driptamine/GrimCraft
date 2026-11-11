@@ -17,6 +17,7 @@ export function systemAirfield(world: any, deltaTime: number) {
       continue;
     }
     _snapMeshToTerrain(meshComponent);
+    if (airfield.pendingWorker) continue;
     if (airfield.constructing) {
       airfield.constructProgress += deltaTime;
       if (meshComponent.root && meshComponent.scaffold) {

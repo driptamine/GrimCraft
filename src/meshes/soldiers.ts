@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { applyObjectLighting } from '../render/lighting.js';
 import {
   enemyFaction,
   factionContainers,
@@ -11,6 +12,7 @@ import { findMeleeClip, makeMeleeFallbackClip } from '../render/melee-animation.
 import { getMat } from '../render/mat-cache.js';
 import { useProceduralModels } from '../render/model-source.js';
 import { _assetContainer, _cloneCustomModel } from '../render/model-upload.js';
+import { attachWarriorAurora } from '../fx/necron-aurora.js';
 import { addNecronAura } from '../fx/necron-aura.js';
 import { attachGaussConduit } from '../fx/necron-conduit.js';
 import { applyPlasmaGlow } from '../fx/plasma-glow.js';
@@ -180,7 +182,13 @@ export function makeSoldierMesh(teamKey: string, metaPayload: MetaPayload = {}):
     containerType = 'soldier';
   }
   if (container) {
-    return _makeFactionSoldierMesh(container, actualTeam, metaPayload, factionKey, containerType);
+    const mesh = _makeFactionSoldierMesh(container, actualTeam, metaPayload, factionKey, containerType);
+    // Plain infantry container (not a named units[] entry): this mesh tracks
+    // the infantry model variant toggle and can be live-swapped.
+    if (!unitContainer && containerType === 'soldier') {
+      mesh._variantSoldier = true;
+    }
+    return mesh;
   }
 
   // Custom model only replaces player/builder units — enemies keep the default mesh
@@ -300,6 +308,8 @@ export function makeSoldierMesh(teamKey: string, metaPayload: MetaPayload = {}):
   blobMaterial.polygonOffsetFactor = -1;
   blob.material = blobMaterial;
   root._blobShadow = blob;
+  applyObjectLighting(blob);
+  if(factionKey==='necrons'&&!isBuilder)attachWarriorAurora(root);
   return root;
 }
 
@@ -617,6 +627,7 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
   blobMat.polygonOffsetFactor = -1;
   blob.material = blobMat;
   root._blobShadow = blob;
+  applyObjectLighting(blob);
 
   const hitbox = mkCylinder('hb_faction', HITBOX_SIZE, HITBOX_SIZE, 2.2, 12);
   hitbox.position.set(0, 1.1, 0);
@@ -645,6 +656,7 @@ export function _makeFactionSoldierMesh(container: GltfContainer, teamKey: strin
     } catch (_) {
       // Aura is decorative; never break a spawn.
     }
+    attachWarriorAurora(root);
   }
 
   try {

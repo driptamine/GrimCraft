@@ -1,3 +1,4 @@
+import { localMatchFor } from '../core/local-match.js';
 import { createSquadEntity } from '../entities/entities.js';
 import {
   PLAYER,
@@ -33,6 +34,32 @@ export function systemRequisitionIncome(world: any, deltaTime: number) {
 
 
 export function systemAI(world: any, deltaTime: number) {
+  if (localMatchFor((typeof window !== 'undefined' && window._currentMapKey) || 'arena')) {
+    // Local lobby computers use the same squad movement, pathfinding and combat as players.
+    world._computerOrderTimer = (world._computerOrderTimer || 0) + deltaTime;
+    if (world._computerOrderTimer < 1.5) return;
+    world._computerOrderTimer = 0;
+    const squads = world.query('squad');
+    for (const id of world.query('squad', 'computer')) {
+      const squad = world.get(id, 'squad');
+      let target: any = null;
+      let targetId: number | null = null;
+      let distance = Infinity;
+      for (const otherId of squads) {
+        const other = world.get(otherId, 'squad');
+        if (other.team === squad.team || !other.soldiers.some((s: any) => world.get(s, 'soldier')?.hp > 0)) continue;
+        const d = squad.position.distanceTo(other.position);
+        if (d < distance) { distance = d; target = other; targetId = otherId; }
+      }
+      if (!target) continue;
+      squad.stopped = false;
+      squad.autoChase = true;
+      squad.attackMove = true;
+      squad.forcedTarget = targetId;
+      squad.moveOrder = distance > squad.attackRange * .85 ? target.position.clone() : null;
+    }
+    return;
+  }
   if (controlBoth) {
     return;
   }

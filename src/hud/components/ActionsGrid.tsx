@@ -1,3 +1,4 @@
+import { sendSkirmishCommand } from '../../net/skirmish-input.js';
 import type { JSX } from 'react';
 import React from 'react';
 import {
@@ -35,6 +36,7 @@ function BuilderActions(): JSX.Element | null {
   const isOpen = buildMenuOpen;
 
   const stopBuild = () => {
+    if(sendSkirmishCommand({StopUnits:{ids:[selBuilder]}}))return;
     builder.moveTarget = null;
     builder.buildTarget = null;
     builder.buildTargetSP = null;
@@ -402,7 +404,7 @@ function JetActions(): JSX.Element | null {
 
 function SquadActions(): JSX.Element {
   const data = computeSquadData();
-  const canFlySelected = !window._multiplayerMode && data.alive.some((sqId) => {
+  const canFlySelected = data.alive.some((sqId) => {
     const sq = world.get(sqId, 'squad');
     const cfg = sq?.unitType ? FACTIONS[sq.faction]?.units?.find((u) => u.name === sq.unitType) : null;
     return !!cfg?.canFly;
@@ -414,6 +416,7 @@ function SquadActions(): JSX.Element {
         label="RESUME"
         tooltip="RESUME\nClear STOP and resume orders"
         onClick={() => {
+          if(sendSkirmishCommand({ResumeUnits:{ids:data.alive}}))return;
           data.alive.forEach((sqId) => {
             const sq = world.get(sqId, 'squad');
             if (sq) sq.stopped = false;
@@ -427,6 +430,7 @@ function SquadActions(): JSX.Element {
         tooltip={`AUTO-CHASE ${data.chaseActive ? 'ON' : 'OFF'}\nAutomatically pursue nearby enemies`}
         onClick={() => {
           const newVal = !data.chaseActive;
+          if(sendSkirmishCommand({AutoChase:{ids:data.alive,enabled:newVal}}))return;
           data.alive.forEach((sqId) => {
             const sq = world.get(sqId, 'squad');
             if (sq) sq.autoChase = newVal;
@@ -660,7 +664,7 @@ function MechanizedActions(): JSX.Element | null {
   };
 
   const startResearch = (r: FactionResearchEntry) => {
-    if (window._multiplayerMode) return;
+    if(sendSkirmishCommand({Research:{entity_id:id,key:r.key}}))return;
     if (building.constructing) return;
     if (building.researchQueue.length > 0) return;
     if (researchedTech.has(r.key)) return;
@@ -781,7 +785,7 @@ function TacticaActions(): JSX.Element | null {
   const researchingItem = structure.researchQueue?.[0] || null;
 
   const startResearch = (r: FactionResearchEntry) => {
-    if (window._multiplayerMode) return;
+    if(sendSkirmishCommand({Research:{entity_id:id,key:r.key}}))return;
     if (structure.constructing) return;
     if (structure.researchQueue.length > 0) return;
     if (researchedTech.has(r.key)) return;
@@ -855,7 +859,7 @@ function ListeningPostActions(): JSX.Element | null {
   const researchingItem = sp.researchQueue?.[0] || null;
 
   const startUpgrade = (a: FactionAddonEntry) => {
-    if (window._multiplayerMode) return;
+    if(sendSkirmishCommand({UpgradePoint:{point_id:selListeningPost,key:a.name}}))return;
     if (sp.researchQueue.length > 0) return;
     if (a.tier !== undefined && sp.lpTier >= a.tier) return;
     if (sp.lpTier < (a.requiresTier || 1)) return;

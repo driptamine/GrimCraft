@@ -1,3 +1,4 @@
+import { sendSkirmishCommand } from '../net/skirmish-input.js';
 import * as THREE from 'three';
 import { createAirfieldEntity, createBeamEntity, createBuildingEntity, createStructureEntity, getSoldierMuzzlePos } from '../entities/entities.js';
 import { playHitCrunch } from '../fx/audio.js';
@@ -5,7 +6,7 @@ import { cursorCss } from '../ui/cursors.js';
 import { FACTIONS, playerFaction, resolveFactionKey } from '../factions.js';
 import { updateHUD } from '../core/hud.js';
 import { canPlaceListeningPost } from '../meshes.js';
-import { netPlaceBuilding } from '../net/multiplayer.js';
+import { netPlaceBuilding, netMoveSquads, netAttackSquad } from '../net/multiplayer.js';
 import {
   COSTS,
   JET_ALT,
@@ -28,7 +29,7 @@ import {
 } from '../core/scene.js';
 import { disposeMeshComponent, spawnParticles } from '../core/systems.js';
 import { _stopBuildGhost, cancelBuild } from './build-ghost.js';
-import { _spIdAt, flashHitmarker, spawnAttackMarker, spawnBeamTracer, spawnMoveMarker, spawnMoveMarkerAt, spawnSpPing } from './markers.js';
+import { _spIdAt, flashHitmarker, spawnBeamTracer, spawnMoveMarker, spawnMoveMarkerAt, spawnSpPing } from './markers.js';
 import { fpsShotTarget, getViewmodelMuzzleWorldPos, resolveFpsTarget } from '../render/camera-fps.js';
 import { snapOrderToFree } from '../../pathfinding/astar-integrated.js';
 import { _setAirfieldSelected, clearAirfieldRallyMarker, clearEnemySelection, clearRallyMarker, pickFpsTargetMesh, pickMesh, raycastGround, setBuildingSelected, updateAirfieldRallyMarker, updateRallyMarker } from './selection.js';
@@ -82,7 +83,7 @@ export function issueRightClick(sx: number, sy: number): void {
             squad.soldiers.forEach((soldierId: number) => {
               if (soldierId === null) return;
               const mc = world.get(soldierId, 'mesh');
-              if (mc?.root?._selMat) mc.root._selMat.opacity = 0.85; mc.root._selMat.transparent = true;
+              if (mc?.root?._selMat) mc.root._selMat.opacity = 0.85; if(mc?.root?._selMat)mc.root._selMat.transparent = true;
             });
           }
           const attackerJets = attackers.filter((id: number) => world.get(id, 'jet') != null);
@@ -97,6 +98,9 @@ export function issueRightClick(sx: number, sy: number): void {
               jet.patrolMode = 'attack';
             }
           });
+          if (window._multiplayerMode) netAttackSquad(attackers.filter(id => world.has(id, 'squad')), sid);
+          // No click torus on enemy squads: the persistent hover torus and
+          // the target highlight already mark the victim.
           attackers.forEach((id) => {
             const psq = world.get(id, 'squad');
             if (psq) {
@@ -115,7 +119,6 @@ export function issueRightClick(sx: number, sy: number): void {
               vehicle.moveOrder = new THREE.Vector3(squad.position.x, 0, squad.position.z);
             }
           });
-          spawnAttackMarker(sx, sy);
           updateHUD();
           return;
         }
@@ -170,6 +173,7 @@ export function issueRightClick(sx: number, sy: number): void {
         }
       }
       if (targetEntityId !== undefined && targetComponent !== undefined) {
+        if(sendSkirmishCommand({ResumeBuild:{builder_id:selBuilder,target_id:targetEntityId}}))return;
         builder.buildTarget = { type: targetType, position: targetPosition.clone(), pendingEntityId: targetEntityId };
         builder.buildTargetSP = null;
         builder.moveTarget = targetPosition.clone().add(new THREE.Vector3(4, 0, 0));
@@ -244,6 +248,17 @@ const _fpsRay = new THREE.Raycaster();
 // the destination.
 export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEntityId?: unknown; markerSx?: number | null; markerSy?: number | null } = {}): void {
   const { strategicPointEntityId = null, markerSx = null, markerSy = null } = opts;
+  if(window._multiplayerMode && window._networkSchema===2){
+    if(selBuildings.length && !selSquads.length && selBuilder==null){
+      for(const id of selBuildings)sendSkirmishCommand({SetRally:{building_id:id,target:point}});
+    }else{
+      const ids=[...selSquads,...(selBuilder!=null?[selBuilder]:[])];
+      sendSkirmishCommand({MoveUnits:{ids,target:point,point_id:strategicPointEntityId??_spIdAt(point.x,point.z)}});
+    }
+    if(markerSx!==null&&markerSy!==null)spawnMoveMarker(markerSx,markerSy);else spawnMoveMarkerAt(point);
+    updateHUD();
+    return;
+  }
   const mark = (): void => {
     if (markerSx !== null && markerSy !== null) spawnMoveMarker(markerSx, markerSy);
     else spawnMoveMarkerAt(point);
@@ -313,6 +328,7 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
         destination.x = snapped.x;
         destination.z = snapped.z;
       }
+      if (window._multiplayerMode) netMoveSquads([sid], destination);
       squad.moveOrder = destination;
       squad.attackMove = false;
       squad.stopped = false;
@@ -384,6 +400,7 @@ export function demolishBuilding(id: number): void {
 
 
 export function buildAddon(buildingId: number, addonKey: string): boolean {
+  if(sendSkirmishCommand({BuildAddon:{building_id:buildingId,addon:addonKey}}))return true;
   const building = world.get(buildingId, 'building');
   if (!building || !canCommand(building.team)) return false;
   const factionKey = resolveFactionKey(building.faction, playerFaction);
@@ -433,9 +450,6 @@ export function isFlyArmed(): boolean {
 // Arms RMB fly targeting for the selected fly-capable squads.
 // Single-player only: no net order exists for flight.
 export function armFlyTargeting(): boolean {
-  if (window._multiplayerMode) {
-    return false;
-  }
   const flyers = selSquads.filter((sid: number) => {
     const squad = world.get(sid, 'squad');
     if (!squad || !canCommand(squad.team)) {
@@ -482,6 +496,7 @@ export function _issueFlyOrder(sx: number, sy: number): boolean {
     const destination = new THREE.Vector3(point.x + c * 7, 0, point.z + r * 7);
     destination.x = Math.max(-currentBounds(), Math.min(currentBounds(), destination.x));
     destination.z = Math.max(-currentBounds(), Math.min(currentBounds(), destination.z));
+    if(sendSkirmishCommand({FlySquads:{ids:[sid],target:destination}}))return;
     squad.flyOrder = destination;
     squad.moveOrder = null;
     squad.stopped = false;
@@ -494,6 +509,7 @@ export function _issueFlyOrder(sx: number, sy: number): boolean {
 
 
 export function setBuilderStance(stance: string): void {
+  if(selBuilder!=null&&sendSkirmishCommand({BuilderStance:{builder_id:selBuilder,stance}}))return;
   if (selBuilder === null || !world.has(selBuilder, 'builder')) {
     return;
   }
@@ -510,6 +526,7 @@ export function _issueBuilderCommand(cmd: string, sx: number, sy: number, point:
     return;
   }
   const builder = world.get(selBuilder, 'builder');
+  if(sendSkirmishCommand({BuilderCommand:{builder_id:selBuilder,command:cmd,target:point,hit:hit?.meta}}))return;
   builder.buildTargetSP = null;
   builder.buildTarget = null;
   builder.isBuilding = false;
@@ -587,6 +604,7 @@ export function placeListeningPost(sx: number, sy: number): void {
     return;
   }
   if (requisition < COSTS.listening_post) return;
+  if(sendSkirmishCommand({PlaceBuilding:{builder_id:selBuilder,building_type:'listening_post',position:sp.position}}))return;
   builder.buildTargetSP = spId;
   builder.buildTarget = null;
   builder.moveTarget = sp.position.clone().add(new THREE.Vector3(3, 0, 0));
@@ -603,31 +621,7 @@ export function placeBuild(pt: THREE.Vector3): void {
   setBuildMode(null);
   canvas!.style.cursor = '';
 
-  if (window._multiplayerMode) {
-    const typeMap: Record<string, string> = {
-      barracks: 'Barracks',
-      infantry_command: 'InfantryCommand',
-      hq: 'HQ',
-      tower: 'Tower',
-      turret: 'Tower',
-      thermoGen: 'ThermoGen',
-      thermo_generator: 'ThermoGen',
-      listeningPost: 'ListeningPost',
-      listening_post: 'ListeningPost',
-      towerBase: 'TowerBase',
-      apc: 'APC',
-      mechanized: 'APC',
-      airfield: 'Airfield',
-      gunTurret: 'GunTurret',
-      plasma_generator: 'PlasmaGenerator',
-      tactica_control: 'TacticaControl',
-      mars_pattern: 'MarsPattern',
-      mines: 'Mines',
-    };
-    const serverType = typeMap[type] || 'Barracks';
-    netPlaceBuilding(serverType, pt);
-    return;
-  }
+  if (window._multiplayerMode) { netPlaceBuilding(type,pt,selBuilder); return; }
 
   if (requisition < COSTS[type as keyof typeof COSTS] || selBuilder === null || !world.has(selBuilder, 'builder')) return;
   const point = pt.clone();
@@ -639,6 +633,7 @@ export function placeBuild(pt: THREE.Vector3): void {
     const component = world.get(entityId, 'airfield');
     if (component) {
       component.constructing = false;
+      component.pendingWorker = true;
       component.constructProgress = 0;
     }
     const builder = world.get(selBuilder, 'builder');
@@ -660,6 +655,7 @@ export function placeBuild(pt: THREE.Vector3): void {
   const component = world.get(entityId, 'building') || world.get(entityId, 'structure');
   if (component) {
     component.constructing = false;
+    component.pendingWorker = true;
     component.constructProgress = 0;
   }
   const builder = world.get(selBuilder, 'builder');
@@ -684,6 +680,7 @@ export function _boardSquadOntoApc(apc: any, sid: number): boolean {
   if (squad.position.distanceTo(apc.position) > 10) {
     return false;
   }
+  if(sendSkirmishCommand({BoardTransport:{apc_id:world.query('apc').find((id:number)=>world.get(id,'apc')===apc),ids:[sid]}}))return true;
   apc.passengers.push(sid);
   squad.soldiers.forEach((soldierId: number) => {
     if (soldierId) {

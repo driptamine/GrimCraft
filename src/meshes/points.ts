@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { attachNecronStructureAurora } from '../fx/necron-aurora.js';
 import { useProceduralModels } from '../render/model-source.js';
 import { _instantiateFromContainer } from '../render/model-upload.js';
 import { PLAYER, scene } from '../core/scene.js';
@@ -513,6 +514,7 @@ export function buildListeningPostMesh(position: THREE.Vector3, teamKey: string 
     const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
     if (scene._registerShadows) scene._registerShadows(root);
+    if(metaPayload.faction==='necrons')attachNecronStructureAurora(root,'listening_post');
     return root;
   }
 

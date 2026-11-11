@@ -6,7 +6,7 @@ import ts from 'typescript';
 import * as jsxRuntime from 'react/jsx-runtime';
 import * as THREE from 'three';
 import { World } from '../src/core/ecs.js';
-import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, PLASMA_CLOUD_PUFF_SIZES, makePlasmaCloudPuffMesh, updatePlasmaCloudPuff } from '../src/fx/plasma-cloud-puff.js';
+import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, PLASMA_CLOUD_PUFF_SIZES, PLASMA_CLOUD_PUFF_SPREAD, makePlasmaCloudPuffMesh, plasmaCloudPuffOffset, plasmaCloudTuning, resetPlasmaCloudTuning, updatePlasmaCloudPuff } from '../src/fx/plasma-cloud-puff.js';
 
 globalThis.window = {};
 globalThis.document = { getElementById: () => null, querySelector: () => null };
@@ -22,6 +22,7 @@ beforeEach(() => {
   headless.clear();
   scene.particles.length = 0;
   window._multiplayerMode = false;
+  resetPlasmaCloudTuning();
 });
 
 function fixture() {
@@ -105,6 +106,10 @@ describe('plasma cloud puff projectiles', () => {
     const ids = createPlasmaCloudPuffVolley(f.world, origin, 'blue', f.shooter, f.target, 2, 28);
     assert.equal(ids.length, 7);
     assert.equal(f.world.query('bullet').length, 7);
+    const aim = f.world.get(f.target, 'mesh').root.getWorldPosition(new THREE.Vector3());
+    aim.y += 1;
+    const direction = aim.clone().sub(origin).normalize();
+    const shotLength = origin.distanceTo(aim);
     let damage = 0;
     for (const [index, id] of ids.entries()) {
       const bullet = f.world.get(id, 'bullet');
@@ -113,11 +118,27 @@ describe('plasma cloud puff projectiles', () => {
       assert.equal(bullet.puffVariant, index);
       assert.equal(bullet.targetId, f.target);
       assert.equal(bullet.ownerRef, f.shooter);
-      assert.ok(root.position.distanceTo(origin) < 0.05, 'spawn stays at the muzzle without a fixed Y override');
+      const expected = origin.clone().addScaledVector(direction, plasmaCloudPuffOffset(index, shotLength));
+      assert.ok(root.position.distanceTo(expected) < 0.06, `puff ${index} spawns on the front 55% of the path`);
+      const speed = Math.hypot(bullet.vx, bullet.vy, bullet.vz);
+      assert.ok(Math.abs(speed - 35) < 1e-9, 'one shared speed keeps the arranged cluster intact');
       assert.equal(root.parent, headless);
       damage += bullet.damage;
     }
     assert.equal(damage, 28, 'seven puffs share the damage of one shot');
+  });
+
+  it('applies tuned sizes and spread to new meshes and restores defaults on reset', () => {
+    plasmaCloudTuning.sizes[0] = 0.5;
+    plasmaCloudTuning.spread[0] = 0.9;
+    plasmaCloudTuning.blasterLength = 2;
+    assert.equal(makePlasmaCloudPuffMesh(0).children[0].scale.x, 0.5);
+    assert.equal(plasmaCloudPuffOffset(0, 10), 9);
+    resetPlasmaCloudTuning();
+    assert.deepEqual(plasmaCloudTuning.sizes, [...PLASMA_CLOUD_PUFF_SIZES]);
+    assert.deepEqual(plasmaCloudTuning.spread, [...PLASMA_CLOUD_PUFF_SPREAD]);
+    assert.equal(plasmaCloudTuning.blasterLength, 1);
+    assert.equal(makePlasmaCloudPuffMesh(0).children[0].scale.x, PLASMA_CLOUD_PUFF_SIZES[0]);
   });
 
   it('fires the new weapon even for a guardsman with a personal plasma upgrade', () => {
@@ -167,7 +188,9 @@ describe('plasma cloud puff projectiles', () => {
     assert.ok(Math.abs(bounds.min.x - carrier.position.x) < 0.025, 'beam travels with the clouds');
     assert.ok(bounds.max.x - bounds.min.x < 1.85 * 0.6 + 0.025, 'beam never stretches beyond 60% of soldier height');
     assert.equal(f.world.query('bullet').length, 7, 'visual beam creates no extra damaging projectile');
-    assert.equal(f.world.get(f.target, 'soldier').hp, 500);
+    assert.equal(f.world.get(f.target, 'soldier').hp, 494, 'staggered heads strike first while the tail is still flying');
+    f.world._flushDestroyed();
+    assert.equal(f.world.query('bullet').length, 5, 'impacted heads are gone like after a real frame flush');
     systemPlasmaBullet(f.world, 0.5);
     f.world._flushDestroyed();
     assert.ok(Math.abs(f.world.get(f.target, 'soldier').hp - 479) < 1e-9);

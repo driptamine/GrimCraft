@@ -366,6 +366,7 @@ export function doClickSelect(sx: number, sy: number, additive: boolean): void {
   // ── BUILDER ────────────────────────────────────────────────────────────────
   if (meta.builderEntityId !== undefined) {
     const id = meta.builderEntityId;
+    if(!canCommand(world.get(id,'builder')?.team,id))return;
     setSelListeningPost(null);
     if (additive) {
       if (selBuilder === id) {
@@ -435,7 +436,7 @@ export function doClickSelect(sx: number, sy: number, additive: boolean): void {
       const entity = world.get(sid, 'jet') ?? world.get(sid, 'apc') ?? world.get(sid, 'vehicle') ?? world.get(sid, 'squad');
       setSelListeningPost(null);
 
-      if (entity && canCommand(entity.team)) {
+      if (entity && canCommand(entity.team,sid)) {
         if (additive) {
           const idx = selSquads.indexOf(sid);
           if (idx >= 0) {
@@ -458,7 +459,7 @@ export function doClickSelect(sx: number, sy: number, additive: boolean): void {
           else if (isVehicle) setVehicleSelected(world, sid, true);
           else if (isSquad) setSquadSelected(world, sid, true);
         }
-      } else if (entity && !canCommand(entity.team) && isSquad) {
+      } else if (entity && !canCommand(entity.team,sid) && isSquad) {
         // Enemy squad selection (only squads for now)
         clearEnemySelection();
         setHoveredEnemySquad(sid);
@@ -517,6 +518,7 @@ export function doBoxSelect(): void {
 
   const foundBuilders: number[] = [];
   world.query('builder', 'mesh').forEach((id: number) => {
+    if(!canCommand(world.get(id,'builder')?.team,id))return;
     const mc = world.get(id, 'mesh');
     if (!mc) return;
     const { sx, sy } = proj(mc.root.position);
@@ -526,7 +528,7 @@ export function doBoxSelect(): void {
   const foundSquads: number[] = [];
   world.query('squad', 'mesh').forEach((sid: number) => {
     const squad = world.get(sid, 'squad');
-    if (!squad || !canCommand(squad.team)) return;
+    if (!squad || !canCommand(squad.team,sid)) return;
     const inApc = world.query('apc').some((aid: number) => world.get(aid, 'apc')?.passengers.includes(sid));
     if (inApc) return;
 
@@ -555,7 +557,7 @@ export function doBoxSelect(): void {
   world.query('apc', 'mesh').forEach((id: number) => {
     const apc = world.get(id, 'apc');
     const mc = world.get(id, 'mesh');
-    if (!apc || !canCommand(apc.team) || !mc) return;
+    if (!apc || !canCommand(apc.team,id) || !mc) return;
     const { sx, sy } = proj(apc.position, 2);
     if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) foundApcs.push(id);
   });
@@ -564,7 +566,7 @@ export function doBoxSelect(): void {
   world.query('vehicle', 'mesh').forEach((id: number) => {
     const vehicle = world.get(id, 'vehicle');
     const mc = world.get(id, 'mesh');
-    if (!vehicle || !canCommand(vehicle.team) || !mc) return;
+    if (!vehicle || !canCommand(vehicle.team,id) || !mc) return;
     const { sx, sy } = proj(vehicle.position, 2);
     if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) foundVehicles.push(id);
   });
@@ -573,7 +575,7 @@ export function doBoxSelect(): void {
   world.query('jet', 'mesh').forEach((id: number) => {
     const jet = world.get(id, 'jet');
     const mc = world.get(id, 'mesh');
-    if (!jet || !canCommand(jet.team) || !mc) return;
+    if (!jet || !canCommand(jet.team,id) || !mc) return;
     const { sx, sy } = proj(jet.position, 2);
     if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) foundJets.push(id);
   });

@@ -1,5 +1,6 @@
 // Shared squad reinforcement used by both the HUD REINFORCE button and the
 // R hotkey, so their rules (cost, formation slots, queue) can never drift.
+import { sendSkirmishCommand } from '../net/skirmish-input.js';
 import { COSTS, SQUAD_MAX, requisition, selSquads, setRequisition, world } from './scene.js';
 
 /**
@@ -25,6 +26,7 @@ export function reinforceSelectedSquads(): boolean {
     ]);
     for (let i = 1; i < maxSquadSize; i += 1) {
       if (!occupied.has(i)) {
+        if(sendSkirmishCommand({Reinforce:{squad_id:sqId,form_idx:i}}))return true;
         setRequisition(requisition - cost);
         sq.reinforceQueue.push({ formIdx: i, cost, time: sq.reinforceTime ?? 7 });
         return true;

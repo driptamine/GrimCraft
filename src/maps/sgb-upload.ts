@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { attachGroundShadowOverlay } from '../render/ground-shadows.js';
 
 import { scene, camera, addCameraChangeObserver, PLAYER } from '../core/scene.js';
 import { disposeObj, childMeshes } from '../render/three-helpers.js';
@@ -166,6 +167,7 @@ async function loadSgbBuffer(buffer: ArrayBuffer, label = 'map', mapPath = ''): 
       if (scene._registerShadows) {
         scene._registerShadows(mesh);
       }
+      attachGroundShadowOverlay(mesh);
     });
     _sgbRoot = root;
     _sgbMapData = mapData;

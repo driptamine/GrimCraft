@@ -60,6 +60,10 @@ export function disposeMeshComponent(meshComponent: any) {
   if (!meshComponent) {
     return;
   }
+  if (meshComponent.lightning) {
+    meshComponent.lightning.dispose();
+    return;
+  }
   if (meshComponent.root) {
     if (meshComponent.root._animGroups) {
       Object.values(meshComponent.root._animGroups).forEach((ag: any) => {

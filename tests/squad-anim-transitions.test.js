@@ -87,7 +87,7 @@ beforeEach(() => {
 });
 
 describe('squad anim transitions', () => {
-  it('melee orders close the distance, play strikes, and do not spawn gunfire', () => {
+  it('assault fires while closing the distance and switches to strikes on contact', () => {
     const enemyId = world.createEntity([]);
     const enemySoldier = world.createEntity([]);
     world.add(enemyId, 'squad', { team: 'red', position: new THREE.Vector3(18, 0, 0), soldiers: [enemySoldier] });
@@ -100,13 +100,16 @@ describe('squad anim transitions', () => {
     squad.forcedSoldierId = enemySoldier;
     frames(1);
     assert.ok(squad.position.x > 0, 'approaches instead of attacking from rifle range');
-    assert.ok(s1reqs().some((entry) => entry.name === 'run'));
+    assert.ok(s1reqs().some((entry) => ['run','shootMove'].includes(entry.name)));
     assert.ok(!s1reqs().some((entry) => entry.name === 'melee'));
     frames(360);
     assert.ok(s1reqs().some((entry) => entry.name === 'melee'), 'requests the melee animation up close');
     assert.ok(world.get(enemySoldier, 'soldier').hp < 1000, 'close strikes deal damage');
     assert.equal(world.query('beam').length, 0);
-    assert.equal(world.query('bullet').length, 0);
+    const approachingShots=world.query('bullet').length;
+    assert.ok(approachingShots>0,'fires while approaching');
+    frames(60);
+    assert.equal(world.query('bullet').length,approachingShots,'stops gunfire in melee contact');
     assert.equal(world.query('laserBullet').length, 0);
     squad.stopped = true;
     squad.moveOrder = null;

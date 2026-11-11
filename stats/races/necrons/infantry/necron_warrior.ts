@@ -9,4 +9,5 @@ export const necronWarrior: UnitStats = {
   time: 3,
   armor: 'infantry_hmed',
   weapon: 'gauss_flayer',
+  movementSpeedMultiplier: .5,
 };

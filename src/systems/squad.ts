@@ -524,7 +524,7 @@ export function systemSquad(world: any, deltaTime: number) {
     }
     // Logic plane follows the rendered surface: 3D range checks stay true on hills.
     squadComponent.position.y = _groundAt(squadComponent.position.x, squadComponent.position.z);
-    if (enemy && enemy.distance <= combatRange) {
+    if (enemy && enemy.distance <= squadComponent.attackRange) {
       const enemyPosition = world.get(enemy.soldierEntityId, 'mesh')?.root.position;
       if (enemyPosition) {
         const dx = enemyPosition.x - squadComponent.position.x;
@@ -547,10 +547,10 @@ export function systemSquad(world: any, deltaTime: number) {
         }
       }
       const holdFire = (moving && fireUnit?.stationaryFireOnly) || airborne;
-      if (!meleeMode && !holdFire && !window._multiplayerMode) {
+      if (!holdFire && !window._multiplayerMode) {
         _squadFireAll(world, squadEntityId, squadComponent, aliveSols, deltaTime, enemy);
       }
-    } else if (!meleeMode) {
+    } else {
       for (const soldierId of aliveSols) {
         const soldierComponent = world.get(soldierId, 'soldier');
         if (soldierComponent && !soldierComponent.meleeEngaged) {
@@ -677,16 +677,18 @@ export function systemSquad(world: any, deltaTime: number) {
       if (!soldierComponent || !soldierMeshComponent) {
         continue;
       }
-      const soldierMeleeMode = meleeMode || !!soldierComponent.meleeEngaged;
+      // Assault is an approach preference; weapons switch only on contact.
+      const soldierInMelee = !!soldierComponent.meleeEngaged;
+      const soldierMeleeMode = meleeMode || soldierInMelee;
       const soldierOrderEdge = orderEdge || (soldierComponent._meleeAnimMode !== undefined && soldierComponent._meleeAnimMode !== soldierMeleeMode);
       soldierComponent._meleeAnimMode = soldierMeleeMode;
       // Knife out for the whole melee engagement (not just the swing), so
       // slow attackers do not flash their bolter between hits. Tracked on the
       // root because reinforce rebuilds the mesh while the soldier keeps his
       // component state.
-      if (soldierMeshComponent.root._meleeWeaponState !== soldierMeleeMode) {
-        setMeleeWeaponVisible(soldierMeshComponent.root, soldierMeleeMode);
-        soldierMeshComponent.root._meleeWeaponState = soldierMeleeMode;
+      if (soldierMeshComponent.root._meleeWeaponState !== soldierInMelee) {
+        setMeleeWeaponVisible(soldierMeshComponent.root, soldierInMelee);
+        soldierMeshComponent.root._meleeWeaponState = soldierInMelee;
       }
       const f = FORMATION[soldierComponent.formIdx];
       if (soldierComponent.scatter) {
@@ -819,7 +821,10 @@ export function systemSquad(world: any, deltaTime: number) {
         if (freeSlot) { tx = freeSlot.x; tz = freeSlot.z; }
       }
       const distanceToSlot = Math.hypot(tx - soldierMeshComponent.root.position.x, tz - soldierMeshComponent.root.position.z);
-      const pace = isPlanter ? PLANTER_SPEED_MULT : Math.min(2.0, 0.3 + distanceToSlot * 0.6);
+      // Formation catch-up may double ordinary movement, but a melee order
+      // must approach opponents at the soldier's normal running speed.
+      const pace = isPlanter ? PLANTER_SPEED_MULT
+        : Math.min(soldierMeleeMode ? 1.0 : 2.0, 0.3 + distanceToSlot * 0.6);
       const soldierRunSpeed = soldierComponent.moveSpeed * pace;
       // Stop freezes the squad in place (DoW semantics): no formation
       // settling, idle on the same frame. Capture duty keeps walking.
@@ -885,7 +890,7 @@ export function systemSquad(world: any, deltaTime: number) {
       });
       const soldierGroundY = _groundAt(soldierMeshComponent.root.position.x, soldierMeshComponent.root.position.z);
       soldierMeshComponent.root.position.y = soldierGroundY + (soldierComponent.flyAlt || 0);
-      if (soldierMeleeMode) {
+      if (soldierInMelee) {
         soldierComponent.shootTimer = 0;
         soldierComponent.attackCooldown = Math.max(0, soldierComponent.attackCooldown - deltaTime);
         if (meleeTarget && !window._multiplayerMode && (soldierComponent._flyStage || 0) === 0
@@ -894,6 +899,7 @@ export function systemSquad(world: any, deltaTime: number) {
           const duration = soldierMeshComponent.root._nextMeleeAttack?.()
             || soldierMeshComponent.root._animGroups?.melee?.getDuration?.() || 0.65;
           soldierComponent.meleeTimer = duration;
+          soldierComponent.meleeAttackSerial = (soldierComponent.meleeAttackSerial || 0) + 1;
           soldierComponent.attackCooldown = Math.max(1 / soldierComponent.attackRate, duration);
           _soldierTakeDamage(world, meleeTargetId, MELEE_DAMAGE_BASE * (soldierComponent.damageMult || 1));
           triggerMeleeHitReaction(world, meleeTargetId, !!soldierMeshComponent.root._animGroups?.hitBlock);

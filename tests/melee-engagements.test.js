@@ -188,3 +188,42 @@ describe('mutual melee combat', () => {
     assert.equal(world.query('bullet').length, 0);
   });
 });
+
+it('Guardsmen in melee mode approach at normal running speed even when far from their slot', () => {
+  const { world, blue, tick } = battle(1, 1);
+  const id = blue.soldiers.find((id) => id != null);
+  const soldier = world.get(id, 'soldier');
+  const root = world.get(id, 'mesh').root;
+  root.position.set(-20, 0, 0);
+  soldier.moveSpeed = 6;
+  const before = root.position.clone();
+  tick();
+  const distance = Math.hypot(root.position.x - before.x, root.position.z - before.z);
+  assert.ok(distance > 0, 'soldier still runs toward the fight');
+  assert.ok(distance <= soldier.moveSpeed / 60 + 1e-9, `normal run cap: moved ${distance}`);
+});
+
+it('Assault fires while closing the gap, then stops gunfire only when melee begins', () => {
+  const { world, blue, red, tick, animations } = battle(1, 1);
+  blue.position.set(0, 0, 0);
+  red.position.set(18, 0, 0);
+  const attackerId = blue.soldiers.find((id) => id != null);
+  const defenderId = red.soldiers.find((id) => id != null);
+  world.get(attackerId, 'mesh').root.position.copy(blue.position);
+  world.get(defenderId, 'mesh').root.position.copy(red.position);
+  blue.projectileType = 'beam';
+  const attacker = world.get(attackerId, 'soldier');
+  const blueShots = () => world.query('beam').filter((id) => world.get(id, 'beam').team === 'blue').length;
+  tick();
+  assert.equal(attacker.meleeEngaged, false);
+  assert.ok(blueShots() > 0, 'Assault fires before contact');
+  assert.ok(attacker.shootTimer > 0, 'firing animation remains active while approaching');
+  assert.equal(world.get(attackerId, 'mesh').root._meleeWeaponState, false, 'gun stays drawn before melee');
+  for (let i = 0; i < 600 && !attacker.meleeEngaged; i++) tick();
+  assert.equal(attacker.meleeEngaged, true, 'Assault still closes into melee');
+  const shotsAtContact = blueShots();
+  for (let i = 0; i < 90; i++) tick();
+  assert.equal(blueShots(), shotsAtContact, 'no shots while actually fighting in melee');
+  assert.equal(attacker.shootTimer, 0);
+  assert.ok(animations.get(attackerId).includes('melee'));
+});

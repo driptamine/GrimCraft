@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { attachGroundShadowOverlay } from '../render/ground-shadows.js';
 import { scene } from '../core/scene.js';
 import { mkGroup, disposeObj, childMeshes, loadTexture } from '../render/three-helpers.js';
 import { loadGltf, instantiateGltf } from '../render/gltf-models.js';
@@ -374,6 +375,7 @@ export function handleTerrainMeshFiles(files: FileList | File[] | null): void {
       if (scene._registerShadows) {
         scene._registerShadows(m);
       }
+      attachGroundShadowOverlay(m);
       if (m.material) {
         // three.js materials have no disableLighting/specularColor switches;
         // glTF imports arrive with PBR values that render correctly as-is.
@@ -598,6 +600,8 @@ export function setBrightness(val: number): void {
   if (!scene) {
     return;
   }
+  scene.userData.lightingBrightness = val;
+  if (scene.environment?.name === 'definitive_reflection_environment') scene.environmentIntensity = .55 * val;
   if (scene._ambLight) {
     scene._ambLight.intensity = (scene._ambBase ?? 0.55) * val;
   }

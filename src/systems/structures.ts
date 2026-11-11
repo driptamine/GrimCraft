@@ -34,6 +34,7 @@ export function systemBuilding(world: any, deltaTime: number) {
       continue;
     }
     _snapMeshToTerrain(meshComponent);
+    if (buildingComponent.pendingWorker) continue;
     if (buildingComponent.constructing) {
       buildingComponent.constructProgress += deltaTime;
       if (meshComponent.root && meshComponent.scaffold) {
@@ -138,6 +139,7 @@ export function systemStructure(world: any, deltaTime: number) {
       continue;
     }
     _snapMeshToTerrain(meshComponent);
+    if (structureComponent.pendingWorker) continue;
     if (structureComponent.constructing) {
       structureComponent.constructProgress += deltaTime;
       if (meshComponent.root && meshComponent.scaffold) {

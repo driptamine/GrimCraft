@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { plasmaCloudTuning } from './plasma-cloud-puff.js';
 
 // Same nominal guardsman height used by the custom soldier model importer.
 const SOLDIER_HEIGHT = 1.85;
@@ -58,7 +59,8 @@ export function updatePlasmaCloudBlaster(carrier: THREE.Object3D, travelled: num
   if (!state) return;
   const travel = Math.max(0, travelled);
   const stage = Math.min(2, Math.floor(travel / state.distance * 3));
-  const length = Math.min(state.distance, CLOUD_BLASTER_STAGE_LENGTHS[stage]);
+  const length = Math.min(state.distance, CLOUD_BLASTER_STAGE_LENGTHS[stage] * Math.max(0.05, plasmaCloudTuning.blasterLength));
+  const width = Math.max(0.05, plasmaCloudTuning.blasterWidth);
   const node = state.node;
   node.visible = travel < state.distance;
   if (!node.visible) return;
@@ -68,7 +70,7 @@ export function updatePlasmaCloudBlaster(carrier: THREE.Object3D, travelled: num
   const offset = start - (state.movingCarrier ? travel : 0);
   node.position.set(0, 0, offset / carrier.scale.z);
   node.scale.set(
-    1 / carrier.scale.x, 1 / carrier.scale.y,
+    width / carrier.scale.x, width / carrier.scale.y,
     length / GEOMETRY_LENGTH / carrier.scale.z,
   );
 }

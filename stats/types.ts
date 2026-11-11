@@ -24,6 +24,7 @@ export interface UnitStats {
   hp?: number;
   damage?: number;
   attackRange?: number;
+  movementSpeedMultiplier?: number;
   // Armor class key from src/combat/stats.ts (e.g. 'infantry_med').
   armor?: string;
   // Weapon profile key from src/combat/stats.ts (e.g. 'lasgun').

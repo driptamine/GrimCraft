@@ -30,7 +30,7 @@ function popup(probe = () => new Promise(() => {})) {
     return node;
   }
   const context = vm.createContext({
-    document: { getElementById: (id) => elements.get(id) || null, createElement: element, body: element() },
+    document: { querySelector: () => null, getElementById: (id) => elements.get(id) || null, createElement: element, body: element() },
     window: {}, console: { log() {} }, Date: { now: () => now },
     setTimeout(fn, delay) { const id = nextTimer++; timers.set(id, { at: now + delay, fn }); return id; },
     clearTimeout(id) { timers.delete(id); }, setInterval: () => 1, clearInterval() {},

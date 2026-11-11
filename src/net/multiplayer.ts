@@ -1,11 +1,16 @@
 import * as THREE from 'three';
+import { applySkirmishSnapshot, initReplicaSystems } from './skirmish-state.js';
+import { fetchWebTransportConnection } from './lobby-api.js';
+import { setLocalMatch, type LocalMatchConfig } from '../core/local-match.js';
+import { setPlayerFaction } from '../factions.js';
+import { setPlayerTeam } from '../core/scene.js';
 import { World } from '../core/ecs.js';
 import {
-  scene, world, setWorld, PLAYER, requisition, setRequisition, energy, setEnergy,
-  kills, setKills, gameOver, setGameOver, selSquads, selBuilder,
+  scene, world, setWorld, setStartTime, PLAYER, requisition, setRequisition, energy, setEnergy,
+  kills, setKills, gameOver, setGameOver, selSquads, selBuilder, setSelSquads, setSelBuilder, setSelBuildings, setSelListeningPost,
 } from '../core/scene.js';
 import { updateHUD } from '../core/hud.js';
-import { applySquadWeaponVisuals } from '../entities/entities.js';
+import { applySquadWeaponVisuals, createSquadEntity, createSoldierEntity } from '../entities/entities.js';
 import {
   makeHpBar, makeSoldierMesh, makeBarracksMesh, makeTowerMesh,
   makeThermoMesh, makeAirfieldMesh, makeApcMesh, makeGunTurretMesh,
@@ -17,7 +22,7 @@ import { bootGame, resetGame } from '../core/game.js';
 import { issueRightClick, pickMesh, raycastGround } from '../core/input.js';
 import { disposeObj } from '../render/three-helpers.js';
 import { listBuiltinMaps, selectMap, previewState, entryLabel, skirmishMapCards, defaultSkirmishMap } from '../ui/maps-menu.js';
-import { LOBBIES, capacityLabel, isFull, hasPlayers, createLobby } from './lobbies.js';
+import { mountMultiplayerLobby } from './multiplayer-lobby-ui.js';
 import { resetR2Progress, subscribeR2Progress, probeR2Cache } from './r2-progress.js';
 import { collectBootR2Urls } from './r2-manifest.js';
 import { ARENA_POSITION_FACTIONS } from '../factions.js';
@@ -27,6 +32,8 @@ declare global {
     _injectConnectUI?: () => void;
     webTransportConnect?: () => Promise<void>;
     webTransportPlayOffline?: () => Promise<void>;
+    _grimcraftNetStop?: (ids: number[]) => void;
+    _grimcraftNetAttack?: (ids: number[], target: number) => void;
     _lastBootMs?: number;
   }
 }
@@ -41,10 +48,13 @@ export let SERVER_CERT_HASH = '4c0409537cdf2905891d85c70369531614f138c923008c092
 export let _myPlayerId: any = null;
 export let _myTeam: any = null;
 export let _netStatus = 'disconnected';
+export let _netSchema = 1;
+export let _netTransport: 'webtransport' | 'websocket' | null = null;
 let _lastSnapshotTick = 0;
 let _lastDeltaTick = 0;
 let _selectedMap: any = null;
 let _selectedLobby: any = null;
+let _multiplayerLobbyUI: ReturnType<typeof mountMultiplayerLobby> | null = null;
 
 class StreamFramer {
   _buffer: Uint8Array;
@@ -76,6 +86,7 @@ class StreamFramer {
 
 class WTNet {
   _webTransport: any = null;
+  _socket: WebSocket | null = null;
   _cmdStream: any = null;
   _cmdWriter: any = null;
   _encoder = new TextEncoder();
@@ -84,6 +95,19 @@ class WTNet {
   async connect(url: string, certHash: string): Promise<void> {
     _netStatus = 'connecting';
     _updateNetHUD();
+    if (/^wss?:/.test(url)) {
+      await new Promise<void>((resolve, reject) => {
+        const socket = new WebSocket(url); this._socket = socket;
+        const timeout = setTimeout(() => { socket.close(); reject(new Error('Go server connection timed out')); }, 8000);
+        socket.onmessage = event => _handleServerBytes(this._encoder.encode(event.data));
+        socket.onopen = () => { clearTimeout(timeout); _netStatus = 'connected'; _updateNetHUD(); resolve(); };
+        socket.onerror = () => { clearTimeout(timeout); reject(new Error('Cannot connect to grimcraft-go on port 8080')); };
+        socket.onclose = () => { clearTimeout(timeout); _netStatus = 'disconnected'; _updateNetHUD(); _multiplayerLobbyUI?.status('Disconnected from Go server. Reopen the lobby to reconnect.'); reject(new Error('Connection closed')); };
+      });
+      _netTransport = 'websocket';
+      return;
+    }
+    if (typeof WebTransport === 'undefined') throw new Error('This browser does not support WebTransport. Use Chrome or Edge.');
     const options: any = { allowPooling: false };
     if (certHash && certHash.length === 64) {
       options.serverCertificateHashes = [{
@@ -91,34 +115,57 @@ class WTNet {
         value: _hexToBytes(certHash),
       }];
     }
-    this._webTransport = new WebTransport(url, options);
-    await this._webTransport.ready;
+    const transport = new WebTransport(url, options);
+    this._webTransport = transport;
+    void transport.closed.catch(() => {});
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        (async () => {
+          await transport.ready;
+          const stream = await transport.createBidirectionalStream();
+          if (this._webTransport !== transport) throw new Error('Connection cancelled');
+          this._cmdStream = stream;
+          this._cmdWriter = stream.writable.getWriter();
+          this._readAcks(stream.readable, transport);
+          this._readUniStreams(transport);
+          this._readDatagrams(transport);
+        })(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('WebTransport connection timed out. Check grimcraft-go and UDP port 4433.')), 8000);
+        }),
+      ]);
+    } catch (error) {
+      if (this._webTransport === transport) { this.disconnect(); _netStatus = 'error'; _updateNetHUD(); }
+      throw error;
+    } finally { clearTimeout(timeout); }
+    _netTransport = 'webtransport';
     _netStatus = 'connected';
     _updateNetHUD();
-    this._cmdStream = await this._webTransport.createBidirectionalStream();
-    this._cmdWriter = this._cmdStream.writable.getWriter();
-    this._readAcks(this._cmdStream.readable);
-    this._readUniStreams();
-    this._readDatagrams();
+    const closed = () => {
+      if (this._webTransport !== transport) return;
+      this._cmdWriter = null;
+      _netStatus = 'disconnected'; _netTransport = null;
+      _updateNetHUD();
+      _multiplayerLobbyUI?.status('WebTransport disconnected. Reopen the lobby to reconnect.');
+    };
+    transport.closed.then(closed, closed);
   }
 
-  async _readUniStreams() {
+  async _readUniStreams(transport: any) {
     try {
-      for await (const stream of this._webTransport.incomingUnidirectionalStreams) {
-        this._readStream(stream);
+      for await (const stream of transport.incomingUnidirectionalStreams) {
+        if (this._webTransport !== transport) return;
+        this._readStream(stream, transport);
       }
-    } catch (error) {
-      if (_netStatus === 'connected') {
-        _netStatus = 'error';
-        _updateNetHUD();
-      }
-    }
+    } catch (_) { /* transport.closed handles disconnects */ }
   }
 
-  async _readStream(readable: any): Promise<void> {
+  async _readStream(readable: any, transport: any): Promise<void> {
     const framer = new StreamFramer();
     try {
       for await (const chunk of readable) {
+        if (this._webTransport !== transport) return;
         framer.push(new Uint8Array(chunk));
         for (const bytes of framer.drain()) {
           _handleServerBytes(bytes);
@@ -129,10 +176,11 @@ class WTNet {
     }
   }
 
-  async _readAcks(readable: any): Promise<void> {
+  async _readAcks(readable: any, transport: any): Promise<void> {
     const framer = new StreamFramer();
     try {
       for await (const chunk of readable) {
+        if (this._webTransport !== transport) return;
         framer.push(new Uint8Array(chunk));
         for (const bytes of framer.drain()) {
           _handleServerBytes(bytes);
@@ -143,9 +191,10 @@ class WTNet {
     }
   }
 
-  async _readDatagrams() {
+  async _readDatagrams(transport: any) {
     try {
-      for await (const datagram of this._webTransport.datagrams.readable) {
+      for await (const datagram of transport.datagrams.readable) {
+        if (this._webTransport !== transport) return;
         _handleServerBytes(new Uint8Array(datagram));
       }
     } catch (error) {
@@ -154,27 +203,30 @@ class WTNet {
   }
 
   sendCmd(command: any): void {
+    if (this._socket?.readyState === WebSocket.OPEN) { this._socket.send(JSON.stringify({Command:command})); return; }
     if (!this._cmdWriter) {
       return;
     }
     const payload = this._encoder.encode(JSON.stringify({ Command: command }));
-    this._cmdWriter.write(_makeFrame(payload));
+    this._cmdWriter.write(_makeFrame(payload)).catch(() => {
+      _multiplayerLobbyUI?.status('Cannot send command: WebTransport disconnected.');
+    });
   }
 
-  sendJoin(team: any): void {
-    if (!this._cmdWriter) {
-      return;
-    }
-    const payload = this._encoder.encode(JSON.stringify({ Join: { preferred_team: team } }));
-    this._cmdWriter.write(_makeFrame(payload));
+  async sendJoin(team: any, username = '', faction = ''): Promise<void> {
+    if (this._socket) return;
+    if (!this._cmdWriter) throw new Error('WebTransport command stream is not connected');
+    const payload = this._encoder.encode(JSON.stringify({ Join: { preferred_team: team, username, faction } }));
+    await this._cmdWriter.write(_makeFrame(payload));
   }
 
   disconnect(): void {
+    if (this._socket) { this._socket.onclose = null; this._socket.onmessage = null; this._socket.onerror = null; this._socket.close(); this._socket = null; }
     this._cmdWriter?.releaseLock();
     this._cmdWriter = null;
     this._webTransport?.close();
     this._webTransport = null;
-    _netStatus = 'disconnected';
+    _netStatus = 'disconnected'; _netTransport = null;
     _updateNetHUD();
   }
 }
@@ -195,12 +247,85 @@ function _hexToBytes(hex: string): Uint8Array {
 }
 
 const _decoder = new TextDecoder();
+let _lobbyOnly = false;
+let _onlineBooting = false;
+let _joinGeneration = 0;
+let _pendingSession: any = null;
+let _pendingSnapshot: any = null;
+let _pendingLobby: any = null;
+const _netSquads = new Map<number, number>();
+const _localSquads = new Map<number, number>();
+
+async function _joinOnlineLobby(lobby: any, username: string): Promise<void> {
+  _leaveOnlineLobby();
+  const generation = _joinGeneration;
+  _myPlayerId = null; _myTeam = null;
+  _pendingSession = null; _pendingSnapshot = null; _pendingLobby = null;
+  _lobbyOnly = true;
+  try {
+    const info = await fetchWebTransportConnection();
+    if (generation !== _joinGeneration) return;
+    const url = new URL(info.webtransport_url);
+    url.searchParams.set('lobby', lobby.id);
+    SERVER_URL = info.webtransport_url;
+    SERVER_CERT_HASH = info.certificate_hash;
+    const urlInput = document.getElementById('webTransport-url') as HTMLInputElement | null;
+    const certInput = document.getElementById('webTransport-cert') as HTMLInputElement | null;
+    if (urlInput) urlInput.value = SERVER_URL;
+    if (certInput) certInput.value = SERVER_CERT_HASH;
+    await _net.connect(url.toString(), info.certificate_hash);
+    if (generation !== _joinGeneration) return;
+    await _net.sendJoin(null, username, 'Imperial Guard');
+  } catch (error) {
+    if (generation === _joinGeneration) throw error;
+  }
+}
+
+function _leaveOnlineLobby(): void {
+  _joinGeneration++;
+  _net.disconnect();
+  _lobbyOnly = false;
+  _pendingLobby = null; _pendingSession = null; _pendingSnapshot = null;
+  const gate=document.getElementById('multiplayer-loading-gate');if(gate)gate.remove();
+}
+
+async function _startOnlineMatch(): Promise<void> {
+  if (_onlineBooting || !_lobbyOnly || !_pendingSession || !_pendingSnapshot || !_pendingLobby?.started) return;
+  _onlineBooting = true;
+  const generation = _joinGeneration;
+  setLocalMatch(null);
+  window._multiplayerMode = true;
+  window._currentMapKey = _selectedMap?.path || 'arena';
+  _setLoadingUI(true);
+  try {
+    await bootGame({onProgress: _updateLoadBar});
+    if (generation !== _joinGeneration) return;
+    if (_selectedMap) await selectMap(_selectedMap.path, _selectedMap.url);
+    if (generation !== _joinGeneration) return;
+    _lobbyOnly = false;
+    _onSession(_pendingSession);
+    _onSnapshot(_pendingSnapshot);
+    _net.sendCmd({PlayerLoaded:{}});
+    const own = [...world.query('building'),...world.query('squad')].map((id: number) => (world.get(id, 'building') || world.get(id, 'squad'))).find((s: any) => s.owner === _myPlayerId);
+    if (own && window.__grimCamera) (window.__grimCamera as any).target.copy(own.position);
+  } catch (error) {
+    _multiplayerLobbyUI?.status(`Cannot start: ${(error as Error).message}`);
+  } finally { _setLoadingUI(false); _onlineBooting = false; }
+}
+
 
 function _handleServerBytes(bytes: Uint8Array): void {
   let message;
   try {
     message = JSON.parse(_decoder.decode(bytes));
   } catch (error) {
+    return;
+  }
+  if (message.ServerError) { _setConnectOverlay(true); _multiplayerLobbyUI?.status(message.ServerError.message || String(message.ServerError)); return; }
+  if (message.Lobby) {
+    _pendingLobby = message.Lobby;
+    _multiplayerLobbyUI?.onlineLobby(message.Lobby, _myPlayerId);
+    void _startOnlineMatch();
     return;
   }
   if (message.Session) {
@@ -223,6 +348,14 @@ function _handleServerBytes(bytes: Uint8Array): void {
 function _onSession(info: any): void {
   _myPlayerId = info.player_id;
   _myTeam = info.team === 'Blue' ? 'blue' : 'red';
+  _pendingSession = info;
+  setPlayerTeam(_myTeam);
+  if (_lobbyOnly) {
+    if (_pendingLobby) _multiplayerLobbyUI?.onlineLobby(_pendingLobby, _myPlayerId);
+    void _startOnlineMatch(); return;
+  }
+  _netSquads.clear(); _localSquads.clear();
+  _lastSnapshotTick = 0; _lastDeltaTick = 0;
   window._multiplayerMode = true;
   if (world) {
     for (const id of world.query('mesh')) {
@@ -234,7 +367,10 @@ function _onSession(info: any): void {
   }
   const newWorld = new World();
   setWorld(newWorld);
-  _initSystems(newWorld);
+  setSelSquads([]);setSelBuilder(null);setSelBuildings([]);setSelListeningPost(null);
+  window._networkPlayerId=_myPlayerId;
+  _netSchema=_pendingSnapshot?.schema===2?2:1;window._networkSchema=_netSchema;
+  if(_netSchema===2)initReplicaSystems(newWorld);else _initSystems(newWorld);
   setRequisition(1500);
   setEnergy(100);
   setKills(0);
@@ -245,89 +381,103 @@ function _onSession(info: any): void {
   _updateNetHUD();
 }
 
+// Readiness is decided by Go; the overlay also blocks orders while peers load.
+function _updateMatchGate(snapshot:any):void {
+  let gate=document.getElementById('multiplayer-loading-gate');
+  const waiting=snapshot.phase&&snapshot.phase!=='running';
+  if(snapshot.startAt)setStartTime(snapshot.startAt);
+  else if(waiting)setStartTime(Date.now());
+  if(!snapshot.winner){const win=document.getElementById('win');if(win)win.style.display='none';setGameOver(false);}
+  if(!waiting){if(gate)gate.style.display='none';return;}
+  if(!gate){gate=document.createElement('div');gate.id='multiplayer-loading-gate';gate.style.cssText='position:fixed;inset:0;z-index:10000;background:#070d15d9;display:flex;align-items:center;justify-content:center;color:#e1edf8;font:20px sans-serif;text-align:center;white-space:pre-line';document.body.append(gate);}
+  gate.style.display='flex';
+  const ids=snapshot.waitingFor||[];
+  const names=ids.map((id:number)=>_pendingLobby?.players?.find((p:any)=>p.player_id===id)?.username||`Player ${id}`);
+  gate.textContent=snapshot.phase==='countdown'?'Все игроки готовы. Начинаем…':`Ожидание загрузки игроков${names.length?'\n'+names.join(', '):'…'}`;
+}
+
 function _onSnapshot(snapshot: any): void {
+  _pendingSnapshot = snapshot;
+  if (_lobbyOnly) { void _startOnlineMatch(); return; }
+  if(snapshot.schema===2){
+    if(!world || (_netSchema===2 && snapshot.tick < _lastSnapshotTick))return;
+    _lastSnapshotTick=snapshot.tick;
+    if(_netSchema!==2){
+      for(const id of world.query('mesh'))disposeMeshComponent(world.get(id,'mesh'));
+      const replica=new World();setWorld(replica);initReplicaSystems(replica);
+      setSelSquads([]);setSelBuilder(null);setSelBuildings([]);
+      _netSquads.clear();_localSquads.clear();_netSchema=2;window._networkSchema=2;
+    }
+    const account=snapshot.players.find((p:any)=>p.id===_myPlayerId);
+    if(account){setPlayerTeam(account.team);setPlayerFaction(account.faction);}
+    applySkirmishSnapshot(world,snapshot,_myPlayerId);_updateMatchGate(snapshot);return;
+  }
+  if(_netSchema===2 || !world || snapshot.tick < _lastSnapshotTick) return;
   _lastSnapshotTick = snapshot.tick;
-  if (!world) {
-    return;
-  }
-  const squadIds = new Set(snapshot.squads.map(([id]: any) => id));
-  for (const id of world.query('squad')) {
-    if (!squadIds.has(id)) {
-      const meshComponent = world.get(id, 'mesh');
-      if (meshComponent) {
-        disposeObj(meshComponent.hpBar);
-        disposeObj(meshComponent.reinBar);
-        disposeObj(meshComponent.grenadeSetupBar);
-      }
-      world.destroyEntity(id);
+  const serverIds = new Set<number>(snapshot.squads.map(([id]: any) => id));
+  for (const [netId, localId] of _netSquads) {
+    if (serverIds.has(netId)) continue;
+    const squad = world.get(localId, 'squad');
+    for (const soldierId of squad?.soldiers || []) {
+      if (soldierId == null) continue;
+      const mesh = world.get(soldierId, 'mesh'); if (mesh) disposeMeshComponent(mesh);
+      world.destroyEntity(soldierId);
     }
+    const mesh = world.get(localId, 'mesh'); if (mesh) disposeMeshComponent(mesh);
+    world.destroyEntity(localId); _netSquads.delete(netId); _localSquads.delete(localId);
   }
-  for (const [id, squadData] of snapshot.squads) {
-    const team = squadData.team === 'Blue' ? 'blue' : 'red';
-    if (!world._entities.has(id)) {
-      world._entities.add(id);
-      world._tags.set(id, new Set(['squad']));
-      const hpBar = makeHpBar(2.8, team);
-      hpBar.visible = false;
-      const reinBar = makeHpBar(2.8, team);
-      reinBar._fg.material.color = new THREE.Color(0.1, 0.9, 1.0);
-      reinBar.visible = false;
-      const grenadeBar = makeHpBar(2.8, team);
-      grenadeBar._fg.material.color = new THREE.Color(1.0, 0.55, 0.0);
-      grenadeBar._bg.material.color = new THREE.Color(0.18, 0.10, 0.0);
-      grenadeBar.visible = false;
-      world.add(id, 'mesh', { hpBar, reinBar, grenadeSetupBar: grenadeBar });
+  for (const [netId, data] of snapshot.squads) {
+    const team = data.team === 'Blue' ? 'blue' : 'red';
+    let localId = _netSquads.get(netId);
+    if (localId == null) {
+      localId = createSquadEntity(world, team, data.position.x, data.position.z, data.soldiers.length,
+        data.faction === 'chaos' ? 'chaos_space_marine' : null, data.faction || 'ig');
+      _netSquads.set(netId, localId!); _localSquads.set(localId!, netId);
     }
-    const existingSquad = world.get(id, 'squad');
-    world.add(id, 'squad', {
-      team,
-      position: _toVector3(squadData.position),
-      facing: _toVector3(squadData.facing),
-      visualFacing: existingSquad?.visualFacing ?? _toVector3(squadData.facing),
-      speed: squadData.speed,
-      attackRange: squadData.attack_range,
-      detectionRange: squadData.detection_range,
-      grenadeCd: squadData.grenade_cd,
-      grenadeReloadTime: squadData.grenade_reload_time,
-      idleTime: squadData.idle_time,
-      reinforceQueue: squadData.reinforce_queue || [],
-      reinforceProgress: squadData.reinforce_progress,
-      grenadeQueue: squadData.grenade_queue || [],
-      grenadeProgress: squadData.grenade_progress,
-      plasmaQueue: squadData.plasma_queue || [],
-      plasmaProgress: squadData.plasma_progress,
-      moveOrder: squadData.move_order ? _toVector3(squadData.move_order) : null,
-      stopped: squadData.stopped,
-      autoChase: squadData.auto_chase,
-      projectileType: (squadData.projectile_type || 'Bullet').toLowerCase(),
-      soldiers: squadData.soldiers.map((soldier: any) => soldier ?? null),
-      forcedTarget: squadData.forced_target ?? null,
-      forcedSoldierId: squadData.forced_soldier_id ?? null,
-      autoReinforce: squadData.auto_reinforce,
-      owner: squadData.owner,
-      selected: existingSquad?.selected ?? false,
+    const squad = world.get(localId, 'squad');
+    if (data.owner === _myPlayerId) setPlayerFaction(data.faction || 'ig');
+    Object.assign(squad, {
+      team, owner: data.owner, netId,
+      speed: data.speed, attackRange: data.attack_range, detectionRange: data.detection_range,
+      stopped: data.stopped, autoChase: data.auto_chase,
+      moveOrder: data.move_order ? _toVector3(data.move_order) : null,
+      forcedTarget: _netSquads.get(data.forced_target) ?? null,
+      autoReinforce: data.auto_reinforce,
     });
-    if (existingSquad && world.has(id, 'mesh')) {
-      applySquadWeaponVisuals(world, id);
+    squad.position.copy(_toVector3(data.position)); squad.facing.copy(_toVector3(data.facing));
+    for (let i = 0; i < data.soldiers.length; i++) {
+      const remote = data.soldiers[i]; let id = squad.soldiers[i + 1];
+      if (!remote || remote.hp <= 0) {
+        if (id != null) { const mesh = world.get(id, 'mesh'); if (mesh) disposeMeshComponent(mesh); world.destroyEntity(id); squad.soldiers[i + 1] = null; }
+        continue;
+      }
+      if (id == null || !world.has(id, 'soldier')) {
+        id = createSoldierEntity(world, localId, i + 1, squad.unitType);
+        squad.soldiers[i + 1] = id;
+        const mesh = world.get(id, 'mesh'); if (mesh?.root) mesh.root.position.copy(squad.position);
+      }
+      const soldier = world.get(id, 'soldier');
+      if (soldier) { soldier.hp = remote.hp; soldier.maxHp = remote.max_hp || Math.max(100, remote.hp); }
     }
   }
   updateHUD();
 }
 
 function _onDelta(delta: any): void {
+  if (_lobbyOnly || !world || _netSchema===2) return;
   if (delta.tick < _lastDeltaTick) {
     return;
   }
   _lastDeltaTick = delta.tick;
   for (const [id, x, z] of (delta.squad_pos || [])) {
-    const squad = world.get(id, 'squad');
+    const squad = world.get(_netSquads.get(id), 'squad');
     if (squad) {
       squad.position.x = x;
       squad.position.z = z;
     }
   }
   for (const [id, facingX, facingZ] of (delta.squad_facing || [])) {
-    const squad = world.get(id, 'squad');
+    const squad = world.get(_netSquads.get(id), 'squad');
     if (squad) {
       squad.facing.x = facingX;
       squad.facing.z = facingZ;
@@ -340,13 +490,20 @@ function _onDelta(delta: any): void {
 function _onCmdAck(ack: any): void {
   if (!ack.ok) {
     console.warn('[WTNet] Command rejected:', ack.reason);
+    _multiplayerLobbyUI?.status(ack.reason || 'Command rejected');
+    if(window._multiplayerMode){
+      let notice=document.getElementById('network-order-error');
+      if(!notice){notice=document.createElement('div');notice.id='network-order-error';notice.style.cssText='position:fixed;top:85px;left:50%;transform:translateX(-50%);z-index:10001;padding:10px 18px;background:#291c16ee;border:1px solid #bb7555;color:#f5d5bc;font:13px sans-serif;pointer-events:none';document.body.append(notice);}
+      notice.textContent=ack.reason||'Command rejected';notice.style.display='block';
+      const text=notice.textContent;setTimeout(()=>{if(notice?.textContent===text)notice.style.display='none'},3500);
+    }
   }
 }
 
 const _net = new WTNet();
 
 export function netMoveSquads(ids: any, target: any): void {
-  _net.sendCmd({ MoveSquads: { squad_ids: ids, target: { x: target.x, y: target.y, z: target.z } } });
+  _net.sendCmd({ MoveSquads: { squad_ids: ids.map((id: number) => _localSquads.get(id) ?? id), target: { x: target.x, y: target.y, z: target.z } } });
 }
 export function netMoveBuilders(ids: any, target: any): void {
   _net.sendCmd({ MoveBuilders: { builder_ids: ids, target: { x: target.x, y: target.y, z: target.z } } });
@@ -358,34 +515,36 @@ export function netMoveJets(ids: any, target: any): void {
   _net.sendCmd({ MoveJets: { jet_ids: ids, target: { x: target.x, y: target.y, z: target.z } } });
 }
 export function netStopSquads(ids: any): void {
-  _net.sendCmd({ StopSquads: { squad_ids: ids } });
+  _net.sendCmd({ StopSquads: { squad_ids: ids.map((id: number) => _localSquads.get(id) ?? id) } });
 }
 export function netAttackSquad(attackerIds: any, targetId: any): void {
-  _net.sendCmd({ AttackSquad: { attacker_ids: attackerIds, target_squad: targetId } });
+  _net.sendCmd({ AttackSquad: { attacker_ids: attackerIds.map((id: number) => _localSquads.get(id) ?? id), target_squad: _localSquads.get(targetId) ?? targetId } });
 }
 export function netAttackSoldier(attackerIds: any, targetId: any): void {
-  _net.sendCmd({ AttackSoldier: { attacker_ids: attackerIds, target_soldier: targetId } });
+  const squadId = world.get(targetId, 'soldier')?.squadId;
+  if (squadId != null) netAttackSquad(attackerIds, squadId);
 }
-export function netPlaceBuilding(type: any, position: any): void {
-  _net.sendCmd({ PlaceBuilding: { building_type: type, position: { x: position.x, y: position.y, z: position.z } } });
+
+export function netPlaceBuilding(type: any, position: any, builderId: any = selBuilder): void {
+  _net.sendCmd({ PlaceBuilding: { builder_id: builderId, building_type: type, position: { x: position.x, y: position.y, z: position.z } } });
 }
 export function netReinforce(squadId: any, formIdx: any): void {
-  _net.sendCmd({ Reinforce: { squad_id: squadId, form_idx: formIdx } });
+  _net.sendCmd({ Reinforce: { squad_id: _localSquads.get(squadId) ?? squadId, form_idx: formIdx } });
 }
 export function netAutoReinforce(squadId: any, enabled: any): void {
-  _net.sendCmd({ AutoReinforce: { squad_id: squadId, enabled } });
+  _net.sendCmd({ AutoReinforce: { squad_id: _localSquads.get(squadId) ?? squadId, enabled } });
 }
 export function netSetProjectileType(squadId: any, type: any): void {
-  _net.sendCmd({ SetProjectileType: { squad_id: squadId, proj_type: type } });
+  _net.sendCmd({ SetProjectileType: { squad_id: _localSquads.get(squadId) ?? squadId, proj_type: type } });
 }
 export function netTrainUnit(buildingId: any, unitType: any): void {
   _net.sendCmd({ TrainUnit: { building_id: buildingId, unit_type: unitType } });
 }
 export function netGrenadeUpgrade(squadId: any, soldierId: any): void {
-  _net.sendCmd({ GrenadeUpgrade: { squad_id: squadId, sol_id: soldierId } });
+  _net.sendCmd({ GrenadeUpgrade: { squad_id: _localSquads.get(squadId) ?? squadId, sol_id: soldierId } });
 }
 export function netPlasmaUpgrade(squadId: any, soldierId: any): void {
-  _net.sendCmd({ PlasmaUpgrade: { squad_id: squadId, sol_id: soldierId } });
+  _net.sendCmd({ PlasmaUpgrade: { squad_id: _localSquads.get(squadId) ?? squadId, sol_id: soldierId } });
 }
 export function netDemolishBuilding(id: any): void {
   _net.sendCmd({ DemolishBuilding: { building_id: id } });
@@ -429,34 +588,10 @@ export function _injectConnectUI() {
   overlay.id = 'webTransport-connect-overlay';
   overlay.innerHTML = [
     '<div class="webTransport-panel">',
-    '<div class="webTransport-title">⚡ GRIMCRAFT MULTIPLAYER</div>',
-    '<div class="webTransport-subtitle">WebTransport / QUIC</div>',
-    '<div id="webTransport-map-wrap">',
-    '<div class="webTransport-map-label">MAP</div>',
-    '<div class="webTransport-map-body">',
-    '<div id="webTransport-map-grid" class="webTransport-map-grid"></div>',
-    '<div id="webTransport-map-detail" class="webTransport-map-detail"></div>',
-    '</div>',
-    '</div>',
-    '<div id="webTransport-lobby-wrap">',
-    '<div class="webTransport-lobby-label" id="webTransport-servers-label">SERVERS</div>',
-    '<div id="webTransport-server-list" class="webTransport-server-list"></div>',
-    '<div style="display:flex;gap:8px;margin-bottom:10px" id="webTransport-create-row"><button id="wt-create-game-btn" class="webTransport-button">CREATE GAME</button></div>',
-    '<div id="webTransport-create-form" style="display:none">',
-    '<div class="webTransport-lobby-label">NEW GAME</div>',
-    '<div class="webTransport-field-row"><label>NAME</label><input id="webTransport-lobby-name" type="text" value="My Game"></div>',
-    '<div class="webTransport-field-row"><label>MAP</label><select id="webTransport-lobby-map"></select></div>',
-    '<div class="webTransport-field-row"><label>PLAYERS</label><select id="webTransport-lobby-capacity"><option>2</option><option>4</option><option selected>6</option><option>8</option></select></div>',
-    '<div style="display:flex;gap:8px;margin:6px 0 14px"><button id="wt-create-confirm-btn" class="webTransport-button">CREATE</button><button id="wt-create-cancel-btn" class="webTransport-button">CANCEL</button></div>',
-    '</div>',
-    '<div class="webTransport-lobby-label" id="webTransport-players-label">PLAYERS</div>',
-    '<div id="webTransport-slot-panel" class="webTransport-slot-panel"></div>',
-    '</div>',
     '<div id="webTransport-connect-form">',
     `<div class="webTransport-field-row webTransport-server-row"><label>SERVER</label><input id="webTransport-url" type="text" value="${SERVER_URL}"></div>`,
     `<div class="webTransport-field-row webTransport-server-row"><label>CERT&nbsp;HASH</label><input id="webTransport-cert" type="text" value="${SERVER_CERT_HASH}"></div>`,
-    '<div style="display:flex;gap:8px;margin-top:6px"><button id="wt-connect-btn" class="webTransport-button">CONNECT</button><button id="wt-offline-btn" class="webTransport-button webTransport-offline">PLAY OFFLINE</button></div>',
-    '<div style="display:flex;gap:8px;margin-top:8px"><button id="wt-back-btn" class="webTransport-button">‹ BACK</button></div>',
+    '<div style="display:flex;gap:8px;margin-top:6px"><button id="wt-connect-btn" class="webTransport-button">CONNECT</button></div>',
     '<div id="webTransport-connect-status" style="margin-top:8px;font-size:9px;letter-spacing:.1em;color:#ff8833;min-height:14px"></div>',
     '</div>',
     '<div id="webTransport-load-wrap" style="display:none">',
@@ -527,179 +662,29 @@ export function _injectConnectUI() {
   document.body.appendChild(badge);
 
   document.getElementById('wt-connect-btn')?.addEventListener('click', webTransportConnect);
-  document.getElementById('wt-offline-btn')?.addEventListener('click', webTransportPlayOffline);
-  document.getElementById('wt-back-btn')?.addEventListener('click', () => {
-    _setConnectOverlay(false);
-    if (window.__grimcraftShowMainMenu) {
-      window.__grimcraftShowMainMenu();
-    }
-  });
-  _buildMapGrid();
-  _buildServerList();
-  _renderSlots(null);
-  _buildCreateForm();
-  _injectSkirmishUI();
-}
-
-function _setLobbyView(creating: boolean): void {
-  for (const id of ['webTransport-servers-label', 'webTransport-server-list', 'webTransport-create-row', 'webTransport-players-label', 'webTransport-slot-panel']) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.style.display = creating ? 'none' : '';
-    }
-  }
-  const form = document.getElementById('webTransport-create-form');
-  if (form) {
-    form.style.display = creating ? '' : 'none';
-  }
-}
-
-function _buildCreateForm() {
-  const mapSelect = document.getElementById('webTransport-lobby-map');
-  if (mapSelect) {
-    mapSelect.innerHTML = '';
-    const arena = document.createElement('option');
-    arena.value = 'Arena';
-    arena.textContent = 'Default Arena';
-    mapSelect.appendChild(arena);
-    for (const map of listBuiltinMaps()) {
-      const option = document.createElement('option');
-      option.value = map.name;
-      option.textContent = map.players ? `${map.name} (${map.players}P)` : map.name;
-      mapSelect.appendChild(option);
-    }
-  }
-  document.getElementById('wt-create-game-btn')?.addEventListener('click', () => _setLobbyView(true));
-  document.getElementById('wt-create-cancel-btn')?.addEventListener('click', () => _setLobbyView(false));
-  document.getElementById('wt-create-confirm-btn')?.addEventListener('click', () => {
-    const lobby = createLobby({
-      name: (document.getElementById('webTransport-lobby-name') as HTMLInputElement | null)?.value,
-      map: (document.getElementById('webTransport-lobby-map') as HTMLInputElement | null)?.value,
-      total: (document.getElementById('webTransport-lobby-capacity') as HTMLInputElement | null)?.value,
-    });
-    LOBBIES.unshift(lobby);
-    _selectedLobby = lobby;
-    _buildServerList();
-    _renderSlots(lobby);
-    _setLobbyView(false);
-  });
-}
-
-function _buildServerList() {
-  const list = document.getElementById('webTransport-server-list');
-  if (!list) {
-    return;
-  }
-  list.innerHTML = '';
-  for (const lobby of LOBBIES) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'webTransport-server-row' + (lobby === _selectedLobby ? ' active' : '');
-    const name = document.createElement('span');
-    name.textContent = lobby.name;
-    btn.appendChild(name);
-    const map = document.createElement('span');
-    map.className = 'webTransport-server-map';
-    map.textContent = lobby.map || '—';
-    btn.appendChild(map);
-    const players = document.createElement('span');
-    players.className = 'webTransport-server-players' + (isFull(lobby) ? ' full' : '');
-    players.textContent = capacityLabel(lobby);
-    btn.appendChild(players);
-    btn.addEventListener('click', () => {
+  _multiplayerLobbyUI = mountMultiplayerLobby(overlay.querySelector('.webTransport-panel') as HTMLElement, {
+    back: () => { hideConnectOverlay(); window.__grimcraftShowMainMenu?.(); },
+    select: (lobby, map) => {
       _selectedLobby = lobby;
-      Array.from(list.children).forEach((el) => {
-        if (el.classList) {
-          el.classList.toggle('active', el === btn);
-        }
-      });
-      _renderSlots(lobby);
-    });
-    list.appendChild(btn);
-  }
-}
-
-function _renderSlots(lobby: any): void {
-  const panel = document.getElementById('webTransport-slot-panel');
-  if (!panel) {
-    return;
-  }
-  panel.innerHTML = '';
-  if (!lobby) {
-    const empty = document.createElement('div');
-    empty.className = 'webTransport-slot-empty';
-    empty.textContent = 'SELECT A SERVER';
-    panel.appendChild(empty);
-    return;
-  }
-  const head = document.createElement('div');
-  head.className = 'webTransport-slot-head';
-  for (const text of ['PLAYER', 'FACTION', 'TEAM', 'PING']) {
-    const cell = document.createElement('span');
-    cell.textContent = text;
-    head.appendChild(cell);
-  }
-  panel.appendChild(head);
-  if (!hasPlayers(lobby)) {
-    const empty = document.createElement('div');
-    empty.className = 'webTransport-slot-empty';
-    empty.textContent = 'NO PLAYER DATA';
-    panel.appendChild(empty);
-    return;
-  }
-  for (const player of lobby.players) {
-    const row = document.createElement('div');
-    row.className = 'webTransport-slot-row';
-    const name = document.createElement('span');
-    name.textContent = player.username;
-    row.appendChild(name);
-    const faction = document.createElement('span');
-    faction.textContent = player.faction;
-    row.appendChild(faction);
-    const team = document.createElement('span');
-    team.className = player.team === 2 ? 'webTransport-slot-team-2' : 'webTransport-slot-team-1';
-    team.textContent = `TEAM ${player.team}`;
-    row.appendChild(team);
-    const ping = document.createElement('span');
-    ping.textContent = String(player.ping);
-    row.appendChild(ping);
-    panel.appendChild(row);
-  }
+      _selectedMap = map?.path ? { path: map.path, url: map.url, name: map.name } : null;
+    },
+    connect: () => { void webTransportConnect(); },
+    startLocal: (config) => { _leaveOnlineLobby(); void webTransportPlayOffline(config); },
+    joinOnline: _joinOnlineLobby,
+    leaveOnline: _leaveOnlineLobby,
+    startOnline: (computers) => { _net.sendCmd({StartGame:{computers}}); },
+    factionOnline: (faction) => { _net.sendCmd({SetLobbyFaction:{faction}}); },
+  });
+  _injectSkirmishUI();
 }
 
 export function showConnectOverlay(mode = 'multiplayer'): void {
   const isSkirmish = mode === 'skirmish';
-  const mapWrap = document.getElementById('webTransport-map-wrap');
-  if (mapWrap) {
-    mapWrap.style.display = isSkirmish ? '' : 'none';
-  }
-  const lobbyWrap = document.getElementById('webTransport-lobby-wrap');
-  if (lobbyWrap) {
-    lobbyWrap.style.display = isSkirmish ? 'none' : '';
-  }
+  const shell = document.querySelector<HTMLElement>('#webTransport-connect-overlay .mp-shell');
+  if (shell) shell.classList.toggle('mp-offline-loading', isSkirmish);
+  if (!isSkirmish) _multiplayerLobbyUI?.reset();
   const panel = document.querySelector('#webTransport-connect-overlay .webTransport-panel');
-  if (panel) {
-    panel.classList.toggle('webTransport-panel-skirmish', isSkirmish);
-  }
-  document.querySelectorAll('.webTransport-server-row').forEach((el: any) => {
-    el.style.display = isSkirmish ? 'none' : '';
-  });
-  const connectBtn = document.getElementById('wt-connect-btn');
-  if (connectBtn) {
-    connectBtn.style.display = isSkirmish ? 'none' : '';
-  }
-  const title = document.querySelector('#webTransport-connect-overlay .webTransport-title');
-  if (title) {
-    title.textContent = isSkirmish ? 'GRIMCRAFT SKIRMISH' : '⚡ GRIMCRAFT MULTIPLAYER';
-  }
-  const subtitle = document.querySelector('#webTransport-connect-overlay .webTransport-subtitle');
-  if (subtitle) {
-    subtitle.textContent = isSkirmish ? 'Offline Battle' : 'WebTransport / QUIC';
-  }
-  const offlineBtn = document.getElementById('wt-offline-btn');
-  if (offlineBtn) {
-    offlineBtn.textContent = isSkirmish ? 'START BATTLE' : 'PLAY OFFLINE';
-  }
+  panel?.classList.toggle('webTransport-panel-skirmish', isSkirmish);
   _setConnectOverlay(true);
 }
 
@@ -741,7 +726,7 @@ function _injectSkirmishUI(): void {
   ].join(' ');
   document.head.appendChild(style);
   document.body.appendChild(overlay);
-  document.getElementById('skirmish-start-btn')?.addEventListener('click', webTransportPlayOffline);
+  document.getElementById('skirmish-start-btn')?.addEventListener('click', () => { void webTransportPlayOffline(); });
   document.getElementById('skirmish-back-btn')?.addEventListener('click', () => {
     hideSkirmishPanel();
     if (window.__grimcraftShowMainMenu) {
@@ -1057,6 +1042,7 @@ function _setLoadingUI(loading: boolean): void {
     _r2PaintTimer = null;
   }
   _r2LatestSnapshot = null;
+  document.querySelector('.mp-shell')?.classList.toggle('mp-is-loading', loading);
   const form = document.getElementById('webTransport-connect-form');
   const wrap = document.getElementById('webTransport-load-wrap');
   if (form) {
@@ -1137,7 +1123,7 @@ function _updateNetHUD() {
   const colors = { connecting: '#ffcc44', connected: '#44ff88', error: '#ff4422', disconnected: '#888' };
   const labels = {
     connecting: '⚡ CONNECTING…',
-    connected: `⚡ ONLINE [${(_myTeam || '').toUpperCase()}]`,
+    connected: `⚡ ${_netTransport === 'webtransport' ? 'WEBTRANSPORT' : 'WEBSOCKET'} [${(_myTeam || '').toUpperCase()}]`,
     error: '⚡ ERROR',
     disconnected: '⚡ OFFLINE',
   };
@@ -1148,21 +1134,26 @@ function _updateNetHUD() {
 }
 
 export async function webTransportConnect() {
-  const url = (document.getElementById('webTransport-url') as HTMLInputElement).value.trim();
+  const urlInput = (document.getElementById('webTransport-url') as HTMLInputElement).value.trim();
   const cert = (document.getElementById('webTransport-cert') as HTMLInputElement).value.trim();
-  SERVER_URL = url;
+  SERVER_URL = urlInput;
   SERVER_CERT_HASH = cert;
   const statusElement = document.getElementById('webTransport-connect-status') as HTMLElement;
   statusElement.textContent = 'Connecting…';
   _setLoadingUI(true);
   try {
+    const target = new URL(urlInput);
+    if (_selectedLobby?.id) target.searchParams.set('lobby', _selectedLobby.id);
+    const url = target.toString();
+    window._currentMapKey = _selectedMap?.path || 'arena';
+    setLocalMatch(null);
     window._multiplayerMode = true;
     await bootGame({ onProgress: _updateLoadBar });
     _setNetHudVisible(true);
     _setLoadingUI(false);
     statusElement.textContent = 'Connecting…';
     await _net.connect(url, cert);
-    _net.sendJoin(null);
+    await _net.sendJoin(null);
     statusElement.textContent = 'Connected! Waiting for session…';
   } catch (error) {
     _setLoadingUI(false);
@@ -1173,7 +1164,14 @@ export async function webTransportConnect() {
   }
 }
 
-export async function webTransportPlayOffline() {
+export async function webTransportPlayOffline(config: LocalMatchConfig | null = null) {
+  window._networkPlayerId=undefined;window._networkSchema=undefined;
+  setLocalMatch(config);
+  if (config) {
+    const human = config.seats.find(seat => !seat.computer) || config.seats[0];
+    setPlayerTeam(human.team);
+    setPlayerFaction(human.faction);
+  }
   window._multiplayerMode = false;
   window._currentMapKey = _selectedMap ? _selectedMap.path : 'arena';
   hideSkirmishPanel();
@@ -1185,6 +1183,7 @@ export async function webTransportPlayOffline() {
       _updateLoadBar({ loaded: 0, total: 0, label: `Loading map ${_selectedMap.name}` });
       await selectMap(_selectedMap.path, _selectedMap.url);
     }
+    resetGame();
     _setLoadingUI(false);
     _setConnectOverlay(false);
     _setNetHudVisible(true);
@@ -1201,3 +1200,8 @@ export async function webTransportPlayOffline() {
 window._injectConnectUI = _injectConnectUI;
 window.webTransportConnect = webTransportConnect;
 window.webTransportPlayOffline = webTransportPlayOffline;
+
+window._grimcraftNetStop = netStopSquads;
+window._grimcraftNetAttack = netAttackSquad;
+
+window._grimcraftSendCommand = command => _net.sendCmd(command);

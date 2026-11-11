@@ -7,14 +7,20 @@ export interface LobbyPlayer {
   faction: string;
   team: number;
   ping: number;
+  player_id?: number;
+  controller?: 'human' | 'computer';
 }
 
 export interface Lobby {
+  id?: string;
+  host_id?: number;
+  started?: boolean;
   name: string;
   map: string | null;
   current: number;
   total: number;
   players: LobbyPlayer[];
+  slots?: Array<LobbyPlayer | null>;
 }
 
 export const LOBBIES: Lobby[] = [
@@ -58,4 +64,17 @@ export function createLobby({ name, map, total }: { name?: unknown; map?: unknow
     total: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : 6,
     players: [{ username: 'HOST', faction: '—', team: 1, ping: 0 }],
   };
+}
+
+// Slot indices stay stable when a middle slot is opened or closed.
+export function lobbySlots(lobby: Lobby): Array<LobbyPlayer | null> {
+  return Array.from({ length: lobby.total }, (_, i) => lobby.slots ? lobby.slots[i] || null : lobby.players[i] || null);
+}
+
+export function setLobbySlot(lobby: Lobby, index: number, player: LobbyPlayer | null): void {
+  if (index < 0 || index >= lobby.total) throw new RangeError('Invalid lobby slot');
+  lobby.slots = lobbySlots(lobby);
+  lobby.slots[index] = player;
+  lobby.players = lobby.slots.filter((p): p is LobbyPlayer => !!p);
+  lobby.current = lobby.players.length;
 }

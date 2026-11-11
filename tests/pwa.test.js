@@ -25,7 +25,7 @@ describe('pwa', () => {
   it('uses the soulstorm icon as favicon', () => {
     const html = readFileSync(join(root, 'index.html'), 'utf8');
     assert.ok(
-      html.includes('<link rel="icon" type="image/png" href="soulstorm_icon.png">'),
+      html.includes('<link rel="icon" type="image/png" href="/soulstorm_icon.png">'),
       'index.html links the soulstorm favicon',
     );
     assert.ok(existsSync(join(root, 'public', 'soulstorm_icon.png')), 'favicon file exists in public/');

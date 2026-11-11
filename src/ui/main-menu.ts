@@ -3,6 +3,8 @@
 // overlay; the rest are stub screens until those sections exist. Only
 // zero-dependency leaf modules are imported statically (multiplayer stays
 // lazy to avoid an import cycle).
+import { serverIdFromPath } from '../net/server-route.js';
+import { lightingMode, setLightingMode, shadowsEnabled, setShadowsEnabled } from '../render/lighting.js';
 import { modelSource, setModelSource, MODEL_SOURCE_PROCEDURAL, MODEL_SOURCE_GLB } from '../render/model-source.js';
 
 export const MENU_ITEMS = [
@@ -23,6 +25,8 @@ export function screenFor(itemId: string): string {
   }
   return 'stub';
 }
+
+let _routeListener: (() => void) | null = null;
 
 let _showConnectOverlay: ((screen: string) => void) | null = null;
 let _hideConnectOverlay: (() => void) | null = null;
@@ -143,6 +147,34 @@ function renderSettings(): void {
   title.className = 'main-menu-stub-title';
   title.textContent = 'Settings';
   list.appendChild(title);
+  const lightButton = document.createElement('button');
+  lightButton.type = 'button';lightButton.className = 'main-menu-btn';lightButton.id = 'lighting-mode';
+  const paintLight = () => {
+    lightButton.textContent = `СВЕТ: ${lightingMode() === 'definitive' ? 'DEFINITIVE EDITION' : 'CLASSIC'}`;
+    lightButton.setAttribute('aria-pressed', String(lightingMode() === 'definitive'));
+  };
+  lightButton.title = 'Освещение в духе Dawn of War: Definitive Edition: отражённый свет, контраст и объём.';
+  paintLight();
+  lightButton.addEventListener('click', () => { setLightingMode(lightingMode() === 'classic' ? 'definitive' : 'classic');paintLight(); });
+  list.appendChild(lightButton);
+  const shadowButton = document.createElement('button');
+  shadowButton.type = 'button';shadowButton.className = 'main-menu-btn';shadowButton.id = 'lighting-shadows';
+  void import('../core/scene.js').then(({ qualityTier }) => {
+    const paintShadows = () => {
+      const enabled = shadowsEnabled(qualityTier());
+      shadowButton.textContent = `ТЕНИ: ${enabled ? 'ВКЛ.' : 'ВЫКЛ.'}`;
+      shadowButton.setAttribute('aria-pressed', String(enabled));
+    };
+    paintShadows();
+    shadowButton.addEventListener('click', () => { setShadowsEnabled(!shadowsEnabled(qualityTier()));paintShadows(); });
+  });
+  list.appendChild(shadowButton);
+  const auraButton=document.createElement('button');auraButton.type='button';auraButton.className='main-menu-btn';auraButton.id='necron-aura-mode';
+  void import('../fx/necron-aurora.js').then(({necronGlowMode,setNecronGlowMode})=>{
+    const labels={new:'НОВАЯ',current:'ТЕКУЩАЯ',off:'ВЫКЛ.'};
+    const refresh=()=>{auraButton.textContent=`NECRON АУРА: ${labels[necronGlowMode()]}`};refresh();
+    auraButton.addEventListener('click',()=>{const modes=['new','current','off'] as const;setNecronGlowMode(modes[(modes.indexOf(necronGlowMode())+1)%modes.length]);refresh()});
+  });list.appendChild(auraButton);
   const note = document.createElement('div');
   note.className = 'main-menu-stub-note';
   note.textContent = 'WIKI';
@@ -224,6 +256,7 @@ export async function injectMainMenu(): Promise<void> {
 
   if (_menuElement()) {
     showMainMenu();
+    if (serverIdFromPath(window.location.pathname)) _routeListener?.();
     return;
   }
   const overlay = document.createElement('div');
@@ -252,4 +285,11 @@ export async function injectMainMenu(): Promise<void> {
   renderMenuList();
 
   window.__grimcraftShowMainMenu = showMainMenu;
+  if (_routeListener) window.removeEventListener('popstate', _routeListener);
+  _routeListener = () => {
+    hideMainMenu();
+    _showConnectOverlay?.('multiplayer');
+  };
+  window.addEventListener('popstate', _routeListener);
+  if (serverIdFromPath(window.location.pathname)) _routeListener();
 }

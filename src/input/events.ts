@@ -17,9 +17,11 @@ import {
   canCommand,
   canvas,
   hoveredEnemySquad,
+  paused,
   scene,
   selBuilder,
   selSquads,
+  setPaused,
   setSelBuilder,
   set_hoverEnemySquad,
   world,
@@ -370,6 +372,36 @@ export function setupPointerEvents(): void {
     }
     _hoverBuildingRoot = null;
   }
+  // Re-resolve the enemy hover highlight and cursor for a picked hit.
+  // Used by pointermove and — after right-click orders, which clear hover
+  // state on pointerdown — by pointerup, so the enemy torus and the attack
+  // cursor do not stay gone until the next mouse motion.
+  function _refreshHoverState(hit: { meta?: any } | null): void {
+    _updateHoverCursor(hit);
+    unitHover.update(world, hit?.meta || null, (id, team) => isHostileToSelection(world, id, team));
+    let hoveredSquadId = null;
+    if (hit?.meta) {
+      const sid = hit.meta.squadEntityId !== undefined ? hit.meta.squadEntityId : world.get(hit.meta.soldierEntityId, 'soldier')?.squadId;
+      if (sid !== undefined) {
+        const squad = world.get(sid, 'squad');
+        if (squad && isHostileToSelection(world, sid, squad.team)) hoveredSquadId = sid;
+      }
+    }
+    set_hoverEnemySquad(hoveredSquadId);
+  }
+  // Pause indicator; the sim block in game.ts already stops on `paused`.
+  function setPausedBanner(visible: boolean): void {
+    let banner = document.getElementById('game-paused-banner');
+    if (visible && !banner) {
+      banner = document.createElement('div');
+      banner.id = 'game-paused-banner';
+      banner.textContent = '⏸ ПАУЗА — Shift чтобы продолжить';
+      banner.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:10001;padding:8px 18px;background:#101827ee;border:1px solid #879eff;color:#e4edff;font:14px sans-serif;border-radius:6px;pointer-events:none;';
+      document.body.append(banner);
+    } else if (!visible && banner) {
+      banner.remove();
+    }
+  }
   // Green flat 2D footprint rectangle on the whole hovered
   // building/structure/airfield (entity mesh root, not the hit child mesh).
   function _updateBuildingHover(hit: { mesh?: THREE.Object3D; meta?: any } | null): void {
@@ -429,17 +461,7 @@ export function setupPointerEvents(): void {
       _updateDecalHover(hit, event.clientX, event.clientY);
       _updatePointBaseHover();
       _updateBuildingHover(hit);
-      _updateHoverCursor(hit);
-      unitHover.update(world, hit?.meta || null, (id, team) => isHostileToSelection(world, id, team));
-      let hoveredSquadId = null;
-      if (hit?.meta) {
-        const sid = hit.meta.squadEntityId !== undefined ? hit.meta.squadEntityId : world.get(hit.meta.soldierEntityId, 'soldier')?.squadId;
-        if (sid !== undefined) {
-          const squad = world.get(sid, 'squad');
-          if (squad && isHostileToSelection(world, sid, squad.team)) hoveredSquadId = sid;
-        }
-      }
-      set_hoverEnemySquad(hoveredSquadId);
+      _refreshHoverState(hit);
     }
   });
   canvas.addEventListener('pointerup', (event) => {
@@ -482,6 +504,9 @@ export function setupPointerEvents(): void {
         && !_tryBuilderCommandClick(event.clientX, event.clientY, 2)) {
         issueRightClick(event.clientX, event.clientY);
       }
+      // pointerdown cleared the hover rings; restore the enemy torus and
+      // the attack cursor even if the mouse does not move afterwards.
+      _refreshHoverState(pickMesh(event.clientX, event.clientY));
       setRightDown(false);
       setIsOrbiting(false);
     }
@@ -546,6 +571,12 @@ export function initInput(): void {
     if (event.code === 'KeyA') {
       setRangeCirclesVisible(!_rangeCirclesVisible);
       if (!_rangeCirclesVisible) _hideRangeCircles();
+    }
+    if ((event.code === 'ShiftLeft' || event.code === 'ShiftRight') && !event.repeat && !window._multiplayerMode) {
+      setPaused(!paused);
+      setPausedBanner(!paused);
+      event.preventDefault();
+      updateHUD();
     }
     if (event.code === 'Backspace') {
       const tag = (event.target as HTMLElement | null)?.tagName;

@@ -1,3 +1,4 @@
+import { sendSkirmishCommand } from '../../net/skirmish-input.js';
 import type { JSX } from 'react';
 import { world, canCommand, requisition, setRequisition, energy, setEnergy, COSTS } from '../../core/scene.js';
 import { reinforceSelectedSquads } from '../../core/reinforce.js';
@@ -40,6 +41,7 @@ function SergeantSlotView({ data }: any): JSX.Element {
       if (sq && !sq.reinforceQueue.some((q: any) => q.formIdx === 0)) {
         const cost = sq.sergeantCost ?? sgtCost;
         if (requisition < cost) return;
+        if(sendSkirmishCommand({Reinforce:{squad_id:sqId,form_idx:0}}))return;
         setRequisition(requisition - cost);
         sq.reinforceQueue.unshift({ formIdx: 0, cost, time: sq.sergeantTime ?? data.sgtTime ?? 7 });
         break;
@@ -86,6 +88,7 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
       if (grenadierCount + sq.grenadeQueue.length < 5) {
         const target = sq.soldiers.find((sid: any) => sid && world.has(sid, 'soldier') && !world.get(sid, 'soldier').isGrenadier && !sq.grenadeQueue.some((q: any) => q.solId === sid));
         if (target) {
+          if(sendSkirmishCommand({GrenadeUpgrade:{squad_id:sqId,sol_id:target}}))return;
           setRequisition(requisition - data.glCost);
           sq.grenadeQueue.push({ solId: target });
           break;
@@ -111,6 +114,7 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
         return true;
       });
       if (target) {
+        if(sendSkirmishCommand({PlasmaUpgrade:{squad_id:sqId,sol_id:target}}))return;
         setRequisition(requisition - data.plCost);
         setEnergy(energy - data.plEnergyCost);
         sq.plasmaQueue.push({ solId: target });
@@ -217,6 +221,7 @@ export function ReinforceButtonsPanel(): JSX.Element {
     const newVal = !data.autoOn;
     data.alive.forEach((sqId: number) => {
       const sq = world.get(sqId, 'squad');
+      if(sendSkirmishCommand({AutoReinforce:{squad_id:sqId,enabled:newVal}}))return;
       if (sq) sq.autoReinforce = newVal;
     });
     updateHUD();

@@ -4,6 +4,7 @@ import { updateHUD } from '../core/hud.js';
 import { issueGroundOrder, clearBuilderCommand, setBuilderCommand, cancelFlyTargeting } from './orders.js';
 import { cancelBuild } from './build-ghost.js';
 import { pickMesh, raycastGround } from './selection.js';
+import { spawnMoveMarkerAt } from './markers.js';
 import { cursorCss } from '../ui/cursors.js';
 
 export type UnitCommand = 'move' | 'attackmove' | 'melee';
@@ -15,7 +16,7 @@ export function selectedTroops(): { id: number; kind: string; unit: any }[] {
   return selSquads.flatMap((id: number) => {
     for (const kind of ['squad', 'apc', 'vehicle', 'jet']) {
       const unit = world.get(id, kind);
-      if (unit && canCommand(unit.team)) return [{ id, kind, unit }];
+      if (unit && canCommand(unit.team,id)) return [{ id, kind, unit }];
     }
     return [];
   });
@@ -43,8 +44,8 @@ export function setUnitCommand(command: UnitCommand): void {
 
 export function setSelectedAttackMode(mode: 'melee' | 'ranged'): void {
   const builder = selBuilder != null ? world?.get(selBuilder, 'builder') : null;
-  const ownedBuilder = builder && canCommand(builder.team) ? builder : null;
-  const squads = ownedBuilder ? [] : selectedTroops().filter(({ kind }) => kind === 'squad');
+  const squads = selectedTroops().filter(({ kind }) => kind === 'squad');
+  const ownedBuilder = !squads.length && builder && canCommand(builder.team,selBuilder) ? builder : null;
   if (!ownedBuilder && !squads.length) return;
   if (mode === 'melee' && !ownedBuilder) {
     setUnitCommand('melee');
@@ -61,13 +62,14 @@ export function setSelectedAttackMode(mode: 'melee' | 'ranged'): void {
     ownedBuilder.meleeOrder = mode === 'melee';
     ownedBuilder.meleeTimer = 0;
   }
+  if(typeof window!=='undefined'&&window._multiplayerMode)window._grimcraftSendCommand?.({SetCombatStance:{ids:ownedBuilder?[selBuilder]:squads.map(t=>t.id),mode}});
   for (const { unit } of squads) {
     unit.attackMode = mode;
     for (const id of unit.soldiers || []) {
       const soldier = world.get(id, 'soldier');
       if (!soldier) continue;
       soldier.meleeTimer = 0;
-      soldier.shootTimer = 0;
+      if (mode === 'ranged' || soldier.meleeEngaged) soldier.shootTimer = 0;
       if (mode === 'melee') soldier.attackCooldown = Math.min(soldier.attackCooldown || 0, 0.65);
     }
   }
@@ -115,6 +117,8 @@ function stopBuilder(builder: any): void {
 }
 
 export function stopSelectedTroops(): void {
+  if(typeof window!=='undefined'&&window._multiplayerMode&&window._networkSchema===2){window._grimcraftSendCommand?.({StopUnits:{ids:[...selectedTroops().map(t=>t.id),...(selBuilder!=null?[selBuilder]:[])]}});return;}
+  if (typeof window !== 'undefined' && window._multiplayerMode) window._grimcraftNetStop?.(selectedTroops().filter(t => t.kind === 'squad').map(t => t.id));
   clearUnitCommand();
   clearBuilderCommand();
   cancelFlyTargeting();
@@ -126,6 +130,7 @@ export function stopSelectedTroops(): void {
 }
 
 export function setUnitStance(stance: 'stand' | 'ranged'): void {
+  if(typeof window!=='undefined'&&window._multiplayerMode&&window._networkSchema===2){window._grimcraftSendCommand?.({SetStance:{ids:selectedTroops().map(t=>t.id),stance}});return;}
   clearUnitCommand();
   cancelFlyTargeting();
   for (const { unit, kind } of selectedTroops()) {
@@ -147,7 +152,9 @@ export function setUnitStance(stance: 'stand' | 'ranged'): void {
 export function issueUnitCommand(command: UnitCommand, point: THREE.Vector3, target?: { squadId: number; soldierId?: number }): void {
   const troops = selectedTroops();
   if (!troops.length) return;
+  if(typeof window!=='undefined'&&window._multiplayerMode&&window._networkSchema===2){window._grimcraftSendCommand?.({UnitCommand:{ids:troops.map(t=>t.id),command,target:point,enemy:target}});spawnMoveMarkerAt(point);updateHUD();return;}
   issueGroundOrder(point);
+  if (typeof window !== 'undefined' && window._multiplayerMode && target && command !== 'move') window._grimcraftNetAttack?.(troops.filter(t => t.kind === 'squad').map(t => t.id), target.squadId);
   for (const { unit, kind } of troops) {
     unit.stopped = false;
     unit.attackMove = command !== 'move';

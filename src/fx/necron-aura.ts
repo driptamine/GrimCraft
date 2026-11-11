@@ -37,6 +37,7 @@ varying vec3 vViewPosition;
 void main() {
   vPos = position;
   #include <beginnormal_vertex>
+  #include <skinbase_vertex>
   #include <skinnormal_vertex>
   #include <begin_vertex>
   #include <skinning_vertex>
