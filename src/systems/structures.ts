@@ -7,15 +7,14 @@ import {
   createSquadEntity,
   createVehicleEntity,
   findUnitConfig,
+  updateBuildingConstructionVisual,
 } from '../entities/entities.js';
 import { playerFaction, resolveFactionKey } from '../factions.js';
 import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import {
   AIRFIELD_BOUNDS,
-  BUILDING_BOUNDS,
   PLASMA_RATE_PER,
-  STRUCTURE_BOUNDS,
   energy,
   setEnergy,
   setResearchedTech,
@@ -23,6 +22,9 @@ import {
 } from '../core/scene.js';
 import { childMeshes } from '../render/three-helpers.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
+import { hasAnimatedConstruction } from '../render/construction-animation.js';
+import { hasActiveConstructionWorker } from './construction.js';
+import { worldFootprint } from '../core/structure-footprint.js';
 
 
 export function systemBuilding(world: any, deltaTime: number) {
@@ -34,10 +36,23 @@ export function systemBuilding(world: any, deltaTime: number) {
       continue;
     }
     _snapMeshToTerrain(meshComponent);
-    if (buildingComponent.pendingWorker) continue;
+    if ((buildingComponent.requiresWorker || hasAnimatedConstruction(buildingComponent)) && (buildingComponent.constructing || buildingComponent.pendingWorker)) {
+      buildingComponent.pendingWorker = !hasActiveConstructionWorker(world, id, buildingComponent);
+    }
+    let constructionDelta = deltaTime;
+    if ((buildingComponent.constructing || buildingComponent.pendingWorker) && buildingComponent.deliveryTime > 0) {
+      const deliveryDelta = Math.min(deltaTime, Math.max(0, buildingComponent.deliveryTime - buildingComponent.deliveryProgress));
+      buildingComponent.deliveryProgress += deliveryDelta;
+      constructionDelta -= deliveryDelta;
+    }
+    if (buildingComponent.pendingWorker) {
+      updateBuildingConstructionVisual(world, id, buildingComponent);
+      continue;
+    }
     if (buildingComponent.constructing) {
-      buildingComponent.constructProgress += deltaTime;
-      if (meshComponent.root && meshComponent.scaffold) {
+      buildingComponent.constructProgress += constructionDelta;
+      const animated = updateBuildingConstructionVisual(world, id, buildingComponent);
+      if (!animated && meshComponent.root && meshComponent.scaffold) {
         const pulse = 0.85 + 0.15 * Math.sin(buildingComponent.constructProgress * 6);
         childMeshes(meshComponent.root).forEach((m) => {
           if (m.material && !m._isSelRingBar) {
@@ -93,7 +108,7 @@ export function systemBuilding(world: any, deltaTime: number) {
                 builderComponent.moveTarget = buildingComponent.rallyPoint.clone();
               }
             }
-          } else if (buildingComponent.type === 'mechanized') {
+          } else if (buildingComponent.type === 'mechanized' || buildingComponent.type === 'mars_pattern') {
             const item = (buildingComponent.production || []).find((p: any) => p.name === type);
             if (item?.model) {
               const vehicleId = createVehicleEntity(world, buildingComponent.team, item.name, item.model, item.icon, spawnPt, item.projectileType, buildingComponent.faction);
@@ -121,6 +136,7 @@ export function systemBuilding(world: any, deltaTime: number) {
         }
       }
     }
+    meshComponent.root?._vehicleProductionAnimation?.update(buildingComponent.queue);
     if (!buildingComponent.constructing) {
       meshComponent.hpBar.position.copy(buildingComponent.position);
       meshComponent.hpBar.position.y = 4.5;
@@ -139,10 +155,23 @@ export function systemStructure(world: any, deltaTime: number) {
       continue;
     }
     _snapMeshToTerrain(meshComponent);
-    if (structureComponent.pendingWorker) continue;
+    if ((structureComponent.requiresWorker || hasAnimatedConstruction(structureComponent)) && (structureComponent.constructing || structureComponent.pendingWorker)) {
+      structureComponent.pendingWorker = !hasActiveConstructionWorker(world, id, structureComponent);
+    }
+    let constructionDelta = deltaTime;
+    if ((structureComponent.constructing || structureComponent.pendingWorker) && structureComponent.deliveryTime > 0) {
+      const deliveryDelta = Math.min(deltaTime, Math.max(0, structureComponent.deliveryTime - structureComponent.deliveryProgress));
+      structureComponent.deliveryProgress += deliveryDelta;
+      constructionDelta -= deliveryDelta;
+    }
+    if (structureComponent.pendingWorker) {
+      updateBuildingConstructionVisual(world, id, structureComponent);
+      continue;
+    }
     if (structureComponent.constructing) {
-      structureComponent.constructProgress += deltaTime;
-      if (meshComponent.root && meshComponent.scaffold) {
+      structureComponent.constructProgress += constructionDelta;
+      const animated = updateBuildingConstructionVisual(world, id, structureComponent);
+      if (!animated && meshComponent.root && meshComponent.scaffold) {
         const pulse = 0.85 + 0.15 * Math.sin(structureComponent.constructProgress * 6);
         childMeshes(meshComponent.root).forEach((m) => {
           if (m.material && !m._isSelRingBar) {
@@ -290,15 +319,15 @@ export function systemStructureCollision(world: any, deltaTime: number) {
   for (const id of world.query('building')) {
     const b = world.get(id, 'building');
     if (b) {
-      const h = BUILDING_BOUNDS[b.type as keyof typeof BUILDING_BOUNDS] ?? 3.5;
-      blockers.push([b.position.x, b.position.z, h, h]);
+      const bounds = worldFootprint(b);
+      blockers.push([(bounds.minX + bounds.maxX) / 2, (bounds.minZ + bounds.maxZ) / 2, (bounds.maxX - bounds.minX) / 2, (bounds.maxZ - bounds.minZ) / 2]);
     }
   }
   for (const id of world.query('structure')) {
     const s = world.get(id, 'structure');
     if (s) {
-      const h = STRUCTURE_BOUNDS[s.type as keyof typeof STRUCTURE_BOUNDS] ?? 3.5;
-      blockers.push([s.position.x, s.position.z, h, h]);
+      const bounds = worldFootprint(s);
+      blockers.push([(bounds.minX + bounds.maxX) / 2, (bounds.minZ + bounds.maxZ) / 2, (bounds.maxX - bounds.minX) / 2, (bounds.maxZ - bounds.minZ) / 2]);
     }
   }
   for (const id of world.query('airfield')) {
@@ -341,7 +370,7 @@ export function systemStructureCollision(world: any, deltaTime: number) {
   for (const id of world.query('builder', 'mesh')) {
     const b = world.get(id, 'builder');
     const m = world.get(id, 'mesh');
-    if (!b || !m || b.isBuilding) continue;
+    if (!b || !m) continue;
     const [nx, nz] = resolve(m.root.position.x, m.root.position.z, 0.5);
     m.root.position.x = nx;
     m.root.position.z = nz;

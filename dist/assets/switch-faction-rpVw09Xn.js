@@ -1,1 +1,0 @@
-import{o as i,p as r,q as c,r as f,u as h,v as F,x as s,V as l,y as m}from"./main-Czez4OSd.js";function x(){const t=i();if(!t.length)return;let a=t[0];const n=t.indexOf(r);n>=0&&(a=t[(n+1)%t.length]),c(a);const o=f(a);o&&h(o);const e=F(a);e&&s&&(s.target=new l(e.x,0,e.z)),m()}export{x as switchFaction};

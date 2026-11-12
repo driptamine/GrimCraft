@@ -33,6 +33,7 @@ export interface FactionResearchEntry {
 }
 
 export interface FactionStructureEntry {
+  animations?: unknown;
   type?: string;
   model?: string;
   name?: string;

@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { PLAYER } from '../core/scene.js';
 import { childMeshes } from '../render/three-helpers.js';
-import { makeBarracksMesh, makeConfigStructureMesh, makeGunTurretMesh, makeHQMesh, makeThermoMesh, makeTowerBaseMesh, makeTowerMesh } from './buildings.js';
+import { makeBarracksMesh, makeBuildingConstructionMesh, makeConfigStructureMesh, makeGunTurretMesh, makeHQMesh, makeThermoMesh, makeTowerBaseMesh, makeTowerMesh } from './buildings.js';
+import { getStructureConfig, resolveFactionKey } from '../factions.js';
+import { hasAnimatedConstruction } from '../render/construction-animation.js';
+import type { ConstructionPhases } from '../render/construction-animation.js';
 import { makeAirfieldMesh, makeApcMesh } from './vehicles.js';
 import type { AnyGroup, AnyMesh, MetaPayload } from './types.js';
 
@@ -19,10 +22,18 @@ export function ghostUsesConfigModel(type: string): boolean {
 }
 
 
-export function makeGhostMesh(type: string, pos: THREE.Vector3, meta: MetaPayload, teamKey: string = PLAYER): AnyGroup | undefined {
+export function makeGhostMesh(type: string, pos: THREE.Vector3, meta: MetaPayload, teamKey: string = PLAYER, options: { completedPose?: boolean } = {}): AnyGroup | undefined {
   let root: AnyGroup | undefined;
+  if (options.completedPose) {
+    const faction = resolveFactionKey(meta.faction);
+    const modelType = faction === 'ig' && type === 'hq' ? 'hq-anim' : type === 'barracks' && faction === 'ig' ? 'infantry_command' : type;
+    const phases = (getStructureConfig(faction, modelType)?.animations as { phases?: ConstructionPhases } | undefined)?.phases;
+    if (phases && hasAnimatedConstruction({ type, faction })) root = makeBuildingConstructionMesh(modelType, pos, teamKey, { ...meta, faction }, phases) || undefined;
+  }
 
-  if (ghostUsesConfigModel(type)) {
+  if (root) {
+    root._constructionAnimation.finish();
+  } else if (ghostUsesConfigModel(type)) {
     root = makeConfigStructureMesh(type, pos, teamKey, meta);
   } else if (type === 'barracks' || type === 'infantry_command') {
     root = makeBarracksMesh(pos, teamKey, meta);

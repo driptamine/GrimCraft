@@ -1,4 +1,6 @@
+import { findConstructionTarget } from './construction-target.js';
 import { sendSkirmishCommand } from '../net/skirmish-input.js';
+import { assignConstructionWork } from '../systems/construction.js';
 import * as THREE from 'three';
 import { createAirfieldEntity, createBeamEntity, createBuildingEntity, createStructureEntity, getSoldierMuzzlePos } from '../entities/entities.js';
 import { playHitCrunch } from '../fx/audio.js';
@@ -28,7 +30,7 @@ import {
   world,
 } from '../core/scene.js';
 import { disposeMeshComponent, spawnParticles } from '../core/systems.js';
-import { _stopBuildGhost, cancelBuild } from './build-ghost.js';
+import { _stopBuildGhost, cancelBuild, _listeningPostGhostTarget } from './build-ghost.js';
 import { _spIdAt, flashHitmarker, spawnBeamTracer, spawnMoveMarker, spawnMoveMarkerAt, spawnSpPing } from './markers.js';
 import { fpsShotTarget, getViewmodelMuzzleWorldPos, resolveFpsTarget } from '../render/camera-fps.js';
 import { snapOrderToFree } from '../../pathfinding/astar-integrated.js';
@@ -138,53 +140,17 @@ export function issueRightClick(sx: number, sy: number): void {
         }
       }
     }
-    if (selBuilder !== null && world.has(selBuilder, 'builder')) {
-      const builder = world.get(selBuilder, 'builder');
-      let targetEntityId;
-      let targetComponent;
-      let targetPosition;
-      let targetType;
-      if (hit.meta.buildingEntityId !== undefined) {
-        const eid = hit.meta.buildingEntityId;
-        const component = world.get(eid, 'building');
-        if (component && component.constructProgress < component.constructTime) {
-          targetEntityId = eid;
-          targetComponent = component;
-          targetPosition = component.position;
-          targetType = component.type;
-        }
-      } else if (hit.meta.structureEntityId !== undefined) {
-        const eid = hit.meta.structureEntityId;
-        const component = world.get(eid, 'structure');
-        if (component && component.constructProgress < component.constructTime) {
-          targetEntityId = eid;
-          targetComponent = component;
-          targetPosition = component.position;
-          targetType = component.type;
-        }
-      } else if (hit.meta.airfieldEntityId !== undefined) {
-        const eid = hit.meta.airfieldEntityId;
-        const component = world.get(eid, 'airfield');
-        if (component && component.constructProgress < component.constructTime) {
-          targetEntityId = eid;
-          targetComponent = component;
-          targetPosition = component.position;
-          targetType = 'airfield';
-        }
-      }
-      if (targetEntityId !== undefined && targetComponent !== undefined) {
-        if(sendSkirmishCommand({ResumeBuild:{builder_id:selBuilder,target_id:targetEntityId}}))return;
-        builder.buildTarget = { type: targetType, position: targetPosition.clone(), pendingEntityId: targetEntityId };
-        builder.buildTargetSP = null;
-        builder.moveTarget = targetPosition.clone().add(new THREE.Vector3(4, 0, 0));
-        builder.isBuilding = false;
-        spawnMoveMarker(sx, sy);
-        updateHUD();
-        return;
-      }
-    }
   }
+
   const point = raycastGround(sx, sy);
+  const construction = findConstructionTarget(world, selBuilder, hit?.meta, point, canCommand);
+  if (construction) {
+    if (sendSkirmishCommand({ ResumeBuild: { builder_id: selBuilder, target_id: construction.id } })) return;
+    assignConstructionWork(world, selBuilder!, construction.id, construction.component);
+    spawnMoveMarker(sx, sy);
+    updateHUD();
+    return;
+  }
   if (!point) return;
   issueGroundOrder(point, {
     strategicPointEntityId: hit?.meta?.strategicPointEntityId,
@@ -302,6 +268,7 @@ export function issueGroundOrder(point: THREE.Vector3, opts: { strategicPointEnt
   if (selBuilder !== null && world.has(selBuilder, 'builder')) {
     const builder = world.get(selBuilder, 'builder');
     builder.buildTargetSP = null;
+    builder.buildTarget = null;
     builder.moveTarget = new THREE.Vector3(point.x, 0, point.z);
     builder.isBuilding = false;
   }
@@ -597,7 +564,12 @@ export function _tryBuilderCommandClick(sx: number, sy: number, button = 0): boo
 
 export function placeListeningPost(sx: number, sy: number): void {
   const hit = pickMesh(sx, sy);
-  const spId = hit?.meta?.strategicPointEntityId;
+  let spId = hit?.meta?.strategicPointEntityId;
+  if (spId === undefined && _listeningPostGhostTarget != null) {
+    const point = world.get(_listeningPostGhostTarget, 'strategicPoint');
+    const ground = raycastGround(sx, sy);
+    if (point && ground && Math.hypot(ground.x - point.position.x, ground.z - point.position.z) <= 4.5) spId = _listeningPostGhostTarget;
+  }
   const sp = spId !== undefined ? world.get(spId, 'strategicPoint') : null;
   const builder = selBuilder !== null && world.has(selBuilder, 'builder') ? world.get(selBuilder, 'builder') : null;
   if (!canPlaceListeningPost(sp, builder?.team) || !builder) {
@@ -632,21 +604,18 @@ export function placeBuild(pt: THREE.Vector3): void {
     const entityId = createAirfieldEntity(world, point, world.get(selBuilder, 'builder')?.faction);
     const component = world.get(entityId, 'airfield');
     if (component) {
-      component.constructing = false;
+      component.constructing = true;
+      component.requiresWorker = true;
       component.pendingWorker = true;
       component.constructProgress = 0;
     }
-    const builder = world.get(selBuilder, 'builder');
-    builder.buildTarget = { type: 'airfield', position: point, pendingEntityId: entityId };
-    builder.buildTargetSP = null;
-    builder.moveTarget = point.clone().add(new THREE.Vector3(5, 0, 0));
-    builder.isBuilding = false;
+    assignConstructionWork(world, selBuilder, entityId, component);
     updateHUD();
     return;
   }
 
   let entityId;
-  if (type === 'barracks' || type === 'infantry_command' || type === 'hq' || type === 'mechanized' || type === 'greater_sacrificial_circle') {
+  if (type === 'barracks' || type === 'infantry_command' || type === 'hq' || type === 'hq-anim' || type === 'mechanized' || type === 'mars_pattern' || type === 'greater_sacrificial_circle') {
     entityId = createBuildingEntity(world, type, point, world.get(selBuilder, 'builder')?.team ?? PLAYER, world.get(selBuilder, 'builder')?.faction);
   } else {
     entityId = createStructureEntity(world, type, point, world.get(selBuilder, 'builder')?.faction, world.get(selBuilder, 'builder')?.team ?? PLAYER);
@@ -654,15 +623,12 @@ export function placeBuild(pt: THREE.Vector3): void {
 
   const component = world.get(entityId, 'building') || world.get(entityId, 'structure');
   if (component) {
-    component.constructing = false;
+    component.constructing = true;
+    component.requiresWorker = true;
     component.pendingWorker = true;
     component.constructProgress = 0;
   }
-  const builder = world.get(selBuilder, 'builder');
-  builder.buildTarget = { type, position: point, pendingEntityId: entityId };
-  builder.buildTargetSP = null;
-  builder.moveTarget = point.clone().add(new THREE.Vector3(4, 0, 0));
-  builder.isBuilding = false;
+  assignConstructionWork(world, selBuilder, entityId, component);
 }
 
 

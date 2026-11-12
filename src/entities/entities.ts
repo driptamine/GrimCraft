@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { hasAnimatedConstruction, CONSTRUCTION_DELIVERY_TIME } from '../render/construction-animation.js';
+import type { ConstructionPhases } from '../render/construction-animation.js';
+import { hasMeasuredFootprint, selectionFootprint } from '../core/structure-footprint.js';
+import { makeStructureSelRing } from '../meshes/hud.js';
 
 import {
   scene,
@@ -23,6 +27,7 @@ import {
   makeSoldierMesh,
   makeHpBar,
   makeBarracksMesh,
+  makeBuildingConstructionMesh,
   makeHQMesh,
   makeTowerMesh,
   makeTowerBaseMesh,
@@ -535,7 +540,17 @@ export function createBuilderEntity(world: any, x: number, z: number, team: any 
   return id;
 }
 
-export function _attachScaffoldSelRing(root: any, type: string) {
+export function _attachScaffoldSelRing(root: any, type: string, faction?: string) {
+  if (hasMeasuredFootprint({ type, faction })) {
+    const site = { type, faction, constructing: true };
+    if (root._ring?._setBounds) root._ring._setBounds(selectionFootprint(site));
+    else {
+      root._ring?.parent?.remove(root._ring);
+      root._ring = makeStructureSelRing(root, site, 3.5);
+    }
+    root._ringMat = root._ring._material;root._ringMaterial = root._ring._material;
+    return;
+  }
   const _scaffoldRingSizes = {
     barracks: 3.5,
     infantry_command: 3.5,
@@ -577,21 +592,76 @@ export function makeConstructBar(width: number) {
   return grp;
 }
 
+function clearConstructionScaffold(meshComponent: any): void {
+  if (meshComponent.scaffold) {
+    childMeshes(meshComponent.scaffold).forEach((mesh) => {
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material?.dispose();
+      disposeObj(mesh);
+    });
+    meshComponent.scaffold._instanceData?.dispose();
+    disposeObj(meshComponent.scaffold);
+    meshComponent.scaffold = null;
+  }
+}
+
+/** Sample the complete construction pose from local or authoritative progress. */
+export function updateBuildingConstructionVisual(world: any, id: any, comp: any, progress = comp.constructProgress, deliveryProgress = comp.deliveryProgress): boolean {
+  const mesh = world.get(id, 'mesh');
+  if (!mesh || mesh._realMeshBuilt || (!comp.constructing && !comp.pendingWorker)
+    || !hasAnimatedConstruction(comp)) return false;
+  if (!mesh._constructionAnimation) {
+    const modelType = comp.type === 'barracks' ? 'infantry_command' : comp.type === 'hq' ? 'hq-anim' : comp.type;
+    const config = FACTIONS.ig.structures?.find(entry => entry.type === modelType);
+    const phases = (config?.animations as { phases?: ConstructionPhases } | undefined)?.phases;
+    if (!phases) return false;
+    const root = makeBuildingConstructionMesh(modelType, comp.position, comp.team || PLAYER,
+      { [world.has(id, 'structure') ? 'structureEntityId' : 'buildingEntityId']: id, faction: comp.faction }, phases);
+    if (!root) return false;
+    root.position.copy(mesh.root.position);
+    clearConstructionScaffold(mesh);
+    mesh.root = root;
+    mesh._constructionAnimation = root._constructionAnimation;
+  }
+  const delivery = comp.deliveryTime > 0 ? (deliveryProgress || 0) / comp.deliveryTime : 1;
+  mesh._constructionAnimation.seekConstruction(comp.constructTime > 0 ? progress / comp.constructTime : 1, delivery);
+  return true;
+}
+
+/** Linked posts use the existing strategic-point selection, income and upgrades. */
+export function syncListeningPostConstruction(world: any, id: number, comp: any): void {
+  if (comp.type !== 'listening_post' || comp.strategicPointId == null) return;
+  const point = world.get(comp.strategicPointId, 'strategicPoint');
+  if (!point) return;
+  point.listeningPostEntityId = id;
+  const mesh = world.get(id, 'mesh');
+  if (!mesh?._realMeshBuilt) return;
+  point.hasListeningPost = true;
+  point.lpTier = Math.max(1, point.lpTier || 0);
+  point.faction = comp.faction;
+  mesh.root.traverse((node: THREE.Object3D) => {
+    delete node.userData.buildingEntityId;
+    node.userData.listeningPostEntityId = comp.strategicPointId;
+  });
+}
+
+export function createListeningPostConstruction(world: any, pointId: number, team: string, faction: string): number | null {
+  const point = world.get(pointId, 'strategicPoint');
+  if (!point || point.owner !== team || point.hasListeningPost) return null;
+  if (point.listeningPostEntityId != null && world.has(point.listeningPostEntityId, 'building')) return point.listeningPostEntityId;
+  const id = createBuildingEntity(world, 'listening_post', point.position, team, faction);
+  const comp = world.get(id, 'building');
+  comp.strategicPointId = pointId;
+  comp.pendingWorker = true;
+  point.listeningPostEntityId = id;
+  return id;
+}
+
 export function _finishConstruction(world: any, id: any, comp: any, compKey: any) {
   const meshComponent = world.get(id, 'mesh');
   if (!meshComponent || meshComponent._realMeshBuilt) {
     return;
   }
-  if (meshComponent.scaffold) {
-    childMeshes(meshComponent.scaffold).forEach((mesh) => {
-      if (mesh.material) {
-        (mesh.material as THREE.Material).dispose();
-      }
-      disposeObj(mesh);
-    });
-    disposeObj(meshComponent.scaffold);
-    meshComponent.scaffold = null;
-  }
+  clearConstructionScaffold(meshComponent);
   if (meshComponent.constructBar) {
     childMeshes(meshComponent.constructBar).forEach((mesh) => {
       if (mesh.material) {
@@ -603,7 +673,10 @@ export function _finishConstruction(world: any, id: any, comp: any, compKey: any
     meshComponent.constructBar = null;
   }
   let root: any;
-  if (compKey === 'building') {
+  if (meshComponent._constructionAnimation) {
+    meshComponent._constructionAnimation.finish();
+    root = meshComponent.root;
+  } else if (compKey === 'building') {
     const meta = { buildingEntityId: id, faction: comp.faction };
     if (meshComponent._meshFactory) {
       root = meshComponent._meshFactory();
@@ -621,23 +694,26 @@ export function _finishConstruction(world: any, id: any, comp: any, compKey: any
   meshComponent.root = root;
   meshComponent._realMeshBuilt = true;
   comp.constructing = false;
+  syncListeningPostConstruction(world, id, comp);
   if (meshComponent.hpBar) {
     meshComponent.hpBar.visible = true;
   }
   updateHUD();
 }
 
-export function createBuildingEntity(world: any, type: any, position: any, team: any = PLAYER, faction: any = null) {
+export function createBuildingEntity(world: any, type: any, position: any, team: any = PLAYER, faction: any = null, options: { completed?: boolean } = {}) {
   const id = world.createEntity([TAG.building]);
   const factionKey = resolveFactionKey(faction, team === PLAYER ? playerFaction : enemyFaction);
-  const structureConfig = FACTIONS[factionKey]?.structures?.find((s) => s.type === type);
+  const isHeadquarters = type === 'hq' || type === 'hq-anim';
+  const startsComplete = isHeadquarters && !!options.completed;
+  const structureConfig = FACTIONS[factionKey]?.structures?.find((s) => s.type === (type === 'hq-anim' ? 'hq' : type));
   world.add(id, 'building', {
     type,
     position: position.clone(),
     team,
     faction: factionKey,
-    hp: type === 'hq' ? 2000 : type === 'mechanized' ? 800 : 400,
-    maxHp: type === 'hq' ? 2000 : type === 'mechanized' ? 800 : 400,
+    hp: isHeadquarters ? 2000 : type === 'mechanized' ? 800 : 400,
+    maxHp: isHeadquarters ? 2000 : type === 'mechanized' ? 800 : 400,
     queue: [],
     production: structureConfig?.production || [],
     researchQueue: [],
@@ -647,12 +723,14 @@ export function createBuildingEntity(world: any, type: any, position: any, team:
     rallyPoint: new THREE.Vector3(position.x, 0, position.z + 10),
     constructing: true,
     constructProgress: 0,
-    constructTime: type === 'hq' ? 0 : (type === 'barracks' || type === 'infantry_command' || type === 'mechanized' ? 8 : 5),
+    constructTime: isHeadquarters ? (startsComplete ? 0 : 15) : (type === 'barracks' || type === 'infantry_command' || type === 'mechanized' ? 8 : 5),
+    ...(!startsComplete && hasAnimatedConstruction({ type, faction: factionKey })
+      ? { deliveryProgress: 0, deliveryTime: CONSTRUCTION_DELIVERY_TIME } : {}),
   });
   const scaffold = makeGhostMesh(type, position, { buildingEntityId: id, faction: factionKey }, team);
-  _attachScaffoldSelRing(scaffold, type);
-  const constructBar = makeConstructBar(type === 'hq' ? 8 : 4);
-  const hpBar = makeHpBar(type === 'hq' ? 8 : 4, team);
+  _attachScaffoldSelRing(scaffold, type, factionKey);
+  const constructBar = makeConstructBar(isHeadquarters ? 8 : 4);
+  const hpBar = makeHpBar(isHeadquarters ? 8 : 4, team);
   hpBar.visible = false;
   const meta = { buildingEntityId: id, faction: factionKey };
   childMeshes(scaffold).forEach((mesh) => {
@@ -669,16 +747,18 @@ export function createBuildingEntity(world: any, type: any, position: any, team:
     constructBar,
     hpBar,
     _realMeshBuilt: false,
-    _meshFactory: type === 'hq'
+    _meshFactory: isHeadquarters
       ? (() => makeHQMesh(position, team, meta))
-      : ((type === 'barracks' || type === 'infantry_command') ? (() => makeBarracksMesh(position, team, meta)) : (type === 'mechanized' ? (() => makeApcMesh(position, team, meta)) : (type === 'greater_sacrificial_circle' ? (() => makeConfigStructureMesh(type, position, team, meta)) : null))),
+      : ((type === 'barracks' || type === 'infantry_command') ? (() => makeBarracksMesh(position, team, meta)) : (type === 'mechanized' ? (() => makeApcMesh(position, team, meta)) : (['greater_sacrificial_circle', 'listening_post', 'mars_pattern'].includes(type) ? (() => makeConfigStructureMesh(type, position, team, meta)) : null))),
   });
 
-  if (type === 'hq') {
+  if (startsComplete) {
     const comp = world.get(id, 'building');
     comp.constructing = false;
     comp.constructProgress = 1.0;
     setTimeout(() => _finishConstruction(world, id, comp, 'building'), 100);
+  } else {
+    updateBuildingConstructionVisual(world, id, world.get(id, 'building'));
   }
 
   return id;
@@ -722,7 +802,7 @@ export function createStructureEntity(world: any, type: any, position: any, fact
     _meshFactory = () => makeConfigStructureMesh(type, position, team, meta);
   }
   const scaffold = makeGhostMesh(type, position, meta);
-  _attachScaffoldSelRing(scaffold, type);
+  _attachScaffoldSelRing(scaffold, type, factionKey);
   childMeshes(scaffold).forEach((mesh) => {
     if (!mesh.userData) {
       mesh.userData = meta;
@@ -749,11 +829,14 @@ export function createStructureEntity(world: any, type: any, position: any, fact
     constructing: true,
     constructProgress: 0,
     constructTime: type === 'tower' || type === 'towerBase' ? 7 : type === 'gunTurret' ? 6 : 5,
+    ...(hasAnimatedConstruction({ type, faction: factionKey })
+      ? { deliveryProgress: 0, deliveryTime: CONSTRUCTION_DELIVERY_TIME } : {}),
     researchQueue: [],
   });
   const hpBar = makeHpBar(type === 'tower' || type === 'towerBase' ? 3.5 : type === 'gunTurret' ? 3 : 3, team);
   hpBar.visible = false;
   world.add(id, 'mesh', { root: scaffold, scaffold, constructBar, hpBar, _realMeshBuilt: false, _meshFactory });
+  updateBuildingConstructionVisual(world, id, world.get(id, 'structure'));
   return id;
 }
 
@@ -1237,6 +1320,7 @@ export function createAirfieldEntity(world: any, position: any, faction: any = n
   const meta = { airfieldEntityId: id, faction: factionKey };
   const healthPoints = 500;
   world.add(id, 'airfield', {
+    type: 'airfield',
     team,
     faction: factionKey,
     position: position.clone(),

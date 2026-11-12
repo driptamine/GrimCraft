@@ -203,25 +203,7 @@ export const MAX_PLASMA = 6;
 export const PLASMA_RATE_PER = 10;
 export const LP_REQUISITION_RATES = [6, 12, 18, 24];
 
-export const BUILDING_BOUNDS = {
-  hq: 5,
-  barracks: 3.5,
-  infantry_command: 3.5,
-  mechanized: 2.5,
-};
-export const STRUCTURE_BOUNDS = {
-  tower: 2.5,
-  turret: 2.5,
-  towerBase: 2.25,
-  gunTurret: 2.5,
-  thermo_generator: 3.5,
-  thermoGen: 3.5,
-  plasma_generator: 3.5,
-  tactica_control: 3.5,
-  mars_pattern: 3.5,
-  mines: 2.5,
-};
-export const AIRFIELD_BOUNDS = 8;
+export { BUILDING_BOUNDS, STRUCTURE_BOUNDS, AIRFIELD_BOUNDS } from './structure-footprint.js';
 export function getPowerRate(worldRef: any = world) {
   if (!worldRef) return 0;
   const count = worldRef.query('structure').filter((id: any) => {

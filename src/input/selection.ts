@@ -496,6 +496,8 @@ export function doClickSelect(sx: number, sy: number, additive: boolean): void {
     // If a builder is selected, right-click (or regular click if we want) could order it
     if (selBuilder !== null && world.has(selBuilder, 'builder') && canCommand(sp?.owner) && !sp.hasListeningPost) {
       const bld = world.get(selBuilder, 'builder');
+      bld.buildTarget = null;
+      bld.buildProgress = 0;
       bld.buildTargetSP = spId;
       bld.moveTarget = sp.position.clone().add(new THREE.Vector3(3, 0, 0));
       bld.isBuilding = false;

@@ -39,6 +39,12 @@ export function systemStrategicPoint(world: any, deltaTime: number) {
     if (!strategicPoint || !meshComponent) {
       continue;
     }
+    if (!window._multiplayerMode && strategicPoint.listeningPostEntityId != null
+      && !world.has(strategicPoint.listeningPostEntityId, 'building')) {
+      strategicPoint.listeningPostEntityId = null;
+      strategicPoint.hasListeningPost = false;
+      strategicPoint.lpTier = 0;
+    }
     updateStrategicPointOwnershipRim(meshComponent.model, strategicPoint.owner != null);
     // Idle decay (single-player only; multiplayer progress is server-owned):
     // the moment capping stops, unowned progress drains toward 0.

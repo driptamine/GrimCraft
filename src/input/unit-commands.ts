@@ -101,8 +101,8 @@ function stopUnit(unit: any, kind: string): void {
 
 // Builders are selected on their own (selBuilder), not through selSquads, and
 // they have no `stopped` flag: holding position means dropping every queued
-// job and leaving combat stance. Build progress is reset so a cancelled
-// construction cannot resume from the halfway mark.
+// job and leaving combat stance. The worker's job timer resets; the site's
+// construction progress remains available for a later resume order.
 function stopBuilder(builder: any): void {
   builder.moveTarget = null;
   builder.buildTarget = null;

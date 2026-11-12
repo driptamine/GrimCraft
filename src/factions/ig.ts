@@ -226,7 +226,14 @@ export default {
       hiddenNodes: STRUCTURE_HIDDEN_NODES,
       cost: 150,
       time: 10,
-      production: []
+      production: [{
+        name: 'baneblade',
+        icon: 'assets/icons/Imperial Guard/Units/Vehicles/guard_squad_baneblade.png',
+        model: 'models/ig/vehicles/baneblade.glb',
+        cost: 400,
+        time: 20,
+        requires: ['full_scale_war'],
+      }]
     },
     {
       name: 'Mechanized Command',

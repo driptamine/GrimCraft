@@ -13,6 +13,7 @@ export const CURSOR_FILES = {
   capture: 'modal_capturepoint.tga',
   melee: 'modal_melee.tga',
   repair: 'modal_repair.tga',
+  build: 'build.tga',
   teleport: 'modal_teleport.tga',
   droppod: 'modal_droppod.tga',
   load: 'modal_load.tga',
@@ -120,6 +121,9 @@ export function resolveCursor({ modal = null, buildMode = null, pendingCommand =
   }
   if (hover.kind === 'sp') {
     return 'capture';
+  }
+  if (hover.kind === 'construction') {
+    return 'build';
   }
   if (hover.kind === 'loadable' && infantrySelected) {
     return 'load';

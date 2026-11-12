@@ -746,6 +746,7 @@ export function _instantiateFromContainer(container: GltfContainer | null, metaP
   const instance = instantiateGltf(container);
   instance.animationGroups.forEach((animationGroup) => animationGroup.stop());
   const root = mkGroup('model_root') as AnyGroup;
+  root._instanceData = instance;
   root._animationGroups = instance.animationGroups;
   instance.rootNodes.forEach((rootNode) => {
     root.add(rootNode);

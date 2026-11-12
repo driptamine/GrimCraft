@@ -6,6 +6,7 @@ import { JET_ALT, JET_ATTACK_RANGE, JET_SPEED, world } from '../core/scene.js';
 import { childMeshes, disposeObj } from '../render/three-helpers.js';
 import { spawnParticles } from './combat.js';
 import { _snapMeshToTerrain, _snapTerrainBegin } from './terrain.js';
+import { hasActiveConstructionWorker } from './construction.js';
 
 
 export function systemAirfield(world: any, deltaTime: number) {
@@ -17,6 +18,9 @@ export function systemAirfield(world: any, deltaTime: number) {
       continue;
     }
     _snapMeshToTerrain(meshComponent);
+    if (airfield.requiresWorker && (airfield.constructing || airfield.pendingWorker)) {
+      airfield.pendingWorker = !hasActiveConstructionWorker(world, id, airfield);
+    }
     if (airfield.pendingWorker) continue;
     if (airfield.constructing) {
       airfield.constructProgress += deltaTime;

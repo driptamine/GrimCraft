@@ -29,6 +29,7 @@ describe('cursors', () => {
       capture: 'modal_capturepoint.tga',
       melee: 'modal_melee.tga',
       repair: 'modal_repair.tga',
+      build: 'build.tga',
       teleport: 'modal_teleport.tga',
       droppod: 'modal_droppod.tga',
       load: 'modal_load.tga',
@@ -76,6 +77,7 @@ describe('cursors', () => {
     assert.equal(resolveCursor({ hover: { kind: 'enemy' } }), 'attack');
     assert.equal(resolveCursor({ hover: { kind: 'friendly' } }), 'default');
     assert.equal(resolveCursor({ hover: { kind: 'sp' } }), 'capture');
+    assert.equal(resolveCursor({ hover: { kind: 'construction' } }), 'build');
     assert.equal(resolveCursor({ hover: { kind: 'loadable' }, infantrySelected: true }), 'load');
     assert.equal(resolveCursor({ hover: { kind: 'loadable' }, infantrySelected: false }), 'default');
     assert.equal(resolveCursor({ hover: { kind: 'repairable', damaged: true } }), 'default');

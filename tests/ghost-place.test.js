@@ -73,12 +73,12 @@ describe('ghost placement wiring', () => {
   });
 
   it('keeps the ghost out of the shadow map', () => {
-    assert.ok(startBody.includes('mesh.castShadow = false;'), 'no shadow casting');
-    assert.ok(startBody.includes('mesh.receiveShadow = false;'), 'no shadow receiving');
+    assert.ok(src.includes('mesh.castShadow = false;'), 'no shadow casting');
+    assert.ok(src.includes('mesh.receiveShadow = false;'), 'no shadow receiving');
   });
 
   it('pulses opacity over a cached mesh list', () => {
-    assert.ok(startBody.includes('_buildGhostMeshes.push(mesh)'), 'list cached once at creation');
+    assert.ok(src.includes('_buildGhostMeshes.push(mesh)'), 'list cached once at creation');
     assert.ok(src.includes('_buildGhostMeshes[i].material.opacity = alpha;'), 'per-frame loop touches opacity only');
   });
 });

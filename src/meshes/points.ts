@@ -125,8 +125,8 @@ export function patchStrategicPointCenterpost(model: THREE.Object3D | null | und
 
 
 // Listening Posts build only on player-owned points/relics without one.
-export function canPlaceListeningPost(sp: { owner?: unknown; hasListeningPost?: unknown } | null | undefined, team: unknown): boolean {
-  return !!sp && sp.owner === team && !sp.hasListeningPost;
+export function canPlaceListeningPost(sp: { owner?: unknown; hasListeningPost?: unknown; listeningPostEntityId?: unknown } | null | undefined, team: unknown): boolean {
+  return !!sp && sp.owner === team && !sp.hasListeningPost && sp.listeningPostEntityId == null;
 }
 
 

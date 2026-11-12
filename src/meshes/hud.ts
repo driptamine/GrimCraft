@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { PLAYER } from '../core/scene.js';
 import { mkBox, mkGroup, mkPlane } from '../render/three-helpers.js';
 import type { AnyGroup, AnyMesh } from './types.js';
+import { hasMeasuredFootprint, selectionFootprint } from '../core/structure-footprint.js';
+import type { StructureFootprint, FootprintSite } from '../core/structure-footprint.js';
 
 
 export function makeHpBar(width: number, teamKey: string): AnyGroup {
@@ -88,4 +90,29 @@ export function makeSquareSelRing(parent: THREE.Object3D, size: number, thicknes
   });
   node._material = material;
   return node;
+}
+
+export function makeRectangleSelRing(parent: THREE.Object3D, bounds: StructureFootprint, thickness = .12, y = .06): AnyGroup {
+  const node = mkGroup('selRingNode') as AnyGroup;parent.add(node);node.position.y = y;
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ff87, opacity: 0, transparent: true });
+  const bars = Array.from({ length: 4 }, () => {
+    const bar = mkBox('srb', 1, 1, 1) as AnyMesh;node.add(bar);bar.material = material;
+    bar.userData.pickable = false;bar._isSelRingBar = true;return bar;
+  });
+  node._setBounds = (next: StructureFootprint) => {
+    const width = next.maxX - next.minX, depth = next.maxZ - next.minZ;
+    const centerX = (next.minX + next.maxX) / 2, centerZ = (next.minZ + next.maxZ) / 2;
+    const shapes = [[width + thickness, thickness, centerX, next.maxZ], [width + thickness, thickness, centerX, next.minZ], [thickness, depth, next.minX, centerZ], [thickness, depth, next.maxX, centerZ]];
+    shapes.forEach(([width, depth, x, z], index) => { bars[index].scale.set(width, thickness, depth);bars[index].position.set(x, 0, z); });
+    node.userData.footprint = { ...next };
+  };
+  node._setBounds(bounds);node._material = material;node.visible = false;node.userData.pickable = false;
+  return node;
+}
+
+export function makeStructureSelRing(parent: THREE.Object3D, site: FootprintSite, fallbackSize: number, thickness = .13, y = .06): AnyGroup {
+  if (!hasMeasuredFootprint(site)) return makeSquareSelRing(parent, fallbackSize, thickness, y);
+  // Profiles are in game axes. Cancel the HQ model rotation for the ground outline.
+  const orientation = mkGroup('footprintOrientation');orientation.rotation.y = -parent.rotation.y;parent.add(orientation);
+  return makeRectangleSelRing(orientation, selectionFootprint(site), thickness, y);
 }

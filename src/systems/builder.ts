@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createBuildingEntity, createStructureEntity } from '../entities/entities.js';
+import { createBuildingEntity, createStructureEntity, createListeningPostConstruction } from '../entities/entities.js';
 import { updateHUD } from '../core/hud.js';
 import { buildListeningPostMesh, updateHpBar } from '../meshes.js';
 import {
@@ -13,6 +13,9 @@ import { HILL_RELEASE_DIST } from '../../pathfinding/avoid.js';
 import { clampStepToRoute, exitsStraight, updateMoverRoute } from '../../pathfinding/astar-integrated.js';
 import { _soldierTakeDamage, spawnParticles } from './combat.js';
 import { _avoidDir, _groundAt, _snapTerrainBegin } from './terrain.js';
+import { hasAnimatedConstruction } from '../render/construction-animation.js';
+import { canWorkAtStructure, constructionWorkPosition, constructionApproachWaypoint } from '../core/structure-footprint.js';
+import { assignConstructionWork } from './construction.js';
 
 // Shared particle colors/offsets: repair/hit ticks run per builder per
 // frame, so per-tick Color/Vector3 churn is pure waste.
@@ -31,6 +34,19 @@ export function systemBuilder(world: any, deltaTime: number) {
     }
     builderComponent.meleeTimer = Math.max(0, (builderComponent.meleeTimer || 0) - deltaTime);
     meshComponent.root.position.y = _groundAt(meshComponent.root.position.x, meshComponent.root.position.z);
+    if (builderComponent.buildTargetSP != null && builderComponent.faction === 'ig') {
+      const pointId = builderComponent.buildTargetSP;
+      const point = world.get(pointId, 'strategicPoint');
+      const existing = point?.listeningPostEntityId != null && world.has(point.listeningPostEntityId, 'building');
+      const canAfford = existing || builderComponent.listeningPostCostPaid || requisition >= COSTS.listening_post;
+      const targetId = canAfford ? createListeningPostConstruction(world, pointId, builderComponent.team, builderComponent.faction) : null;
+      if (targetId != null) {
+        if (!existing && !builderComponent.listeningPostCostPaid) setRequisition(requisition - COSTS.listening_post);
+        builderComponent.listeningPostCostPaid = false;
+        assignConstructionWork(world, id, targetId, world.get(targetId, 'building'));
+      }
+      builderComponent.buildTargetSP = null;
+    }
     if (builderComponent.buildTargetSP !== null && !builderComponent.isBuilding) {
       const strategicPoint = world.get(builderComponent.buildTargetSP, 'strategicPoint');
       if (strategicPoint) {
@@ -42,17 +58,51 @@ export function systemBuilder(world: any, deltaTime: number) {
       }
     }
     if (builderComponent.buildTarget && !builderComponent.isBuilding) {
-      const distance = meshComponent.root.position.distanceTo(builderComponent.buildTarget.position);
-      if (distance < 5) {
+      const targetId = builderComponent.buildTarget.pendingEntityId;
+      const site = targetId != null ? world.get(targetId, 'building') || world.get(targetId, 'structure') || world.get(targetId, 'airfield') : null;
+      let goal = builderComponent.buildTarget.position;
+      if (site && (site.requiresWorker || hasAnimatedConstruction(site))) {
+        if (!builderComponent.buildTarget.workPosition) {
+          const point = constructionWorkPosition(site, meshComponent.root.position);
+          builderComponent.buildTarget.workPosition = new THREE.Vector3(point.x, site.position.y || 0, point.z);
+        }
+        goal = builderComponent.buildTarget.workPosition;
+        builderComponent.moveTarget = goal.clone();
+      }
+      const distance = Math.hypot(meshComponent.root.position.x - goal.x, meshComponent.root.position.z - goal.z);
+      if (distance < (site ? .4 : 5) && (!site || canWorkAtStructure(meshComponent.root.position, site))) {
         builderComponent.isBuilding = true;
         builderComponent.moveTarget = null;
       }
     }
-    if (!builderComponent.isBuilding) {
+    if (!builderComponent.isBuilding && !builderComponent.buildTarget && builderComponent.buildTargetSP == null) {
       _builderCombat(world, builderComponent, meshComponent, deltaTime);
       _builderRepair(world, builderComponent, meshComponent, deltaTime);
     }
     if (builderComponent.isBuilding) {
+      const targetId = builderComponent.buildTarget?.pendingEntityId;
+      const target = targetId !== undefined ? world.get(targetId, 'building') || world.get(targetId, 'structure') || world.get(targetId, 'airfield') : null;
+      if (target && (target.requiresWorker || hasAnimatedConstruction(target))) {
+        if (!canWorkAtStructure(meshComponent.root.position, target)) {
+          builderComponent.isBuilding = false;
+          const point = constructionWorkPosition(target, meshComponent.root.position);
+          builderComponent.buildTarget.workPosition = new THREE.Vector3(point.x, target.position.y || 0, point.z);
+          builderComponent.moveTarget = builderComponent.buildTarget.workPosition.clone();
+          meshComponent.root._playAnim?.('run');
+        } else if (!target.constructing && !target.pendingWorker) {
+          builderComponent.buildTarget = null;
+          builderComponent.buildProgress = 0;
+          builderComponent.isBuilding = false;
+          meshComponent.root._playAnim?.('idle');
+        } else {
+          target.pendingWorker = false;
+          target.constructing = true;
+          builderComponent.buildProgress += deltaTime;
+          meshComponent.root.rotation.y = Math.atan2(target.position.x - meshComponent.root.position.x, target.position.z - meshComponent.root.position.z);
+          meshComponent.root._playAnim?.(target.deliveryProgress < target.deliveryTime ? 'idle' : 'build');
+        }
+        continue;
+      }
       builderComponent.buildProgress += deltaTime;
       if (meshComponent.root._playAnim) {
         meshComponent.root._playAnim('build');
@@ -73,8 +123,11 @@ export function systemBuilder(world: any, deltaTime: number) {
           builderComponent.isBuilding = true;
         }
       } else {
-        const routeTarget = updateMoverRoute(builderComponent, meshComponent.root.position, builderComponent.moveTarget)
-          || builderComponent.moveTarget;
+        const targetId = builderComponent.buildTarget?.pendingEntityId;
+        const site = targetId != null ? world.get(targetId, 'building') || world.get(targetId, 'structure') || world.get(targetId, 'airfield') : null;
+        const order = site ? constructionApproachWaypoint(meshComponent.root.position, builderComponent.moveTarget, site) : builderComponent.moveTarget;
+        const terrainTarget = updateMoverRoute(builderComponent, meshComponent.root.position, order) || order;
+        const routeTarget = site ? constructionApproachWaypoint(meshComponent.root.position, terrainTarget, site) : terrainTarget;
         const rdx = routeTarget.x - meshComponent.root.position.x;
         const rdz = routeTarget.z - meshComponent.root.position.z;
         const rlen = Math.hypot(rdx, rdz) || 1;
@@ -244,9 +297,9 @@ export function _builderFinish(world: any, id: any, builderComponent: any) {
     } else {
       if (type === 'barracks' || type === 'infantry_command' || type === 'greater_sacrificial_circle') {
         createBuildingEntity(world, type, position, builderComponent.team, builderComponent.faction);
-      } else if (['tower', 'turret', 'thermoGen', 'towerBase', 'gunTurret', 'plasma_generator', 'tactica_control', 'mars_pattern', 'thermo_generator', 'mines'].includes(type)) {
+      } else if (['tower', 'turret', 'thermoGen', 'towerBase', 'gunTurret', 'plasma_generator', 'tactica_control', 'thermo_generator', 'mines'].includes(type)) {
         createStructureEntity(world, type, position, builderComponent.faction, builderComponent.team);
-      } else if (type === 'mechanized') {
+      } else if (type === 'mechanized' || type === 'mars_pattern') {
         createBuildingEntity(world, type, position, builderComponent.team, builderComponent.faction);
       }
     }

@@ -203,7 +203,7 @@ export function resetGame(mapKey: string = window._currentMapKey || 'arena'): vo
   for (const [index, { x, z, team }] of startPositions.entries()) {
     // Positions carry fixed factions (factions list order).
     const faction = factions[index];
-    createBuildingEntity(entityWorld, 'hq', new THREE.Vector3(x, 0, z), team, faction);
+    createBuildingEntity(entityWorld, 'hq', new THREE.Vector3(x, 0, z), team, faction, { completed: true });
     const builderX = team === PLAYER ? x + 10 : x - 10;
     createBuilderEntity(entityWorld, builderX, z, team, faction);
   }

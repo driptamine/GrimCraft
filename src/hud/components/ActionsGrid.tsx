@@ -209,13 +209,13 @@ function BuildingActions(): JSX.Element | null {
   const factionKey = entityFaction(entity);
   const faction = FACTIONS[factionKey];
   const isBarracks = !!building;
-  const isMechanized = building?.type === 'mechanized';
+  const isMechanized = building?.type === 'mechanized' || building?.type === 'mars_pattern';
   const buttons: JSX.Element[] = [];
 
   if (isBarracks || isMechanized) {
     const squadIcon = faction?.icons?.squad || '⚔';
     const workerIcon = faction?.icons?.worker || '🔨';
-    const barracksProduction = isMechanized ? getStructureProduction('mechanized', factionKey) : getBarracksProduction(factionKey);
+    const barracksProduction = isMechanized ? getStructureProduction(building.type, factionKey) : getBarracksProduction(factionKey);
     // Buildings with no barracks list (e.g. the chaos greater circle) train
     // from their own production order instead; legacy string entries can't
     // render, so only object items reach the grid.
@@ -245,6 +245,7 @@ function BuildingActions(): JSX.Element | null {
     };
 
     const trainProd = (item: any) => {
+      if (building.constructing || (item.requires || []).some((key: string) => !researchedTech.has(key))) return;
       const cost = item.cost || COSTS[item.name as keyof typeof COSTS] || COSTS.squad;
       const time = item.time || PROD_TIME[item.name as keyof typeof PROD_TIME] || PROD_TIME.squad;
       if (window._multiplayerMode) {
@@ -267,13 +268,13 @@ function BuildingActions(): JSX.Element | null {
           label={(prod.name || '').toUpperCase().replace(/_/g, ' ')}
           cost={`${cost}R`}
           tooltip={unitTooltip(prod, factionKey)}
-          disabled={!(requisition >= cost && building.queue.length < 6)}
+          disabled={building.constructing || !(requisition >= cost && building.queue.length < 6) || (prod.requires || []).some(key => !researchedTech.has(key))}
           onClick={() => trainProd(prod)}
         />,
       );
     });
 
-    if (isBarracks && !useOwn) {
+    if (isBarracks && !isMechanized && !useOwn) {
       buttons.push(
         <ActionButton key="squad" icon={squadIcon} label="SQUAD" cost={`${squadCost}R`} tooltip={`${(squadEntry?.name || 'SQUAD').toUpperCase()}\nCOST ${squadCost}R · TIME ${squadTime}s\nRecruit a squad`} disabled={!(requisition >= squadCost && building.queue.length < 6)} onClick={() => train('squad', 1, squadCost, squadTime)} />,
         <ActionButton key="builder" icon={workerIcon} label={workerDisplayName(factionKey)} cost={`${COSTS.builder}R`} tooltip={`${workerDisplayName(factionKey)}\nCOST ${COSTS.builder}R\nRecruit a construction engineer`} disabled={!(requisition >= COSTS.builder && building.queue.length < 6)} onClick={() => train('builder', 1)} />,

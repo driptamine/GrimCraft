@@ -38,7 +38,7 @@ function createReplica(world: any, record: any): void {
             case 'squad': return E.createSquadEntity(world, c.team, p.x, p.z, 0, c.unitType, c.faction);
             case 'soldier': return E.createSoldierEntity(world, c.squadId, c.formIdx, c.unitType);
             case 'builder': return E.createBuilderEntity(world, p.x, p.z, c.team, c.faction);
-            case 'building': return E.createBuildingEntity(world, c.type, p, c.team, c.faction);
+            case 'building': return E.createBuildingEntity(world, c.type, p, c.team, c.faction, { completed: !c.constructing });
             case 'structure': return E.createStructureEntity(world, c.type, p, c.faction, c.team);
             case 'strategicPoint': return E.createStrategicPointEntity(world, p.x, p.z, c.kind);
             case 'vehicle': return E.createVehicleEntity(world, c.team, c.name, c.model, c.icon, p, c.projectileType, c.faction);
@@ -124,12 +124,21 @@ export function applySkirmishSnapshot(world: any, snapshot: any, playerId: numbe
             // Actor factories own GLB scale.
         }
         const kind = kindOf(record), c = world.get(record.id, kind);
-        if (['building', 'structure', 'airfield'].includes(kind) && !c.constructing && !c.pendingWorker && mesh?.scaffold)
+        if (['building', 'structure'].includes(kind) && (c.constructing || c.pendingWorker)) {
+            E.updateBuildingConstructionVisual(world, record.id, c);
+            mesh._constructionSyncAge = 0;
+        }
+        if (['building', 'structure', 'airfield'].includes(kind) && !c.constructing && !c.pendingWorker
+            && mesh && !mesh._realMeshBuilt && (mesh.scaffold || mesh._constructionAnimation))
             E._finishConstruction(world, record.id, c, kind);
+        if (kind === 'building' && mesh?.root?._vehicleProductionAnimation) {
+            mesh._productionSyncAge = 0;
+            mesh.root._vehicleProductionAnimation.update(c.constructing ? [] : c.queue);
+        }
         if (kind === 'strategicPoint') {
-            if (c.hasListeningPost && !c.lpMesh)
+            if (c.hasListeningPost && c.listeningPostEntityId == null && !c.lpMesh)
                 c.lpMesh = M.buildListeningPostMesh(c.position, c.owner, { listeningPostEntityId: record.id, faction: c.faction });
-            if (!c.hasListeningPost && c.lpMesh) {
+            if ((!c.hasListeningPost || c.listeningPostEntityId != null) && c.lpMesh) {
                 c.lpMesh.removeFromParent();
                 c.lpMesh = null;
             }
@@ -139,6 +148,9 @@ export function applySkirmishSnapshot(world: any, snapshot: any, playerId: numbe
         }
         if (kind === 'squad')
             applySquadWeaponVisuals(world, record.id);
+    }
+    for (const id of world.query('building')) {
+        E.syncListeningPostConstruction(world, id, world.get(id, 'building'));
     }
     const account = snapshot.players.find((a: any) => a.id === playerId);
     if (account) {
@@ -252,6 +264,18 @@ export function initReplicaSystems(world: World): void {
             }
             if(mesh._terrainRelative && ['building','structure','airfield'].some(kind=>w.has(id,kind)))_snapMeshToTerrain(mesh);
             const c = soldier || builder || w.get(id, 'building') || w.get(id, 'structure') || w.get(id, 'vehicle') || w.get(id, 'jet') || w.get(id, 'airfield');
+            if ((w.has(id, 'building') || w.has(id, 'structure')) && (c?.constructing || c?.pendingWorker)) {
+                mesh._constructionSyncAge = (mesh._constructionSyncAge || 0) + dt;
+                const interpolation = Math.min(.12, mesh._constructionSyncAge);
+                const deliveryRemaining = Math.max(0, (c.deliveryTime || 0) - (c.deliveryProgress || 0));
+                E.updateBuildingConstructionVisual(w, id, c,
+                    c.constructProgress + (c.pendingWorker ? 0 : Math.max(0, interpolation - deliveryRemaining)),
+                    (c.deliveryProgress || 0) + interpolation);
+            }
+            if (w.has(id, 'building') && root._vehicleProductionAnimation && !c?.constructing) {
+                mesh._productionSyncAge = (mesh._productionSyncAge || 0) + dt;
+                root._vehicleProductionAnimation.update(c.queue, Math.min(.12, mesh._productionSyncAge));
+            }
             if (mesh.hpBar && c) {
                 mesh.hpBar.position.copy(root.position);
                 mesh.hpBar.position.y += soldier || builder?.hp ? 0.08 : 4.5;

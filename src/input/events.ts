@@ -1,3 +1,4 @@
+import { findConstructionTarget } from './construction-target.js';
 import * as THREE from 'three';
 import { DEFAULT_CAMERA_ALPHA, DEFAULT_CAMERA_BETA, DEFAULT_CAMERA_RADIUS, applyZoom } from '../render/camera-zoom.js';
 import {
@@ -88,7 +89,11 @@ export function _updateHoverCursor(hit: { meta?: any } | null): void {
       }
     }
   }
-  if (!hover && !repairMode && world && _lastGroundPt.valid) {
+  if (!hover && !repairMode && selBuilder != null) {
+    const ground = _lastGroundPt.valid ? _lastGroundPt : null;
+    if (findConstructionTarget(world, selBuilder, meta, ground, canCommand)) hover = { kind: 'construction' };
+  }
+  if (!hover && !repairMode && selBuilder == null && world && _lastGroundPt.valid) {
     // Sole capture-cursor trigger: the ground point under the cursor inside
     // a point's hover circle. Direct hits on tall point meshes (poles, post,
     // console) outside the circle must NOT flip the cursor.
@@ -146,7 +151,17 @@ export function setupPointerEvents(): void {
     unitHover.clear();
     set_hoverEnemySquad(null);
   };
+  let pendingHoverRefresh = false;
   const refreshIndicators = addBeforeRender(() => {
+    if (pendingHoverRefresh && !isShooterMode() && !isSelecting && !rightDown) {
+      pendingHoverRefresh = false;
+      _updateCursorCoords(_mouseX, _mouseY);
+      const hit = pickMesh(_mouseX, _mouseY);
+      _updateDecalHover(hit, _mouseX, _mouseY);
+      _updatePointBaseHover();
+      _updateBuildingHover(hit);
+      _refreshHoverState(hit);
+    }
     if (isShooterMode()) unitHover.clear();
     else unitHover.refresh(world);
     syncUnitHealthBars(world, {
@@ -456,6 +471,7 @@ export function setupPointerEvents(): void {
       updateSelBoxCSS();
     }
     if (rightDown) setRightLastPos({ x: event.clientX, y: event.clientY });
+    pendingHoverRefresh = !hoverDue;
     if (!isSelecting && !rightDown && hoverDue) {
       const hit = pickMesh(event.clientX, event.clientY);
       _updateDecalHover(hit, event.clientX, event.clientY);

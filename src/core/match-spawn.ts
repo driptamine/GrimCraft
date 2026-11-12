@@ -7,7 +7,7 @@ export function spawnMatchSeat(world: any, seat: LocalMatchSeat, position: {
 }): void {
     world.defaultOwner = seat.owner ?? null;
     const { x, z } = position;
-    createBuildingEntity(world, 'hq', new THREE.Vector3(x, 0, z), seat.team, seat.faction);
+    createBuildingEntity(world, 'hq', new THREE.Vector3(x, 0, z), seat.team, seat.faction, { completed: true });
     createBuilderEntity(world, x + (x > 0 ? -10 : 10), z, seat.team, seat.faction);
     const types = seat.faction === 'chaos' ? ['chaos_space_marine'] : seat.faction === 'orks' ? [null, 'boyz_shoota'] : [null, null];
     for (const [i, type] of types.entries()) {

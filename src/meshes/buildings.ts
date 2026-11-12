@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { attachVehicleProductionAnimation } from '../render/vehicle-production-animation.js';
+import structureAnimations from '../../animations/ig/structures/structures.json';
+import { buildConstructionTimeline, createConstructionAnimation } from '../render/construction-animation.js';
+import type { ConstructionPhases } from '../render/construction-animation.js';
 import { attachNecronStructureAurora } from '../fx/necron-aurora.js';
 import { getMat } from '../render/mat-cache.js';
 import { _instantiateFromContainer } from '../render/model-upload.js';
@@ -20,7 +24,8 @@ import {
   mkTorus,
 } from '../render/three-helpers.js';
 import { _factionBucket } from './common.js';
-import { makeSquareSelRing } from './hud.js';
+import { makeSquareSelRing, makeStructureSelRing } from './hud.js';
+import { selectionFootprint } from '../core/structure-footprint.js';
 import type { AnyGroup, MetaPayload } from './types.js';
 
 
@@ -32,7 +37,7 @@ export function makeHQMesh(position: THREE.Vector3, teamKey: string, metaPayload
     const box = mkBox('hq_box', 6, 6, 6);
     box.position.y = 3;
     root.add(box);
-    const ring = makeSquareSelRing(root, BUILDING_BOUNDS.hq, 0.16);
+    const ring = makeStructureSelRing(root, { type: 'hq', faction: metaPayload.faction as string }, BUILDING_BOUNDS.hq, 0.16);
     root._ring = ring;
     root._ringMat = ring._material;
     return root;
@@ -45,13 +50,50 @@ export function makeHQMesh(position: THREE.Vector3, teamKey: string, metaPayload
   childMeshes(root).forEach((mesh) => {
     mesh.userData = { ...metaPayload };
   });
-  const ring = makeSquareSelRing(root, BUILDING_BOUNDS.hq, 0.16);
+  const ring = makeStructureSelRing(root, { type: 'hq', faction: metaPayload.faction as string }, BUILDING_BOUNDS.hq, 0.16);
   root._ring = ring;
   root._ringMat = ring._material;
   if (scene._registerShadows) scene._registerShadows(root);
   return root;
 }
 
+
+export function makeBuildingConstructionMesh(type: string, position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload, phases: ConstructionPhases): AnyGroup | null {
+  const container = _factionBucket(teamKey, metaPayload).structures[type];
+  if (!container) return null;
+  const timeline = buildConstructionTimeline(container.animations || [], phases);
+  if (!timeline) return null;
+  const root = _instantiateFromContainer({ ...container, _hiddenNodes: null }, metaPayload) as AnyGroup;
+  root.position.copy(position);
+  if (type === 'hq-anim') root.rotation.y = Math.PI / 2;
+  const bounds = (BUILDING_BOUNDS as any)[type === 'hq-anim' ? 'hq' : type] || (STRUCTURE_BOUNDS as any)[type] || BUILDING_BOUNDS.barracks;
+  const ring = makeStructureSelRing(root, { type, faction: metaPayload.faction as string, constructing: true }, bounds, .13);
+  root._ring = ring;root._ringMat = ring._material;
+  root.traverse(node => {
+    if (!(node as THREE.Mesh).isMesh) return;
+    node.userData.constructionFrustumCulled = node.frustumCulled;
+    node.frustumCulled = false;
+  });
+  root._constructionAnimation = createConstructionAnimation(root._instanceData, timeline, () => {
+    ring._setBounds?.(selectionFootprint({ type, faction: metaPayload.faction as string }, false));
+    root.traverse(node => {
+      const nodeName = node.name.toLowerCase().split('_inst_')[0];
+      if ((container._hiddenNodes || []).some(name => nodeName.startsWith(name.toLowerCase()))) {
+        node.visible = false;
+        node.userData.pickable = false;
+      }
+      if ((node as THREE.SkinnedMesh).isSkinnedMesh) (node as THREE.SkinnedMesh).computeBoundingSphere();
+      if (node.userData.constructionFrustumCulled !== undefined) {
+        node.frustumCulled = node.userData.constructionFrustumCulled;
+        delete node.userData.constructionFrustumCulled;
+      }
+    });
+  });
+  if (type === 'mars_pattern' || type === 'mechanized') {
+    attachVehicleProductionAnimation(root, container.animations, structureAnimations[type].vehicle_production);
+  }
+  return root;
+}
 
 export function makeBarracksMesh(position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload): AnyGroup {
   const faction = _factionBucket(teamKey, metaPayload);
@@ -60,7 +102,7 @@ export function makeBarracksMesh(position: THREE.Vector3, teamKey: string, metaP
   if (container) {
     const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     root.position.copy(position);
-    const ring = makeSquareSelRing(root, BUILDING_BOUNDS.barracks, 0.13);
+    const ring = makeStructureSelRing(root, { type: 'infantry_command', faction: metaPayload.faction as string }, BUILDING_BOUNDS.barracks, 0.13);
     root._ring = ring;
     root._ringMat = ring._material;
     if (scene._registerShadows) scene._registerShadows(root);
@@ -117,7 +159,7 @@ export function makeBarracksMesh(position: THREE.Vector3, teamKey: string, metaP
 
   // Note: makeSquareSelRing will be imported or exported from here if needed
   // I'll keep it here for now as it's used by multiple factories.
-  const ring = makeSquareSelRing(root, BUILDING_BOUNDS.barracks, 0.13);
+  const ring = makeStructureSelRing(root, { type: 'infantry_command', faction: metaPayload.faction as string }, BUILDING_BOUNDS.barracks, 0.13);
   root._ring = ring;
   root._ringMat = ring._material;
   if (scene._registerShadows) {
@@ -627,7 +669,7 @@ export function makeConfigStructureMesh(type: string, position: THREE.Vector3, t
     const root = _instantiateFromContainer(container, metaPayload) as AnyGroup;
     if (root) {
       root.position.copy(position);
-      const ring = makeSquareSelRing(root, (STRUCTURE_BOUNDS as Record<string, number>)[type] ?? 3.5, 0.14, 0.05);
+      const ring = makeStructureSelRing(root, { type, faction: metaPayload.faction as string }, (STRUCTURE_BOUNDS as Record<string, number>)[type] ?? 3.5, 0.14, 0.05);
       root._ring = ring;
       root._ringMat = ring._material;
       if (scene._registerShadows) scene._registerShadows(root);
