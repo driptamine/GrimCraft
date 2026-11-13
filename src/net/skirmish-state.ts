@@ -253,7 +253,7 @@ export function initReplicaSystems(world: World): void {
                     const changed=mesh._replicaAnim!==anim;
                     const repeat=['shoot','shootMove','capture1','capture2'].includes(anim)&&root._currentAnim===null;
                     if (changed || restart || repeat) {
-                        root._playAnim?.(anim, !['melee', 'shoot', 'shootMove', 'hitL', 'hitR', 'hitBlock', 'flyLaunch', 'flyLand', 'flagPlant1', 'flagPlant2', 'capture1', 'capture2'].includes(anim), restart||changed);
+                        root._playAnim?.(anim, !['melee', 'shoot', 'shootMove', 'hitL', 'hitR', 'hitBlock', 'flyLaunch', 'flyLand', 'flagPlant1', 'flagPlant2', 'capture1'].includes(anim), restart||changed);
                         mesh._replicaAnim = anim;
                         mesh._replicaAttackSerial = serial;
                         if (soldier)

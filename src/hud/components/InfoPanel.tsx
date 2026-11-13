@@ -8,6 +8,7 @@ import { productionQueueIcon } from '../queue-icons.js';
 import { MAX_UPGRADES_PER_SQUAD, meleeDamageEstimate, numberOfUpgrades } from '../../entities/soldier-aim.js';
 import { DEFAULT_ARMOR_CLASS, dpsAgainst, getWeapon } from '../../combat/stats.js';
 import { taskbarIconUrl } from '../../ui/taskbar-icons.js';
+import { useHUDVersion } from '../useHUD.js';
 import {
   InfoPanel as InfoPanelCss, InfoTitle, InfoStats, QueueWrap, QueueLabel, QueueItemsRow, QueueItem,
 } from '../primitives.jsx';
@@ -54,6 +55,7 @@ function ResearchQueue({ items }: any): JSX.Element | null {
 }
 
 export function InfoPanel(): JSX.Element {
+  useHUDVersion('health');
   const view = getViewKind();
 
   let title = 'SELECT A UNIT OR BUILDING';
@@ -251,8 +253,8 @@ export function InfoPanel(): JSX.Element {
       title = 'ENEMY — RIGHT-CLICK TO ATTACK';
       stats = (
         <>
-          <StatRow icon={taskbarIconUrl('squadsize') || '👥'} label="MEN" value={`${aliveSols.length}/${SQUAD_MAX}`} cls={aliveSols.length < SQUAD_MAX * 0.4 ? 'warn' : ''} />
-          <StatRow icon="❤️" label="HP" value={`${Math.ceil(percentage * 100)}%`} cls={percentage < 0.4 ? 'warn' : ''} />
+          <StatRow icon={taskbarIconUrl('squadsize') || '👥'} label="MEN" value={`${aliveSols.length}/${sq.maxSquadSize ?? SQUAD_MAX}`} cls={aliveSols.length < (sq.maxSquadSize ?? SQUAD_MAX) * 0.4 ? 'warn' : ''} />
+          <StatRow icon="❤️" label="HP" value={`${Math.ceil(hp)} / ${mhp}`} cls={percentage < 0.4 ? 'warn' : ''} />
         </>
       );
     }

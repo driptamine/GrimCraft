@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Slugga Boy Squad — Choppa (Melee, Refire 1.5 s, Accuracy 60%).
 export const CHOPPA: WeaponProfile = {

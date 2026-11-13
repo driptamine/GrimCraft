@@ -103,12 +103,12 @@ describe('Kasrkin live fire rate', () => {
     assert.equal(world.query('beam').length, before + 1, 'does not wait out the old slow cooldown');
   });
 
-  it('leaves other infantry and Kasrkin plasma upgrades at their existing cadence', () => {
-    for (const [unitType, personalProjectile] of [['guardsmen', null], ['kasrkin', 'plasma']]) {
+  it('keeps ordinary infantry cadence and the one-second plasma interval independent of the hellgun slider', () => {
+    for (const [unitType, personalProjectile, interval] of [['guardsmen', null, 2.5], ['kasrkin', 'plasma', 1]]) {
       const { soldier, fire } = setup(unitType, personalProjectile);
       setKasrkinFireRate(10);
       fire();
-      assert.equal(soldier.attackCooldown, 2.5);
+      assert.equal(soldier.attackCooldown, interval);
     }
   });
 

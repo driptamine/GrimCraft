@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { attachVehicleProductionAnimation } from '../render/vehicle-production-animation.js';
-import structureAnimations from '../../animations/ig/structures/structures.json';
 import { buildConstructionTimeline, createConstructionAnimation } from '../render/construction-animation.js';
 import type { ConstructionPhases } from '../render/construction-animation.js';
 import { attachNecronStructureAurora } from '../fx/necron-aurora.js';
@@ -58,7 +57,7 @@ export function makeHQMesh(position: THREE.Vector3, teamKey: string, metaPayload
 }
 
 
-export function makeBuildingConstructionMesh(type: string, position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload, phases: ConstructionPhases): AnyGroup | null {
+export function makeBuildingConstructionMesh(type: string, position: THREE.Vector3, teamKey: string, metaPayload: MetaPayload, phases: ConstructionPhases, vehicleProduction?: string, hideFrom?: Record<string, string[]>): AnyGroup | null {
   const container = _factionBucket(teamKey, metaPayload).structures[type];
   if (!container) return null;
   const timeline = buildConstructionTimeline(container.animations || [], phases);
@@ -89,9 +88,9 @@ export function makeBuildingConstructionMesh(type: string, position: THREE.Vecto
         delete node.userData.constructionFrustumCulled;
       }
     });
-  });
-  if (type === 'mars_pattern' || type === 'mechanized') {
-    attachVehicleProductionAnimation(root, container.animations, structureAnimations[type].vehicle_production);
+  }, hideFrom);
+  if (vehicleProduction) {
+    attachVehicleProductionAnimation(root, container.animations, vehicleProduction);
   }
   return root;
 }

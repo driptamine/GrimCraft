@@ -30,8 +30,13 @@
   "monolith": {
     "phases": {
       "phase_1": "build_stage_1",
-      "phase_2": "build_stage_1_idle",
-      "phase_3": "build_stage_2"
+      "phase_2": "build_stage_2"
+    }
+  },
+  "obelisk": {
+    "phases": {
+      "placement": "build_placement",
+      "phase_1": "build_phasing"
     }
   },
   "plasma_generator": {
@@ -45,17 +50,17 @@
   "summoning_core": {
     "phases": {
       "placement": "build_placement",
-      "phase_1": "build_1",
-      "phase_2": "build_2",
-      "phase_3": "build_start"
+      "phase_1": "build_start",
+      "phase_2": "build_1",
+      "phase_3": "build_2"
     }
   },
   "summoning_core_big": {
     "phases": {
       "placement": "build_placement",
-      "phase_1": "build_1",
-      "phase_2": "build_2",
-      "phase_3": "build_start"
+      "phase_1": "build_start",
+      "phase_2": "build_1",
+      "phase_3": "build_2"
     }
   },
   "thermoplasma_generator": {

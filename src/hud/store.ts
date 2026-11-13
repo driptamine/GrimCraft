@@ -8,8 +8,8 @@
  * directly from scene.js during render.
  */
 
-const tickers: Record<string, number> = { hud: 0, topbar: 0, minimap: 0, capture: 0 };
-const listeners: Record<string, Set<() => void>> = { hud: new Set(), topbar: new Set(), minimap: new Set(), capture: new Set() };
+const tickers: Record<string, number> = { hud: 0, health: 0, topbar: 0, minimap: 0, capture: 0 };
+const listeners: Record<string, Set<() => void>> = { hud: new Set(), health: new Set(), topbar: new Set(), minimap: new Set(), capture: new Set() };
 
 export function bump(channel: string): void {
   tickers[channel] = (tickers[channel] || 0) + 1;

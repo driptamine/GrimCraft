@@ -8,12 +8,35 @@ import {
   getWeapon,
 } from '../src/combat/stats.js';
 import { FACTIONS } from '../src/factions.js';
+import { BASE_WEAPONS, WEAPON_FACTIONS } from '../src/balance/catalog.js';
 
 // Guard against accidentally clipping a wiki DPS column: every armour class
 // the wiki lists must be present on the profiles used by the two starter units.
 const INFANTRY_ARMOR = ['infantry_low', 'infantry_med', 'infantry_high', 'infantry_hmed', 'infantry_hhi', 'infantry_cmdr'];
 
 describe('Wiki weapon profiles', () => {
+  it('registers the loyalist Heavy Bolter independently of the Chaos variant', () => {
+    const loyalist = getWeapon('space_marine_heavy_bolter');
+    const chaos = getWeapon('heavy_bolter');
+    assert.equal(loyalist.range, 35);
+    assert.equal(loyalist.refire, .4);
+    assert.equal(loyalist.accuracy, .75);
+    assert.equal(loyalist.baseDamage.min, 40);
+    assert.equal(loyalist.baseDamage.max, 45);
+    assert.equal(loyalist.baseDamage.minD, 2);
+    assert.deepEqual(loyalist.dps, {
+      infantry_low: 40, infantry_med: 40.5, infantry_high: 39.8,
+      infantry_hmed: 36.1, infantry_hhi: 32, infantry_cmdr: 14.7,
+      vehicle_low: 8.7, vehicle_med: 4.5, vehicle_high: 3.7, vehicle_air: 8.7,
+      building_low: 15.9, building_med: 5.1, building_high: 3.7,
+      daemon_med: 29.7, daemon_high: 3.7,
+    });
+    assert.equal(WEAPON_FACTIONS.space_marine_heavy_bolter, 'Space Marines');
+    assert.equal(BASE_WEAPONS.space_marine_heavy_bolter.dps.infantry_med, 40.5);
+    assert.notEqual(loyalist, chaos);
+    assert.equal(chaos.accuracy, .65);
+    assert.equal(chaos.dps.infantry_med, 28);
+  });
   it('carries every wiki armour column for the Guardsmen Lasgun', () => {
     const lasgun = getWeapon('lasgun');
     assert.ok(lasgun);

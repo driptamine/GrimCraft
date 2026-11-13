@@ -24,6 +24,10 @@ const _puffStart = new THREE.Vector3();
 const _puffEnd = new THREE.Vector3();
 const _puffTravel = new THREE.Vector3();
 const _puffClosest = new THREE.Vector3();
+const _bulletStart = new THREE.Vector3();
+const _bulletTarget = new THREE.Vector3();
+const _bulletTravel = new THREE.Vector3();
+const _bulletClosest = new THREE.Vector3();
 
 
 export function systemBullet(world: any, deltaTime: number) {
@@ -38,7 +42,7 @@ export function systemBullet(world: any, deltaTime: number) {
   for (const id of world.query('bullet', 'mesh')) {
     const bulletComponent = world.get(id, 'bullet');
     const meshComponent = world.get(id, 'mesh');
-    if (!bulletComponent || !meshComponent) {
+    if (!bulletComponent || !meshComponent || meshComponent.root.userData.disposed) {
       continue;
     }
     // Plasma (and any future typed projectile sharing the 'bullet' component)
@@ -48,19 +52,30 @@ export function systemBullet(world: any, deltaTime: number) {
       continue;
     }
     bulletComponent.age += deltaTime;
-    if (bulletComponent.age > 2) {
+    if (bulletComponent.age > (bulletComponent.lifetime ?? 2)) {
       _bulletDestroy(world, id, meshComponent);
       continue;
     }
-    bulletComponent.vy -= 6 * deltaTime;
+    _bulletStart.copy(meshComponent.root.position);
+    bulletComponent.vy -= (bulletComponent.gravity ?? 6) * deltaTime;
     meshComponent.root.position.x += bulletComponent.vx * deltaTime;
     meshComponent.root.position.y += bulletComponent.vy * deltaTime;
     meshComponent.root.position.z += bulletComponent.vz * deltaTime;
-    meshComponent.root.rotation.y = Math.atan2(bulletComponent.vx, bulletComponent.vz);
+    _bulletTarget.copy(meshComponent.root.position).add(_bulletTravel.set(bulletComponent.vx, bulletComponent.vy, bulletComponent.vz));
+    meshComponent.root.lookAt(_bulletTarget);
     const targetMeshComponent = world.get(bulletComponent.targetId, 'mesh');
     if (targetMeshComponent && world.has(bulletComponent.targetId, 'soldier')) {
-      const distance = meshComponent.root.position.distanceTo(targetMeshComponent.root.position);
+      targetMeshComponent.root.getWorldPosition(_bulletTarget);
+      _bulletTarget.y += bulletComponent.aimHeight ?? 0;
+      // Test the whole frame's path: a fast round can pass the body between
+      // rendered frames without ever ending a frame inside the hit radius.
+      _bulletTravel.copy(meshComponent.root.position).sub(_bulletStart);
+      const lengthSq = _bulletTravel.lengthSq();
+      const fraction = lengthSq > 0 ? THREE.MathUtils.clamp(_bulletClosest.copy(_bulletTarget).sub(_bulletStart).dot(_bulletTravel) / lengthSq, 0, 1) : 0;
+      _bulletClosest.copy(_bulletStart).addScaledVector(_bulletTravel, fraction);
+      const distance = _bulletClosest.distanceTo(_bulletTarget);
       if (distance < .6) {
+        meshComponent.root.position.copy(_bulletClosest);
         _soldierTakeDamage(world, bulletComponent.targetId, bulletComponent.damage);
         spawnParticles(meshComponent.root.position, new THREE.Color(.87, .67, 0), 3);
         _bulletDestroy(world, id, meshComponent);
@@ -69,6 +84,7 @@ export function systemBullet(world: any, deltaTime: number) {
     }
     if (meshComponent.root.position.y < _groundAt(meshComponent.root.position.x, meshComponent.root.position.z) + .05) {
       _bulletDestroy(world, id, meshComponent);
+      continue;
     }
     if (bulletComponent.team !== PLAYER) {
       for (const apcId of apcIds) {
@@ -82,6 +98,7 @@ export function systemBullet(world: any, deltaTime: number) {
           break;
         }
       }
+      if (meshComponent.root.userData.disposed) continue;
       for (const vehicleId of vehicleIds) {
         const vehicle = world.get(vehicleId, 'vehicle');
         if (!vehicle || vehicle.team !== PLAYER) {

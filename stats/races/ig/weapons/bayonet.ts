@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Guardsmen Squad — Bayonet (Melee, Refire 1 s, Accuracy 100%).
 export const BAYONET: WeaponProfile = {

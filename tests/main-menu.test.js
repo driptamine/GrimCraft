@@ -6,10 +6,10 @@ import { fileURLToPath } from 'node:url';
 import { MENU_ITEMS, screenFor, creditNames } from '../src/ui/main-menu.js';
 
 describe('startup main menu', () => {
-  it('lists the six sections in order', () => {
+  it('includes the standalone balance editor in the menu', () => {
     assert.deepEqual(
       MENU_ITEMS.map((item) => item.label),
-      ['Campaign', 'Skirmish', 'Multi-player', 'Army Painter', 'Settings', 'Credits'],
+      ['Campaign', 'Skirmish', 'Multi-player', 'Army Painter', 'Balance Editor', 'Settings', 'Credits'],
     );
   });
 

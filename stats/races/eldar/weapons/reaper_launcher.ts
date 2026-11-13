@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Dark Reaper Squad — Reaper Launcher (Range 30, Refire 1 s,
 // Accuracy 60%). Cannot be fired while moving.

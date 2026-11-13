@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Kasrkin — Hellgun (Range 40, Refire 1 s, Accuracy 50%, Default Weapon).
 export const HELLGUN: WeaponProfile = {

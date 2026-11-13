@@ -17,8 +17,22 @@ export interface ConstructionTimeline {
 }
 
 export const CONSTRUCTION_DELIVERY_TIME = 1;
+/** Building types with an IG-style construction timeline (placement plus
+ * ordered phases whose clips all exist in the model). Entries without a
+ * placement clip stay out: the timeline builder requires one. */
+const ANIMATED_CONSTRUCTION_TYPES: Record<string, string[]> = {
+    ig: ['hq', 'hq-anim', 'infantry_command', 'barracks', 'listening_post', 'mechanized', 'mars_pattern', 'plasma_generator', 'tactica_control', 'turret'],
+    chaos: ['armoury', 'chaos_temple', 'desecrated_stronghold', 'machine_pit', 'plasma_generator', 'thermo_plasma_generator'],
+    'dark eldar': ['dark_tower', 'haemonculus_laboratory', 'hall_of_blood', 'kabal_fortress', 'plasma_generator', 'skimmer_shop', 'slave_caravel', 'soul_cage', 'thermo_plasma_generator', 'wych_cult_arena'],
+    eldar: ['advanced_warp_generator', 'listening_post', 'soul_shrine', 'support_platform', 'support_portal', 'support_portal_ulthwe', 'warp_generator', 'webway_assembly', 'webway_gate'],
+    necrons: ['energy_core', 'greater_summoning_core', 'listening_post', 'obelisk', 'plasma_generator', 'summoning_core', 'summoning_core_big', 'turret'],
+    orks: ['bigger_generator', 'da_boyz_hut', 'generator', 'mek_shop', 'pile_o_guns', 'settlement', 'waagh_banner'],
+    sob: ['adepta_sororitas_convent', 'adeptus_mechanicus_workshop', 'ecclesiarchal_chapel', 'holy_reliquary_v2', 'inferno_turret', 'listening_post', 'plasma_generator', 'pristine_sanctuary', 'shrine_of_st_celestine', 'thermo_plasma_generator'],
+    'space marines': ['armoury', 'barracks', 'command_hq', 'listening_post', 'machine_cult', 'orbital_relay', 'plasma_generator', 'progenitor_temple', 'thermo_plasma_generator'],
+    tau: ['tau_barracks', 'tau_hq', 'tau_kroot_nest', 'tau_listening_post', 'tau_listening_post_sp', 'tau_plasma_generator', 'tau_research', 'tau_shrine_of_kauyon', 'tau_shrine_of_mont_ka', 'tau_shrine_of_purpose', 'tau_thermoplasma_generator', 'tau_vehicle_building'],
+};
 export function hasAnimatedConstruction(building: { type: string; faction: string }): boolean {
-    return building.faction === 'ig' && ['hq', 'hq-anim', 'infantry_command', 'barracks', 'listening_post', 'mechanized', 'mars_pattern', 'plasma_generator', 'tactica_control', 'turret'].includes(building.type);
+    return (ANIMATED_CONSTRUCTION_TYPES[building.faction] || []).includes(building.type);
 }
 
 function hasMotion(track: THREE.KeyframeTrack): boolean {
@@ -108,12 +122,29 @@ export interface ConstructionAnimation {
     readonly phase: string;
 }
 
-export function createConstructionAnimation(instance: GltfInstance, timeline: ConstructionTimeline, finishVisibility: () => void): ConstructionAnimation {
+export function createConstructionAnimation(instance: GltfInstance, timeline: ConstructionTimeline, finishVisibility: () => void, hideFrom?: Record<string, string[]>): ConstructionAnimation {
     const action = instance.mixer.clipAction(timeline.clip);
     action.setLoop(THREE.LoopOnce, 1);
     action.clampWhenFinished = true;
     action.play();
     action.paused = true;
+    // Nodes (e.g. a delivery aircraft) that must disappear once a given phase
+    // starts. Scrubbing back before that phase restores them.
+    const hideRules = Object.entries(hideFrom || {}).map(([phaseKey, prefixes]) => {
+        const start = timeline.phases.find(step => step.key === phaseKey)?.start ?? timeline.clip.duration;
+        const wanted = (Array.isArray(prefixes) ? prefixes : [prefixes]).map(prefix => String(prefix).toLowerCase());
+        const nodes: THREE.Object3D[] = [];
+        for (const root of instance.rootNodes)
+            root.traverse(node => {
+                const name = node.name.toLowerCase().split('_inst_')[0];
+                if (wanted.some(prefix => name === prefix || name.startsWith(prefix))) nodes.push(node);
+            });
+        return { start, nodes };
+    });
+    function applyHide(time: number): void {
+        for (const { start, nodes } of hideRules)
+            for (const node of nodes) node.visible = time < start;
+    }
     let phase = 'placement', finished = false;
     const player: ConstructionAnimation = {
         get phase() { return phase; },
@@ -124,6 +155,7 @@ export function createConstructionAnimation(instance: GltfInstance, timeline: Co
             phase = fraction === 0 ? 'placement'
                 : (timeline.phases.find(step => step.end > time)?.key || timeline.phases[timeline.phases.length - 1].key);
             action.time = time;
+            applyHide(time);
             instance.mixer.update(0);
         },
         seekConstruction(progress, deliveryProgress) {

@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Space Marine Squad — Bolter (Range 25, Refire 0.5 s, Accuracy 60%,
 // Default Weapon). Loyalist variant: slightly different line from the

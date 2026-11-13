@@ -8,6 +8,7 @@ import {
 } from '../primitives.jsx';
 import { assetUrl } from '../../render/assets.js';
 import { R2Img } from '../bits.jsx';
+import { useHUDVersion } from '../useHUD.js';
 
 function portraitIconEl(icon: any): any {
   if (icon && icon.includes('/')) {
@@ -54,6 +55,7 @@ function computeSingleBuilding(): { icon: any; name: string; entity: any } | nul
 }
 
 export function Portrait(): JSX.Element {
+  useHUDVersion('health');
   const view = getViewKind();
 
   let icon: any = '❓';

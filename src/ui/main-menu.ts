@@ -12,6 +12,7 @@ export const MENU_ITEMS = [
   { id: 'skirmish', label: 'Skirmish' },
   { id: 'multiplayer', label: 'Multi-player' },
   { id: 'army-painter', label: 'Army Painter' },
+  { id: 'balance', label: 'Balance Editor' },
   { id: 'settings', label: 'Settings' },
   { id: 'credits', label: 'Credits' },
 ];
@@ -59,6 +60,7 @@ export function hideMainMenu(): void {
 }
 
 function _onItemClick(item: { id: string; label: string }): void {
+  if (item.id === 'balance') { window.location.assign('/balance');return; }
   const screen = screenFor(item.id);
   if (item.id === 'credits') {
     renderCredits();

@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Kasrkin — Grenade Launcher (Range 40, Refire 3 s, Accuracy 100%,
 // Area of Effect 2.5, Requires Tactica Control). Stronger than the Guardsmen

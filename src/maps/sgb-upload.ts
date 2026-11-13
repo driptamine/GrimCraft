@@ -159,9 +159,13 @@ async function loadSgbBuffer(buffer: ArrayBuffer, label = 'map', mapPath = ''): 
       return;
     }
     const { createSgbParser } = await import('./sgb-parser.js');
+    const appearance = await import('./sgb-appearance.js');
+    const layout = await appearance.loadSgbLayout(mapPath);
     const parser = createSgbParser(null);
     const mapData = parser.parse(buffer);
-    const root = parser.createThreeMap();
+    const root = parser.createThreeMap(null, layout ? { tileTextureIndices: layout.terrain.texture_indices.rows.flat() } : {});
+    if (mapPath) (window as unknown as { _currentMapKey: string })._currentMapKey = mapPath;
+    if (layout) await appearance.applySgbDetailTextures(root, layout, mapPath);
     childMeshes(root).forEach((mesh) => {
       mesh.receiveShadow = true;
       if (scene._registerShadows) {
@@ -174,10 +178,13 @@ async function loadSgbBuffer(buffer: ArrayBuffer, label = 'map', mapPath = ''): 
     window.__sgbSampleHeight = (x, z) => parser.sampleHeight(x, z);
     window.__sgbTerrainRoot = root;
     await loadPassGridForMap(mapPath || label);
-    import('./terrain-upload.js').then((module) => module.linkSgbRoot(root, parser.numTilesX, parser.numTilesZ));
-    import('./sgb-decals.js').then((module) =>
-      module.buildSgbDecals(root, mapData, (x, z) => parser.sampleHeight(x, z)),
-    );
+    terrainModule.linkSgbRoot(root, parser.numTilesX, parser.numTilesZ);
+    const decalModule = await import('./sgb-decals.js');
+    if (layout) {
+      decalModule.buildSgbDecalsFromLayout(root, layout, (x, z) => parser.sampleHeight(x, z));
+    } else {
+      decalModule.buildSgbDecals(root, mapData, (x, z) => parser.sampleHeight(x, z));
+    }
     _sgbNumTilesX = parser.numTilesX;
     _sgbNumTilesZ = parser.numTilesZ;
     _sgbCellSize = parser.cellSize;

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { applySkirmishSnapshot, initReplicaSystems } from './skirmish-state.js';
+import { setNetworkBalanceMod } from '../balance/runtime.js';
 import { fetchWebTransportConnection } from './lobby-api.js';
 import { setLocalMatch, type LocalMatchConfig } from '../core/local-match.js';
 import { setPlayerFaction } from '../factions.js';
@@ -282,6 +283,7 @@ async function _joinOnlineLobby(lobby: any, username: string): Promise<void> {
 }
 
 function _leaveOnlineLobby(): void {
+  setNetworkBalanceMod(null);
   _joinGeneration++;
   _net.disconnect();
   _lobbyOnly = false;
@@ -323,6 +325,7 @@ function _handleServerBytes(bytes: Uint8Array): void {
   }
   if (message.ServerError) { _setConnectOverlay(true); _multiplayerLobbyUI?.status(message.ServerError.message || String(message.ServerError)); return; }
   if (message.Lobby) {
+    setNetworkBalanceMod(message.Lobby.balanceMod || null);
     _pendingLobby = message.Lobby;
     _multiplayerLobbyUI?.onlineLobby(message.Lobby, _myPlayerId);
     void _startOnlineMatch();
@@ -672,7 +675,7 @@ export function _injectConnectUI() {
     startLocal: (config) => { _leaveOnlineLobby(); void webTransportPlayOffline(config); },
     joinOnline: _joinOnlineLobby,
     leaveOnline: _leaveOnlineLobby,
-    startOnline: (computers) => { _net.sendCmd({StartGame:{computers}}); },
+    startOnline: (computers, balanceMod) => { _net.sendCmd({StartGame:{computers, balanceMod}}); },
     factionOnline: (faction) => { _net.sendCmd({SetLobbyFaction:{faction}}); },
   });
   _injectSkirmishUI();

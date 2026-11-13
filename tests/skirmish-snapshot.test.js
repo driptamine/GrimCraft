@@ -143,8 +143,12 @@ it('plays authoritative action slots, repeats capture clips and cycles melee var
   show('melee',{meleeTimer:2.5,meleeAttackSerial:1});assert.equal(root._animGroups.melee,root._animGroups.meleeVariant1);
   show('melee',{meleeTimer:2.5,meleeAttackSerial:2});assert.equal(root._animGroups.melee,root._animGroups.meleeVariant2);
   assert.equal(show('hitL',{hitReactionTimer:.45,hitReactionAnim:'hitL',_meleeReactionIndex:1}).name,'hitL');
-  for(const name of ['flagPlant1','flagPlant2','capture1','capture2','idle'])assert.equal(show(name).name,name);
-  show('capture2');const before=played.length;root._currentAnim=null;world.tick(.1);assert.equal(played.length,before+1);
+  for(const name of ['flagPlant1','flagPlant2','capture1','capture2','idle']){
+    const action=show(name);assert.equal(action.name,name);
+    if(name==='capture2')assert.equal(action.loop,true,'final capture animation loops until the server ends capture');
+    if(['flagPlant1','flagPlant2','capture1'].includes(name))assert.equal(action.loop,false);
+  }
+  show('capture2');const before=played.length;root._currentAnim=null;world.tick(.1);assert.equal(played.length,before+1);assert.equal(played.at(-1).loop,true);
   const worker=state.entities.find(e=>e.id===7).components.builder;
   const workerRoot=world.get(7,'mesh').root;workerRoot._playAnim=name=>{workerRoot._currentAnim=name};
   for(const name of ['run','build','repair','idle']){worker.animation=name;state.tick++;applySkirmishSnapshot(world,state,1);world.tick(.1);assert.equal(workerRoot._currentAnim,name)}

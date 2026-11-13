@@ -11,8 +11,8 @@
 /**
  * Planter capture sequence (slot names): two one-shot flag plants at the
  * point center, then the planter backs off to stand distance, and only
- * then plays the two one-shot capture clips, then idle. Each clip plays
- * once per capture effort (see _captureKey in systems.js). The rest of
+ * then plays capture1 once and loops capture2 until ownership changes.
+ * The planting clips play once per capture effort (see _captureKey). The rest of
  * the squad plays capture1 once, then replays its guardCaptureAnim clip
  * until the point is captured, then idle too.
  */
@@ -64,7 +64,7 @@ export function isPlantingDone({ captureStage, hasPlantAnims }: { captureStage?:
 
 // The carried banner+banner_rod show only while the flag_plant_1 clip
 // itself plays — not on the walk in, not during flag_plant_2. The point's
-// own pair pops into the socket when flag_plant_2 ends.
+// own pair pops into the socket when flag_plant_1 seats the rod.
 export function planterBannerShown({ currentAnim }: { currentAnim?: string }): boolean {
   return currentAnim === 'flagPlant1';
 }

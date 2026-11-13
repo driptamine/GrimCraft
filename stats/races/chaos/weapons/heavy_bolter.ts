@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Chaos Space Marine Squad — Heavy Bolter (Refire 0.4 s,
 // Requires Chaos Armoury).

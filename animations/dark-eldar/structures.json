@@ -1,1 +1,117 @@
-{}
+{
+  "dark_tower": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuilding"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "gruesome_display": {
+    "phases": {
+      "phase_1": "build"
+    }
+  },
+  "haemonculus_laboratory": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuilding"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "hall_of_blood": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuild"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "kabal_fortress": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuilding"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "plasma_generator": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuilding"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "skimmer_shop": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuild"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "slave_caravel": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuild"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "soul_cage": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuilding"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "thermo_plasma_generator": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuilding"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  },
+  "wych_cult_arena": {
+    "phases": {
+      "placement": "build_placement",
+      "delivery": [
+        "prebuild"
+      ],
+      "phase_1": [
+        "building"
+      ]
+    }
+  }
+}

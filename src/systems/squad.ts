@@ -24,6 +24,8 @@ import { updateHUD } from '../core/hud.js';
 import { updateHpBar } from '../meshes.js';
 import { attachPlasmaMuzzleFlash, updatePlasmaMuzzleFlash } from '../fx/plasma-bolt.js';
 import { PLASMA_CLOUD_PUFF } from '../fx/plasma-cloud-puff.js';
+import { balanceWeapon } from '../balance/runtime.js';
+import { expectedHit } from '../balance/model.js';
 import {
   FLY_CLIMB,
   FLY_CRUISE_ALT,
@@ -48,7 +50,6 @@ import {
   CAPTURE_PROGRESS_RATE,
   CAPTURE_SEQUENCE,
   PLANTER_SPEED_MULT,
-  captureClipDone,
   captureSlotTarget,
   computeSoldierYaw,
   guardCaptureAnim,
@@ -137,12 +138,12 @@ export function systemSoldier(world: any, deltaTime: number) {
 
 // Guard banner props stay hidden at spawn; the planter shows them only
 // while flag_plant_1 plays, then the point's own banner pair pops into
-// the socket when flag_plant_2 ends.
+// the socket when the rod is seated, before the release animation ends.
 export const PLANTER_BANNER_NODES = ['guard_banner', 'guard_banner_rod'];
 
 
 export function _planterHasPlantAnims(root: any): boolean {
-  return !!root._animGroups?.flagPlant1 && !!root._animGroups?.flagPlant2;
+  return !!root?._animGroups?.flagPlant1 && !!root?._animGroups?.flagPlant2;
 }
 
 
@@ -189,14 +190,8 @@ export function _playPlanterSequence(soldierComponent: any, root: any): void {
     return;
   }
   const last = CAPTURE_SEQUENCE.length - 1;
-  if (stage >= last && captureClipDone(want, soldierComponent._capturePrev, root._currentAnim)) {
-    _setPlanterBannerVisible(soldierComponent, root, false);
-    soldierComponent._captureDone = true;
-    root._playAnim('idle');
-    return;
-  }
   if (root._currentAnim !== want) {
-    root._playAnim(want, false);
+    root._playAnim(want, stage === last);
   }
   soldierComponent._capturePrev = root._currentAnim;
   // Visibility trails the play call: the banner shows only on the ticks
@@ -548,7 +543,7 @@ export function systemSquad(world: any, deltaTime: number) {
       }
       const holdFire = (moving && fireUnit?.stationaryFireOnly) || airborne;
       if (!holdFire && !window._multiplayerMode) {
-        _squadFireAll(world, squadEntityId, squadComponent, aliveSols, deltaTime, enemy);
+        _squadFireAll(world, squadEntityId, squadComponent, aliveSols, deltaTime, enemy, moving);
       }
     } else {
       for (const soldierId of aliveSols) {
@@ -608,7 +603,14 @@ export function systemSquad(world: any, deltaTime: number) {
           captureRadius: strategicPoint.captureRadius,
         });
         if (shouldTickCapture({ captureOrderSpId: squadComponent.captureOrderSpId, spId, squadInside, soldierInside })) {
-          const speed = CAPTURE_PROGRESS_RATE * deltaTime;
+          const planter = world.get(aliveSols[0], 'soldier');
+          const planterRoot = world.get(aliveSols[0], 'mesh')?.root;
+          const effortKey = `${spId}|${strategicPoint.owner}|p`;
+          const rodPlaced = !_planterHasPlantAnims(planterRoot)
+            || (planter?._captureKey === effortKey && (planter.captureStage || 0) >= 1);
+          // Hold existing progress while planting; new progress starts only
+          // after flagPlant1 seats the rod, alongside the point's own banner.
+          const speed = rodPlaced ? CAPTURE_PROGRESS_RATE * deltaTime : 0;
           if (squadComponent.team === 'blue') {
             strategicPoint.captureProgress = Math.min(1, strategicPoint.captureProgress + speed);
           } else {
@@ -996,7 +998,13 @@ export function systemSquad(world: any, deltaTime: number) {
             }
           }
         } else if (capturing) {
-          _playPlanterSequence(soldierComponent, soldierMeshComponent.root);
+          if (engagedSp && isPointCapturedBy(engagedSp.owner, squadComponent.team)) {
+            soldierComponent._captureDone = true;
+            _setPlanterBannerVisible(soldierComponent, soldierMeshComponent.root, false);
+            soldierMeshComponent.root._playAnim('idle');
+          } else {
+            _playPlanterSequence(soldierComponent, soldierMeshComponent.root);
+          }
           if (isPlanter && engagedSp && engagedSp.raiseFrom == null
             // flagPlant1 seats the rod; flagPlant2 is the release/recovery.
             // Hand off to the point's banner on the same tick the carried
@@ -1132,7 +1140,7 @@ export function systemSquad(world: any, deltaTime: number) {
 }
 
 
-export function _squadFireAll(world: any, squadEntityId: any, squadComponent: any, aliveSols: any, deltaTime: number, enemy: any) {
+export function _squadFireAll(world: any, squadEntityId: any, squadComponent: any, aliveSols: any, deltaTime: number, enemy: any, moving = !!squadComponent.moveOrder) {
   for (const soldierId of aliveSols) {
     const soldierComponent = world.get(soldierId, 'soldier');
     if (!soldierComponent) {
@@ -1141,14 +1149,19 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
     if (soldierComponent._fleeing || soldierComponent.meleeEngaged) {
       continue;
     }
+    const projectileType = squadComponent.projectileType === PLASMA_CLOUD_PUFF && !soldierComponent.isGrenadier
+      ? PLASMA_CLOUD_PUFF : soldierComponent.projectileType || squadComponent.projectileType || 'bullet';
+    const plasma = projectileType === PLASMA_CLOUD_PUFF || projectileType === 'plasma' || projectileType === 'plasma-final';
+    const weaponKey = plasma ? ((soldierComponent.unitType || squadComponent.unitType) === 'kasrkin' ? 'kasrkin_plasma_gun' : squadComponent.faction === 'chaos' ? 'chaos_plasma_gun' : 'plasma_gun') : soldierComponent.weapon;
+    const edited = balanceWeapon(weaponKey);
     // Beam/laser/lightning visuals fire at a slower cadence. Per-shot damage
     // is scaled by the same factor so effective DPS is unchanged.
     const tunedHellgun = isKasrkinHellgun(soldierComponent, squadComponent);
     const cadence = tunedHellgun ? soldierComponent.attackRate / kasrkinFireRate()
       : (squadComponent.projectileType === 'laser' || squadComponent.projectileType === 'beam' || squadComponent.projectileType === 'lightning' ? 2.5 : 1);
-    const interval = (1 / soldierComponent.attackRate) * cadence;
+    const interval = edited?.refire ?? (plasma ? (getWeapon('plasma_gun')?.refire ?? 1) : (1 / soldierComponent.attackRate) * cadence);
     // A faster slider setting also shortens an already pending burst.
-    if (tunedHellgun) soldierComponent.attackCooldown = Math.min(soldierComponent.attackCooldown, interval);
+    if (tunedHellgun || plasma || edited) soldierComponent.attackCooldown = Math.min(soldierComponent.attackCooldown, interval);
     soldierComponent.attackCooldown = Math.max(0, soldierComponent.attackCooldown - deltaTime);
     if (soldierComponent.attackCooldown <= 0) {
       const soldierMeshComponent = world.get(soldierId, 'mesh');
@@ -1157,14 +1170,13 @@ export function _squadFireAll(world: any, squadEntityId: any, squadComponent: an
         if (soldierComponent.cloaked) {
           soldierComponent.revealTimer = 2.5;
         }
-        const projectileType = squadComponent.projectileType === PLASMA_CLOUD_PUFF && !soldierComponent.isGrenadier
-          ? PLASMA_CLOUD_PUFF : soldierComponent.projectileType || squadComponent.projectileType || 'bullet';
         const targetSoldier = world.get(enemy.soldierEntityId, 'soldier');
         const targetArmor = (targetSoldier?.armorClass || DEFAULT_ARMOR_CLASS) as ArmorClass;
         const weapon = getWeapon(soldierComponent.weapon);
         // Wiki weapon stats drive ordinary gunfire. Special projectile
         // upgrades (plasma, blaster, ...) keep their own damage profiles.
-        const statDamage = weapon && (projectileType === 'bullet' || projectileType === 'beam' || tunedHellgun)
+        const statDamage = edited ? (Math.random() < (moving ? edited.movingAccuracy : edited.accuracy) ? (expectedHit(edited, targetArmor) ?? 0) * damageMult : 0)
+          : weapon && (projectileType === 'bullet' || projectileType === 'beam' || tunedHellgun)
           ? damagePerShot(weapon, targetArmor, cadence) * damageMult
           : null;
         const shotOrigin = tunedHellgun

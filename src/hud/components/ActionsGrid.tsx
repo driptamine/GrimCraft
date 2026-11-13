@@ -157,6 +157,22 @@ function DemolishButton({ label, confirmText, onClick }: any): JSX.Element {
   );
 }
 
+function ConstructionActions({ id }: { id: number }): JSX.Element {
+  return (
+    <CommandGridDiv>
+      <DemolishButton
+        label="DEMOLISH"
+        confirmText="Demolish this building under construction?"
+        onClick={() => {
+          if (window._multiplayerMode) netDemolishBuilding(id);
+          else demolishBuilding(id);
+        }}
+      />
+      {Array.from({ length: 11 }, (_, index) => <CommandEmptySlot key={index} />)}
+    </CommandGridDiv>
+  );
+}
+
 function AirfieldActions(): JSX.Element | null {
   const id = selBuildings[0];
   const airfield = world.get(id, 'airfield');
@@ -917,6 +933,11 @@ export function ActionsGrid(): JSX.Element | null {
   const view = getViewKind();
 
   if (view === 'builder') return <BuilderActions />;
+  if (view === 'building' || view === 'airfield') {
+    const id = selBuildings[0];
+    const building = world.get(id, 'building') || world.get(id, 'structure') || world.get(id, 'airfield');
+    if (building?.constructing || building?.pendingWorker) return <ConstructionActions id={id} />;
+  }
   if (view === 'airfield') return <AirfieldActions />;
   if (view === 'listening_post') return <ListeningPostActions />;
   if (view === 'building') {

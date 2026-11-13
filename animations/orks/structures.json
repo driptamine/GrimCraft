@@ -1,18 +1,18 @@
 {
   "bigger_generator": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "BUILD_1",
-      "phase_2": "BUILD_1_IDLE",
-      "phase_3": "BUILD_2"
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_1_idle",
+      "phase_3": "build_2"
     }
   },
   "da_boyz_hut": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "BUILD_1",
-      "phase_2": "BUILD_1_IDLE",
-      "phase_3": "BUILD_2"
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_1_idle",
+      "phase_3": "build_2"
     }
   },
   "generator": {
@@ -32,24 +32,24 @@
   },
   "mek_shop": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "BUILD_1",
-      "phase_2": "BUILD_1_IDLE",
-      "phase_3": "BUILD_2"
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_1_idle",
+      "phase_3": "build_2"
     }
   },
   "pile_o_guns": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "BUILD_1",
-      "phase_2": "BUILD_2"
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2"
     }
   },
   "settlement": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "BUILD_1",
-      "phase_2": "BUILD_2"
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2"
     }
   },
   "waagh_banner": {

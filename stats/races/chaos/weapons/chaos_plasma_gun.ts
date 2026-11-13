@@ -1,12 +1,13 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Chaos Space Marine Squad — Plasma Gun (Range 30, Refire 0.5 s,
 // Accuracy 60%, Requires Unholy Monastery and Chaos Armoury). Chaos variant:
 // hotter line than the IG Plasma Gun, so it registers under its own key.
+// Gameplay tuning: one shot per second.
 export const CHAOS_PLASMA_GUN: WeaponProfile = {
   name: 'Chaos Plasma Gun',
   range: 30,
-  refire: 0.5,
+  refire: 1,
   accuracy: 0.6,
   dps: {
     infantry_low: 44.4, infantry_med: 79.8, infantry_high: 66.0,

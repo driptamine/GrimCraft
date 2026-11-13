@@ -370,7 +370,8 @@ export async function loadFactionModels(scene: unknown, factionKeys: string[] = 
       factionContainers[key] = _emptyBucket();
     }
     const target = factionContainers[key];
-    const hqHidden = getStructureConfig(key, 'hq')?.hiddenNodes;
+    const hqEntry = getStructureConfig(key, 'hq') || config.structures?.find((s) => s.model === config.hq);
+    const hqHidden = hqEntry?.hiddenNodes;
     target.hq = maybeMergeStatic(await safeLoad(config.hq, `${config.name} HQ`, hqHidden), hqHidden, `${config.name} HQ`);
     target.worker = maybeMergeSkinned(await safeLoad(config.infantry?.[0]?.model, `${config.name} Worker`, config.infantry?.[0]?.hiddenNodes), config.infantry?.[0]?.hiddenNodes, `${config.name} Worker`);
     target.soldier = maybeMergeSkinned(await safeLoad(resolveInfantryModel(config.infantry?.[1]?.model), `${config.name} Soldier`, config.infantry?.[1]?.hiddenNodes), config.infantry?.[1]?.hiddenNodes, `${config.name} Soldier`);

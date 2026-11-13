@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Guardsmen Squad — Lasgun (Range 27, Refire 0.5 s, Accuracy 50%).
 export const LASGUN: WeaponProfile = {

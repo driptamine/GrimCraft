@@ -145,7 +145,7 @@ function countEntries(entries, name) {
 }
 
 describe('capture sequence integration', () => {
-  it('plays every capture clip exactly once in a peaceful capture', () => {
+  it('plants once and keeps the planter capturing until the point is owned', () => {
     const { world, spId, alive, entriesBySoldier, resetsWhileEngaged, sawBanner } = runCapture();
     assert.equal(resetsWhileEngaged, 0);
     const planterEntries = entriesBySoldier[alive[0]];
@@ -197,6 +197,11 @@ it('shows the point banner and rod as soon as flagPlant1 seats them, during flag
     systems.systemSquad(world, DT);
     if (root._currentAnim === 'flagPlant1') {
       assert.equal(world.get(spId, 'strategicPoint').raiseFrom == null, true);
+      assert.equal(world.get(spId, 'strategicPoint').captureProgress, 0, 'progress waits for the rod');
+      for (let waiting = 0; waiting < 10; waiting++) {
+        systems.systemSquad(world, DT);
+        assert.equal(world.get(spId, 'strategicPoint').captureProgress, 0);
+      }
       systems.systemStrategicPoint(world, DT);
       assert.equal(rod.visible, false);
       // Finish seating the carried rod, leaving the release clip unplayed.
@@ -210,8 +215,36 @@ it('shows the point banner and rod as soon as flagPlant1 seats them, during flag
       systems.systemStrategicPoint(world, DT);
       assert.equal(banner.visible, true);
       assert.equal(rod.visible, true);
+      systems.systemSquad(world, DT);
+      assert.ok(world.get(spId, 'strategicPoint').captureProgress > 0, 'progress starts during recovery after the rod is placed');
       return;
     }
   }
   assert.fail('planter never reached flagPlant1');
+});
+
+it('loops the planter final capture clip across its duration while progress is unfinished', () => {
+  const { world, spId, soldiers } = setupCapture();
+  const planterId = soldiers[1], planter = world.get(planterId, 'soldier'), root = world.get(planterId, 'mesh').root;
+  let loopTicks = 0;
+  for (let tick = 0; tick < 1800; tick++) {
+    for (const soldierId of soldiers.filter(Boolean)) {
+      const actorRoot = world.get(soldierId, 'mesh').root;
+      if (actorRoot._pendingEnd != null && --actorRoot._pendingEnd <= 0) { actorRoot._pendingEnd = null;actorRoot._currentAnim = null; }
+    }
+    systems.systemSquad(world, DT);
+    const point = world.get(spId, 'strategicPoint');
+    if (root._currentAnim === 'capture2' && point.owner == null) {
+      loopTicks++;
+      assert.equal(root._pendingEnd, null, 'capture2 runs as a looping clip');
+      assert.equal(planter._captureDone, false, 'finishing a clip does not finish capture');
+    }
+    if (point.owner === 'blue') {
+      assert.ok(loopTicks > ONESHOT_TICKS * 3, 'capture2 continues through multiple authored clip durations');
+      assert.equal(root._currentAnim, 'idle');
+      assert.equal(planter._captureDone, true);
+      return;
+    }
+  }
+  assert.fail('capture did not complete');
 });

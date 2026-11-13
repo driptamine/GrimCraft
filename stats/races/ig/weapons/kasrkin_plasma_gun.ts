@@ -1,8 +1,7 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Kasrkin — Plasma Gun (Range 30, Refire 1 s, Accuracy 50%,
-// Requires Tactica Control). Slower refire than the Guardsmen variant,
-// so it registers under its own key.
+// Requires Tactica Control). Registers under its own key for Kasrkin damage.
 export const KASRKIN_PLASMA_GUN: WeaponProfile = {
   name: 'Kasrkin Plasma Gun',
   range: 30,

@@ -27,8 +27,9 @@ export function makeGhostMesh(type: string, pos: THREE.Vector3, meta: MetaPayloa
   if (options.completedPose) {
     const faction = resolveFactionKey(meta.faction);
     const modelType = faction === 'ig' && type === 'hq' ? 'hq-anim' : type === 'barracks' && faction === 'ig' ? 'infantry_command' : type;
-    const phases = (getStructureConfig(faction, modelType)?.animations as { phases?: ConstructionPhases } | undefined)?.phases;
-    if (phases && hasAnimatedConstruction({ type, faction })) root = makeBuildingConstructionMesh(modelType, pos, teamKey, { ...meta, faction }, phases) || undefined;
+    const animations = getStructureConfig(faction, modelType)?.animations as { phases?: ConstructionPhases; vehicle_production?: string; hide_from?: Record<string, string[]> } | undefined;
+    const phases = animations?.phases;
+    if (phases && hasAnimatedConstruction({ type, faction })) root = makeBuildingConstructionMesh(modelType, pos, teamKey, { ...meta, faction }, phases, animations?.vehicle_production, animations?.hide_from) || undefined;
   }
 
   if (root) {

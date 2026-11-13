@@ -19,7 +19,7 @@ describe('capture anims', () => {
     }
   });
 
-  it('planter sequence plays four one-shots then holds the last stage', () => {
+  it('planter sequence advances to capture2 and keeps the final stage', () => {
     assert.deepEqual(CAPTURE_SEQUENCE, ['flagPlant1', 'flagPlant2', 'capture1', 'capture2']);
     let next = nextCaptureStage(0, 'idle', null);
     assert.deepEqual(next, { stage: 0, want: 'flagPlant1' });

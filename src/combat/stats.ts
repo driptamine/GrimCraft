@@ -25,6 +25,7 @@ import { KNIFE } from '../../stats/races/chaos/weapons/knife.js';
 import { HEAVY_BOLTER } from '../../stats/races/chaos/weapons/heavy_bolter.js';
 import { CHAOS_PLASMA_GUN } from '../../stats/races/chaos/weapons/chaos_plasma_gun.js';
 import { SPACE_MARINE_BOLTER } from '../../stats/races/space-marines/weapons/space_marine_bolter.js';
+import { SPACE_MARINE_HEAVY_BOLTER } from '../../stats/races/space-marines/weapons/space_marine_heavy_bolter.js';
 import { STORM_BOLTER } from '../../stats/races/space-marines/weapons/storm_bolter.js';
 import { SHURIKEN_CATAPULT } from '../../stats/races/eldar/weapons/shuriken_catapult.js';
 import { REAPER_LAUNCHER } from '../../stats/races/eldar/weapons/reaper_launcher.js';
@@ -34,6 +35,8 @@ import { SHOOTA } from '../../stats/races/orks/weapons/shoota.js';
 import { GAUSS_FLAYER } from '../../stats/races/necrons/weapons/gauss_flayer.js';
 import { PULSE_RIFLE } from '../../stats/races/tau/weapons/pulse_rifle.js';
 import { SORORITAS_BOLTER } from '../../stats/races/sob/weapons/sororitas_bolter.js';
+import { balanceWeapon } from '../balance/runtime.js';
+import { ARMOR_TYPES, weaponDps } from '../balance/model.js';
 
 export const ARMOR_CLASSES = [
   'infantry_low',
@@ -120,6 +123,7 @@ export const WEAPONS: Record<string, WeaponProfile> = {
   heavy_bolter: HEAVY_BOLTER,
   chaos_plasma_gun: CHAOS_PLASMA_GUN,
   space_marine_bolter: SPACE_MARINE_BOLTER,
+  space_marine_heavy_bolter: SPACE_MARINE_HEAVY_BOLTER,
   storm_bolter: STORM_BOLTER,
   shuriken_catapult: SHURIKEN_CATAPULT,
   reaper_launcher: REAPER_LAUNCHER,
@@ -135,7 +139,13 @@ export function getWeapon(key: string | null | undefined): WeaponProfile | null 
   if (!key) {
     return null;
   }
-  return WEAPONS[key] || null;
+  const base = WEAPONS[key];
+  if (!base) return null;
+  const edited = balanceWeapon(key);
+  if (!edited) return base;
+  return { ...base, range: edited.range, refire: edited.refire, accuracy: edited.accuracy,
+    baseDamage: { ...base.baseDamage, min: edited.minDamage, max: edited.maxDamage, minD: edited.minimumDamage, dps: base.baseDamage?.dps ?? 0 },
+    dps: Object.fromEntries(ARMOR_TYPES.map(armor => [armor, weaponDps(edited, armor) ?? 0])) };
 }
 
 /** Effective DPS of a weapon against one armour class. */

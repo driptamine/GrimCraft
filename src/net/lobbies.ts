@@ -12,6 +12,8 @@ export interface LobbyPlayer {
 }
 
 export interface Lobby {
+  balanceMod?: import('../balance/model.js').BalanceMod;
+  balanceHash?: string;
   id?: string;
   host_id?: number;
   started?: boolean;

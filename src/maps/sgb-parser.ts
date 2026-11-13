@@ -20,6 +20,7 @@ export interface SgbMapData {
   mapName: string;
   scenarioName: string;
   detailTextures?: { index: number; path: string }[];
+  tileTextureIndices?: number[];
   tileTextureRepeat?: number;
   decalLinks?: { id: number; path: string }[];
   decals?: SgbDecal[];
@@ -31,7 +32,7 @@ export interface SgbParser {
   readonly cellSize: number;
   readonly tileSize: number;
   parse(buffer: Uint8Array | ArrayBuffer): SgbMapData;
-  createThreeMap(parent?: THREE.Object3D | null): THREE.Group;
+  createThreeMap(parent?: THREE.Object3D | null, options?: { tileTextureIndices?: readonly number[] }): THREE.Group;
   sampleHeight(worldX: number, worldZ: number): number;
 }
 
@@ -57,6 +58,7 @@ export function createSgbParser(scene: THREE.Object3D | null = null): SgbParser 
   let numCellsZ = 0;
   let numTileCells = 0;
   let tileTextureRepeat = 1;
+  let tileTextureIndices: number[] = [];
 
   function parse(buffer: Uint8Array | ArrayBuffer): SgbMapData {
     const reader = createChunkReader(buffer);
@@ -90,6 +92,7 @@ export function createSgbParser(scene: THREE.Object3D | null = null): SgbParser 
       ([index, path]) => ({ index, path }),
     );
     mapData.tileTextureRepeat = tileTextureRepeat;
+    mapData.tileTextureIndices = tileTextureIndices.slice();
     mapData.decalLinks = Array.from(
       decalLinks,
       ([id, path]) => ({ id, path }),
@@ -158,7 +161,7 @@ export function createSgbParser(scene: THREE.Object3D | null = null): SgbParser 
     numTilesX = numCellsX / numTileCells;
     numTilesZ = numCellsZ / numTileCells;
 
-    const detailIndexData = reader.readData(numTiles * 4);
+    tileTextureIndices = Array.from({ length: numTiles }, () => reader.readU32());
 
     reader.readHeader("DATADSHD");
 
@@ -406,7 +409,7 @@ export function createSgbParser(scene: THREE.Object3D | null = null): SgbParser 
     }
   }
 
-  function createThreeMap(parent: THREE.Object3D | null = null): THREE.Group {
+  function createThreeMap(parent: THREE.Object3D | null = null, options: { tileTextureIndices?: readonly number[] } = {}): THREE.Group {
     const root =
       mkGroup("SGB_Map");
 
@@ -438,24 +441,37 @@ export function createSgbParser(scene: THREE.Object3D | null = null): SgbParser 
     // Names keep the SGB_Tile prefix so ground picking still matches.
     const BLOCK = 4;
     const sharedMat = tiles.length ? tiles[0].mesh.material : null;
-    const blocks = new Map<string, THREE.BufferGeometry[]>();
+    const detailMaterials = new Map<number, THREE.Material>();
+    const blocks = new Map<string, { geometries: THREE.BufferGeometry[]; textureIndex?: number }>();
     for (const tile of tiles) {
-      const key = `${Math.floor(tile.tileX / BLOCK)}:${Math.floor(tile.tileZ / BLOCK)}`;
+      const textureIndex = options.tileTextureIndices?.[tile.tileZ * numTilesX + tile.tileX];
+      const key = `${Math.floor(tile.tileX / BLOCK)}:${Math.floor(tile.tileZ / BLOCK)}` + (textureIndex === undefined ? '' : `:${textureIndex}`);
       tile.mesh.geometry.translate(tile.mesh.position.x, 0, tile.mesh.position.z);
-      const list = blocks.get(key);
-      if (list) {
-        list.push(tile.mesh.geometry);
+      const block = blocks.get(key);
+      if (block) {
+        block.geometries.push(tile.mesh.geometry);
       } else {
-        blocks.set(key, [tile.mesh.geometry]);
+        blocks.set(key, { geometries: [tile.mesh.geometry], textureIndex });
       }
     }
-    for (const [key, geos] of blocks) {
-      const merged = mergeGeometries(geos, false);
-      const mesh = mkEmptyMesh(`SGB_Tile_b${key.replace(':', '_')}`);
+    for (const [key, { geometries, textureIndex }] of blocks) {
+      const merged = mergeGeometries(geometries, false);
+      const mesh = mkEmptyMesh(`SGB_Tile_b${key.replaceAll(':', '_')}`);
       mesh.geometry = merged;
-      mesh.material = sharedMat as THREE.Material;
+      if (textureIndex !== undefined) {
+        let material = detailMaterials.get(textureIndex);
+        if (!material) {
+          material = (sharedMat as THREE.Material).clone();
+          detailMaterials.set(textureIndex, material);
+        }
+        mesh.material = material;
+        mesh.userData.detailTextureIndex = textureIndex;
+      } else {
+        mesh.material = sharedMat as THREE.Material;
+      }
       root.add(mesh);
     }
+    if (detailMaterials.size) (sharedMat as THREE.Material).dispose();
 
     // The merge above copies the translated geometry into the blocks; drop
     // the unmerged originals (mkEmptyMesh auto-attached them to the default

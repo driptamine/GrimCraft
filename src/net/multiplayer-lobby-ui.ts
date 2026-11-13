@@ -3,6 +3,8 @@ import { serverIdFromPath, setServerRoute } from './server-route.js';
 import { fetchOnlineLobbies, createOnlineLobby } from './lobby-api.js';
 import { makeLocalMatch, type LocalMatchConfig } from '../core/local-match.js';
 import { skirmishMapCards, defaultSkirmishMap, type MapCard } from '../ui/maps-menu.js';
+import { storedBalanceMod } from '../balance/runtime.js';
+import type { BalanceMod } from '../balance/model.js';
 
 type Screen = 'servers' | 'maps' | 'lobby';
 const FACTIONS = ['Space Marines', 'Imperial Guard', 'Chaos', 'Eldar', 'Dark Eldar', 'Orks', 'Necrons', 'Tau'];
@@ -15,7 +17,7 @@ export function mountMultiplayerLobby(panel: HTMLElement, options: {
   startLocal: (config: LocalMatchConfig) => void;
   joinOnline: (lobby: Lobby, username: string) => Promise<void>;
   leaveOnline: () => void;
-  startOnline: (computers: Array<{faction: string; team: number}>) => void;
+  startOnline: (computers: Array<{faction: string; team: number}>, balanceMod?: BalanceMod) => void;
   factionOnline: (faction: string) => void;
 }): { reset: () => void; onlineLobby: (lobby: Lobby, playerId: number | null) => void; status: (message: string) => void } {
   const connection = panel.querySelector<HTMLElement>('#webTransport-connect-form')!;
@@ -52,6 +54,7 @@ export function mountMultiplayerLobby(panel: HTMLElement, options: {
   const hostedRooms = new WeakSet<Lobby>();
   const localRooms: Lobby[] = [];
   let ready = false;
+  let useBalanceMod = true;
   let routeRequest = 0;
   const chat: Array<{ name: string; text: string }> = [];
   const $ = (selector: string) => panel.querySelector<HTMLElement>(selector)!;
@@ -158,6 +161,9 @@ export function mountMultiplayerLobby(panel: HTMLElement, options: {
     if (!room) return;
     const list = $('#mp-list'); list.className = 'mp-inset mp-players-list';
     const title = document.createElement('div'); title.className = 'mp-room-name'; title.textContent = room.name; list.append(title);
+    if (room.balanceMod) {
+      const note = document.createElement('div');note.textContent = `Balance: ${room.balanceMod.name} v${room.balanceMod.version} · ${room.balanceHash?.slice(0, 12) || ''}`;list.append(note);
+    }
     const slots = lobbySlots(room);
     for (let i = 0; i < room.total; i++) {
       const player = slots[i];
@@ -208,10 +214,16 @@ export function mountMultiplayerLobby(panel: HTMLElement, options: {
     $('#mp-actions').append(button('Back', () => { routeRequest++; if (room?.id) options.leaveOnline(); setServerRoute(null); screen = 'servers'; room = null; render(); void refresh(); }));
     if (hosted && slots.some(player => player && player.controller !== 'computer')) $('#mp-actions').append(button(ready ? 'Not Ready' : 'Ready', () => { ready = !ready; render(); }));
     if (hosted) {
+      const savedMod = storedBalanceMod();
+      if (savedMod && room.id && !room.started) {
+        const label = document.createElement('label'), checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';checkbox.checked = useBalanceMod;checkbox.addEventListener('change', () => { useBalanceMod = checkbox.checked; });
+        label.append(checkbox, ` Balance: ${savedMod.name} v${savedMod.version}`);$('#mp-actions').append(label);
+      }
       $('#mp-actions').append(button('Start Game', () => {
         if (!room) return;
         try {
-          if (room.id) options.startOnline(lobbySlots(room).filter(player => player?.controller === 'computer').map(player => ({faction: player!.faction, team: player!.team})));
+          if (room.id) options.startOnline(lobbySlots(room).filter(player => player?.controller === 'computer').map(player => ({faction: player!.faction, team: player!.team})), useBalanceMod ? storedBalanceMod() ?? undefined : undefined);
           else options.startLocal(makeLocalMatch(room, mapFor(room)?.path || 'arena'));
         }
         catch (error) { $('#mp-hint').textContent = (error as Error).message; }

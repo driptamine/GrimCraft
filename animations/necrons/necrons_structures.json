@@ -117,5 +117,14 @@
     "vis_addon",
     "vis_empty",
     "vis_main"
+  ],
+  "obelisk.glb": [
+    "build_phasing",
+    "build_placement",
+    "special_ability_1",
+    "vis_empty",
+    "vis_level_1",
+    "vis_level_2",
+    "vis_level_3"
   ]
 }

@@ -13,7 +13,7 @@ import {
   clearResearchedTech, updateCamera, runBeforeRender, setDeltaTime, handleResize,
   getRenderBackend, isBackendSwitching, supportsWebGPU, createBackendRenderer,
   createFreshCanvas, adoptCanvasElement, setRendererInstance, setBackendState,
-  qualityTier,
+  qualityTier, hoveredEnemySquad,
 } from './scene.js';
 import { updateMixers } from '../render/gltf-models.js';
 import { updateNecronConduits } from '../fx/necron-conduit.js';
@@ -34,6 +34,7 @@ import {
   updateHUD, updateTopBar, updateMinimap, updateCaptureProgressBars,
 } from './hud.js';
 import { tickFps, getFps, hudDue } from '../hud/store.js';
+import { refreshSelectionHealth } from '../hud/selection-health.js';
 import { createDynamicResolution, pixelRatioForTier } from '../render/three-helpers.js';
 import { toggleNodesPanel, initNodesPanelAutoRefresh } from '../ui/nodes-panel.js';
 import { preloadLasgunViewmodel, tickFirstPerson, toggleCameraFps } from '../render/camera-fps.js';
@@ -365,6 +366,7 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
       // more than the bars gain. Completions still bump instantly from
       // the production systems themselves.
       if (hudDue(_frameNo)) {
+        refreshSelectionHealth(world, { unitIds: selSquads, buildingIds: selBuildings, builderId: selBuilder, enemySquadId: hoveredEnemySquad });
         const hasQueue = world.query('building').some((id: any) => (world.get(id, 'building')?.queue.length || 0) > 0);
         const hasReinforce = selSquads.some((id) => {
           const squadComponent = world.get(id, 'squad');
@@ -424,7 +426,7 @@ export async function bootGame(loadHooks: any = {}): Promise<void> {
 }
 
 // Start the game when loaded
-window.addEventListener('DOMContentLoaded', () => {
+function bindGameUI(): void {
   // Bind UI functions to window for HTML onclick handlers
   window.resetGame = resetGame;
   window.bootGame = bootGame;
@@ -532,4 +534,6 @@ window.addEventListener('DOMContentLoaded', () => {
   // Add other UI bindings as needed...
 
   import('../ui/main-menu.js').then((module) => module.injectMainMenu());
-});
+}
+if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', bindGameUI, { once: true });
+else bindGameUI();

@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Necron Warriors — Gauss Flayer (Range 17, Refire 1 s, Accuracy 80%,
 // Default Weapon).

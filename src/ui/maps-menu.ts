@@ -166,7 +166,7 @@ export async function selectMap(path: string, url: string): Promise<void> {
   }
   // Paint AFTER the ground material exists — sgb-upload rebuilds the ground,
   // so a pre-load decal would be wiped along with the old material.
-  applyMapDecalAutoPair(path, url);
+  await applyMapDecalAutoPair(path, url);
 }
 
 async function applyMapDecalAutoPair(path: string, _url: string): Promise<void> {

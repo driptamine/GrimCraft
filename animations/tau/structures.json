@@ -2,19 +2,33 @@
   "tau_barracks": {
     "phases": {
       "placement": "build_placement",
-      "phase_1": "build_idle_1",
-      "phase_2": "build_idle_1_b",
-      "phase_3": "build_idle_2",
-      "phase_4": "build_idle_2_b",
-      "phase_5": "build_idle_3",
-      "phase_6": "build_idle_3_b",
-      "phase_7": "build_barracks_lift",
-      "phase_8": "build_barracks_lift_b",
-      "phase_9": "build_beam_drop",
-      "phase_10": "build_landing",
-      "phase_11": "build_landing_b",
-      "phase_12": "build_liftoff",
-      "phase_13": "build_liftoff_b"
+      "delivery": [
+        "build_beam_drop"
+      ],
+      "phase_1": [
+        "build_barracks_lift",
+        "build_barracks_lift_b"
+      ],
+      "phase_2": [
+        "build_idle_1",
+        "build_idle_1_b"
+      ],
+      "phase_3": [
+        "build_idle_2",
+        "build_idle_2_b"
+      ],
+      "phase_4": [
+        "build_idle_3",
+        "build_idle_3_b"
+      ],
+      "phase_5": [
+        "build_landing",
+        "build_landing_b"
+      ],
+      "phase_6": [
+        "build_liftoff",
+        "build_liftoff_b"
+      ]
     }
   },
   "tau_build_crane": {
@@ -23,13 +37,15 @@
   "tau_hq": {
     "phases": {
       "placement": "build_placement",
+      "delivery": [
+        "build_beam_drop_b"
+      ],
       "phase_1": "build_idle_1a_b",
       "phase_2": "build_idle_1b_b",
       "phase_3": "build_idle_1c_b",
-      "phase_4": "build_beam_drop_b",
-      "phase_5": "build_crane_liftoff_b",
-      "phase_6": "build_hq_lift_b",
-      "phase_7": "build_landingb"
+      "phase_4": "build_crane_liftoff_b",
+      "phase_5": "build_hq_lift_b",
+      "phase_6": "build_landingb"
     }
   },
   "tau_kroot_nest": {
@@ -79,14 +95,16 @@
       "phase_1": "build_idle_1",
       "phase_2": "build_crane_detach",
       "phase_3": "build_crane_hover",
-      "phase_4": "build_crane_liftoff",
-      "phase_5": "build_crane_liftoff_b",
-      "phase_6": "build_generator_arms_cycle_d",
-      "phase_7": "build_generator_arms_cycle_e",
-      "phase_8": "build_generator_arms_liftoff_b",
-      "phase_9": "build_generator_crane_lift_b",
-      "phase_10": "build_generator_lift",
-      "phase_11": "build_landing_b"
+      "phase_4": [
+        "build_crane_liftoff",
+        "build_crane_liftoff_b"
+      ],
+      "phase_5": "build_generator_arms_cycle_d",
+      "phase_6": "build_generator_arms_cycle_e",
+      "phase_7": "build_generator_arms_liftoff_b",
+      "phase_8": "build_generator_crane_lift_b",
+      "phase_9": "build_generator_lift",
+      "phase_10": "build_landing_b"
     }
   },
   "tau_research": {
@@ -127,17 +145,25 @@
   "tau_thermoplasma_generator": {
     "phases": {
       "placement": "build_placement",
-      "phase_1": "build_idle_1",
-      "phase_2": "build_idle_1_b",
-      "phase_3": "build_crane_detach",
-      "phase_4": "build_crane_lift",
-      "phase_5": "build_generator_crane_hover",
-      "phase_6": "build_generator_lift",
-      "phase_7": "build_generator_lift_b",
-      "phase_8": "build_landing",
-      "phase_9": "build_landing_b",
-      "phase_10": "build_liftoff",
-      "phase_11": "build_liftoff_b"
+      "phase_1": [
+        "build_idle_1",
+        "build_idle_1_b"
+      ],
+      "phase_2": "build_crane_detach",
+      "phase_3": "build_crane_lift",
+      "phase_4": "build_generator_crane_hover",
+      "phase_5": [
+        "build_generator_lift",
+        "build_generator_lift_b"
+      ],
+      "phase_6": [
+        "build_landing",
+        "build_landing_b"
+      ],
+      "phase_7": [
+        "build_liftoff",
+        "build_liftoff_b"
+      ]
     }
   },
   "tau_vehicle_building": {
@@ -146,13 +172,15 @@
       "phase_1": "build_idle_1",
       "phase_2": "build_idle_2",
       "phase_3": "build_idle_3",
-      "phase_4": "build_crane_lift",
-      "phase_5": "build_crane_lift_b",
-      "phase_6": "build_crane_lift_detach",
-      "phase_7": "build_crane_lift_hover",
-      "phase_8": "build_crane_liftoff",
-      "phase_9": "build_landing",
-      "phase_10": "build_vehicle_building_lift"
+      "phase_4": [
+        "build_crane_lift",
+        "build_crane_lift_b"
+      ],
+      "phase_5": "build_crane_lift_detach",
+      "phase_6": "build_crane_lift_hover",
+      "phase_7": "build_crane_liftoff",
+      "phase_8": "build_landing",
+      "phase_9": "build_vehicle_building_lift"
     }
   }
 }

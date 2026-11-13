@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Chaos Space Marine Squad — Bolter (Refire 0.5 s).
 export const BOLTER: WeaponProfile = {

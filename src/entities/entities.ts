@@ -610,12 +610,14 @@ export function updateBuildingConstructionVisual(world: any, id: any, comp: any,
   if (!mesh || mesh._realMeshBuilt || (!comp.constructing && !comp.pendingWorker)
     || !hasAnimatedConstruction(comp)) return false;
   if (!mesh._constructionAnimation) {
-    const modelType = comp.type === 'barracks' ? 'infantry_command' : comp.type === 'hq' ? 'hq-anim' : comp.type;
-    const config = FACTIONS.ig.structures?.find(entry => entry.type === modelType);
-    const phases = (config?.animations as { phases?: ConstructionPhases } | undefined)?.phases;
+    const modelType = comp.faction === 'ig' && comp.type === 'barracks' ? 'infantry_command'
+      : comp.faction === 'ig' && comp.type === 'hq' ? 'hq-anim' : comp.type;
+    const config = FACTIONS[comp.faction]?.structures?.find(entry => entry.type === modelType);
+    const animations = config?.animations as { phases?: ConstructionPhases; vehicle_production?: string; hide_from?: Record<string, string[]> } | undefined;
+    const phases = animations?.phases;
     if (!phases) return false;
     const root = makeBuildingConstructionMesh(modelType, comp.position, comp.team || PLAYER,
-      { [world.has(id, 'structure') ? 'structureEntityId' : 'buildingEntityId']: id, faction: comp.faction }, phases);
+      { [world.has(id, 'structure') ? 'structureEntityId' : 'buildingEntityId']: id, faction: comp.faction }, phases, animations?.vehicle_production, animations?.hide_from);
     if (!root) return false;
     root.position.copy(mesh.root.position);
     clearConstructionScaffold(mesh);
@@ -856,7 +858,7 @@ export function createStrategicPointEntity(world: any, x: number, z: number, kin
     captureProgress: 0,
     // Unowned progress drains toward 0 the moment capping stops.
     // Owned points (|progress| === 1) are exempt.
-    // |progress| latched when the planter finished flag_plant_2 (null until
+    // |progress| latched when flag_plant_1 seats the rod (null until
     // then): the assembly rise scrubs from this mark to full capture.
     raiseFrom: null,
     // Open/close gate for a capture order that is still on its way: elapsed
@@ -880,13 +882,16 @@ export function createStrategicPointEntity(world: any, x: number, z: number, kin
 }
 
 export function createBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any, ownerEntityRef: any, targetSoldierId: any, damageMult = 1, damageOverride: number | null = null) {
-  const id = world.createEntity([TAG.bullet]);
   const targetMesh = world.get(targetSoldierId, 'mesh')?.root;
   if (!targetMesh) {
     return null;
   }
-  const ownerPosition = ownerMeshPos;
-  const targetPosition = targetMesh.position;
+  const id = world.createEntity([TAG.bullet]);
+  // Soldier positions anchor at their feet, including the map's elevation.
+  const ownerPosition = ownerMeshPos.clone();
+  ownerPosition.y += 1.05;
+  const targetPosition = targetMesh.getWorldPosition(new THREE.Vector3());
+  targetPosition.y += 1.05;
   const dx = targetPosition.x - ownerPosition.x;
   const dy = targetPosition.y - ownerPosition.y;
   const dz = targetPosition.z - ownerPosition.z;
@@ -894,7 +899,7 @@ export function createBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any
   const speed = 28 + Math.random() * 6;
   const mesh = mkBox('bullet', 0.04, 0.04, 0.5);
   mesh.position.copy(ownerPosition);
-  mesh.position.y = 1.05;
+  mesh.lookAt(targetPosition);
   const bulletMaterial = new THREE.MeshStandardMaterial();
   bulletMaterial.color = new THREE.Color(0.87, 0.67, 0);
   bulletMaterial.emissive = new THREE.Color(0.53, 0.4, 0);
@@ -904,10 +909,13 @@ export function createBulletEntity(world: any, ownerMeshPos: any, ownerTeam: any
     targetId: targetSoldierId,
     ownerRef: ownerEntityRef,
     vx: (dx / length) * speed,
-    vy: ((dy + 0.02) / length) * speed,
+    vy: (dy / length) * speed,
     vz: (dz / length) * speed,
     damage: damageOverride ?? (8 + Math.random() * 5) * damageMult,
     age: 0,
+    gravity: 0,
+    aimHeight: 1.05,
+    lifetime: Math.max(2, length / speed + 0.5),
   });
   world.add(id, 'mesh', { root: mesh });
   return id;

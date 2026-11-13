@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Grey Knights — Storm Bolter (Range 25, Refire 0.5 s, Accuracy 80%).
 export const STORM_BOLTER: WeaponProfile = {

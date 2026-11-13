@@ -1,34 +1,40 @@
 {
   "armoury": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "WARP_IN_1",
-      "phase_2": "WARP_IN_2"
+      "placement": "build_placement",
+      "delivery": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
     }
   },
   "chaos_icon": {
     "phases": {
-      "phase_1": "BUILD"
+      "phase_1": "build"
     }
   },
   "chaos_temple": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "WARP_IN_1",
-      "phase_2": "WARP_IN_2"
+      "placement": "build_placement",
+      "delivery": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
     }
   },
   "desecrated_stronghold": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "BUILD_1",
-      "phase_2": "BUILD_2_RISE"
+      "placement": "build_placement",
+      "phase_1": "build_1",
+      "phase_2": "build_2_rise"
     }
   },
   "greater_sacrificial_circle": {
     "phases": {
-      "phase_1": "WARP_IN_1",
-      "phase_2": "WARP_IN_2"
+      "phase_1": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
     }
   },
   "land_mine": {
@@ -39,29 +45,38 @@
   },
   "machine_pit": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "WARP_IN_1",
-      "phase_2": "WARP_IN_2"
-    }
+      "placement": "build_placement",
+      "delivery": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
+    },
+    "vehicle_production": "PRODUCTION_1"
   },
   "plasma_generator": {
     "phases": {
       "placement": "build_placement",
-      "phase_1": "warp_in_1",
-      "phase_2": "warp_in_2"
+      "delivery": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
     }
   },
   "sacrificial_circle": {
     "phases": {
-      "phase_1": "WARP_IN_1",
-      "phase_2": "WARP_IN_2"
+      "phase_1": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
     }
   },
   "thermo_plasma_generator": {
     "phases": {
-      "placement": "BUILD_PLACEMENT",
-      "phase_1": "WARP_IN_1",
-      "phase_2": "WARP_IN_2"
+      "placement": "build_placement",
+      "delivery": [
+        "warp_in_1",
+        "warp_in_2"
+      ]
     }
   }
 }

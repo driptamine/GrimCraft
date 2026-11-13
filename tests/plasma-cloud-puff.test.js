@@ -174,6 +174,30 @@ describe('plasma cloud puff projectiles', () => {
     assert.ok(total >= 14 && total <= 20, 'total damage remains within one normal plasma shot');
   });
 
+  it('fires every plasma variant once per second independently of base weapon cadence', () => {
+    for (const projectile of [PLASMA_CLOUD_PUFF, 'plasma', 'plasma-final']) {
+      for (const baseProjectile of ['bullet', 'laser']) {
+        const f = fixture();
+        const squad = f.world.get(f.squad, 'squad');
+        const soldier = f.world.get(f.shooter, 'soldier');
+        squad.projectileType = projectile === PLASMA_CLOUD_PUFF ? projectile : baseProjectile;
+        soldier.projectileType = projectile;
+        soldier.attackRate = 2;
+        const fire = delta => _squadFireAll(f.world, f.squad, squad, [f.shooter], delta, { soldierEntityId: f.target });
+        const volleySize = projectile === PLASMA_CLOUD_PUFF ? 7 : 1;
+        fire(0);
+        assert.equal(soldier.attackCooldown, 1);
+        assert.equal(f.world.query('bullet').length, volleySize);
+        fire(.4);
+        fire(.5);
+        assert.equal(f.world.query('bullet').length, volleySize, `${projectile} must wait a full second`);
+        fire(.11);
+        assert.equal(f.world.query('bullet').length, volleySize * 2, `${projectile} must fire again after one second`);
+        assert.equal(soldier.attackCooldown, 1);
+      }
+    }
+  });
+
   it('moves once per tick and registers every hit even when a frame passes beyond the target', () => {
     const f = fixture();
     const ids = createPlasmaCloudPuffVolley(f.world, new THREE.Vector3(0, 1, 0), 'blue', f.shooter, f.target, 1, 21);

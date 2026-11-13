@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Chaos Space Marine Squad — Knife (Melee, Refire 1 s).
 export const KNIFE: WeaponProfile = {

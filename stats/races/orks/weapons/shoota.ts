@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Shoota Boy Squad — Shoota (Range 25, Refire 0.7 s, Accuracy 60%,
 // Default Weapon). Cannot target air (wiki N/A) so vehicle_air is 0.

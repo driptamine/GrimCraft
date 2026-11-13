@@ -37,6 +37,23 @@ export function decalStoreDirs(mapKey: unknown): string[] {
   return dirs;
 }
 
+// SGB references retain their art/decals/<biome>/ paths. Some extracted
+// map packs instead keep the same filenames directly inside decals/.
+export function resolveDecalUrl(path: string, mapKey: unknown, assets: Record<string, string>): string | null {
+  const relative = String(path || '').replace(/^art\/decals\//, '').replace(/\.(tga|dds|png|jpe?g|webp)$/i, '');
+  if (!relative) return null;
+  const filename = relative.split('/').pop()!;
+  for (const dir of decalStoreDirs(mapKey)) {
+    for (const name of new Set([relative, filename])) {
+      for (const extension of ['.png', '.tga', '.dds', '.jpg', '.jpeg', '.webp']) {
+        const url = assets[dir + name + extension];
+        if (url) return url;
+      }
+    }
+  }
+  return null;
+}
+
 export function decalBaseSize(path: unknown, sizeRaw: number): number {
   if (isChaosDecal(path)) {
     return Math.max(0.5, sizeRaw) / 0.05;

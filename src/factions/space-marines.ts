@@ -55,6 +55,7 @@ export default {
       animations: structures['command_hq'],
       cost: 300,
       time: 15,
+      hiddenNodes: ['sm_thunderhawk'],
       production: productionList['command_hq.glb'] || []
     },
     {
@@ -82,6 +83,7 @@ export default {
       animations: structures['machine_cult'],
       cost: 180,
       time: 12,
+      hiddenNodes: ['sm_thunderhawk'],
       production: productionList['machine_cult.glb'] || []
     },
     {

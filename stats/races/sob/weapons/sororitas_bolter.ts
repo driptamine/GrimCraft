@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Battle Sister Squad — Bolter (Range 25, Refire 0.5 s, Accuracy 60%,
 // Default Weapon). Sororitas variant: own line, separate key.

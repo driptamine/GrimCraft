@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { scene, canvas, pickAt } from '../core/scene.js';
 import { mkPlane, mkLines, mkGroup, disposeObj, loadTexture } from '../render/three-helpers.js';
 import type { MaybeMesh } from '../render/three-helpers.js';
-import { decalBaseSize, decalFlatRotation, drapeDecalLocalZ, decalStoreDirs, decalLayer } from './decal-size.js';
+import { decalBaseSize, decalFlatRotation, drapeDecalLocalZ, resolveDecalUrl, decalLayer } from './decal-size.js';
 import type { SgbDecal, SgbMapData } from './sgb-parser.js';
 
 const DECAL_GLOB: Record<string, string> = import.meta.glob('/maps/**/decals/**/*.{png,jpg,jpeg,webp,tga,dds}', {
@@ -317,18 +317,8 @@ function setSgbDecalStatus(msg: string, className = ''): void {
 }
 
 function fileUrlForDecalPath(path: string): string | null {
-  const rel = String(path || '')
-    .replace(/^art\/decals\//, '')
-    .replace(/\.(tga|dds|png|jpe?g|webp)$/i, '');
-  if (!rel) return null;
   const mapKey = (typeof window !== 'undefined' && (window as unknown as { _currentMapKey?: unknown })._currentMapKey) || '';
-  for (const dir of decalStoreDirs(mapKey)) {
-    for (const ext of ['.png', '.tga', '.dds', '.jpg', '.webp']) {
-      const key = dir + rel + ext;
-      if (DECAL_GLOB[key]) return DECAL_GLOB[key];
-    }
-  }
-  return null; // unresolved: caller skips (no black 404 planes)
+  return resolveDecalUrl(path, mapKey, DECAL_GLOB);
 }
 
 function _createDecalMaterial(url: string, idx: number): THREE.Material {

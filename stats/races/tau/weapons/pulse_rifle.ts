@@ -1,4 +1,4 @@
-import type { WeaponProfile } from '../../../../../src/combat/stats.js';
+import type { WeaponProfile } from '../../../../src/combat/stats.js';
 
 // Wiki: Fire Warrior Team — Pulse Rifle (Range 35, Refire 1.5 s,
 // Accuracy 70%, Default Weapon).
