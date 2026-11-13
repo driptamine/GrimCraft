@@ -10,6 +10,7 @@ import {
 } from '../core/scene.js';
 import { disposeObj, mkTorus } from '../render/three-helpers.js';
 import { getCameraMode } from '../render/camera-fps.js';
+import { isCameraLocked } from '../render/camera-lock.js';
 
 
 // Hover ring around strategic points + relics (world units). Tweak freely:
@@ -126,6 +127,7 @@ export const EDGE_ZONE = 40;
 
 
 export function tickCamera(deltaTime: number): void {
+  if (isCameraLocked(camera)) return;
   // First-person mode rides the soldier: edge pan and arrow keys stay on
   // the orbit rig, look-around is ALT+drag (alpha/beta).
   if (getCameraMode() === 'fps') {

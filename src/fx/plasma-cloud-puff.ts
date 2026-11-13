@@ -1,10 +1,11 @@
 import * as THREE from 'three';
+import { plasmaCloudLayout } from './plasma-cloud-layout.js';
 
 export const PLASMA_CLOUD_PUFF = 'plasma-cloud-puff';
 // Biggest toward the enemy: size grows along the flight direction.
 export const PLASMA_CLOUD_PUFF_SIZES = [0.15, 0.19, 0.2, 0.21, 0.25, 0.26, 0.3] as const;
-// Fraction of the A→B path from the muzzle end; the volley clusters on the front 55%.
-export const PLASMA_CLOUD_PUFF_SPREAD = [0, 0.09, 0.18, 0.28, 0.37, 0.46, 0.55] as const;
+// Position on the blue bolt itself, from its rear to its tip.
+export const PLASMA_CLOUD_PUFF_SPREAD = [0, 0.16, 0.33, 0.51, 0.67, 0.84, 1] as const;
 export const PLASMA_CLOUD_PUFF_COUNT = PLASMA_CLOUD_PUFF_SIZES.length;
 
 /** Live tuning shared by the preview sliders and the real volley. */
@@ -32,6 +33,17 @@ export function plasmaCloudPuffOffset(index: number, pathLength: number): number
   const wrapped = ((Math.trunc(index) % PLASMA_CLOUD_PUFF_COUNT) + PLASMA_CLOUD_PUFF_COUNT) % PLASMA_CLOUD_PUFF_COUNT;
   const fraction = plasmaCloudTuning.spread[wrapped];
   return (Number.isFinite(fraction) ? fraction : PLASMA_CLOUD_PUFF_SPREAD[wrapped]) * pathLength;
+}
+
+export function plasmaCloudPuffCenter(root: THREE.Object3D): number {
+  const distance = root.userData.plasmaPathDistance;
+  if (!(distance > 0)) return 0;
+  const travel = root.userData.plasmaPathTravelled || 0;
+  const layout = plasmaCloudLayout(distance, travel, plasmaCloudTuning.blasterLength);
+  const index = root.userData.puffVariant || 0;
+  const fraction = THREE.MathUtils.clamp(plasmaCloudPuffOffset(index, 1), 0, 1);
+  const offset = layout.start - (root.userData.plasmaStationaryCarrier ? 0 : travel);
+  return (offset + fraction * layout.length) / root.scale.z;
 }
 
 let texture: THREE.DataTexture | null = null;
@@ -109,13 +121,14 @@ export function updatePlasmaCloudPuff(root: THREE.Object3D, age: number): void {
   const time = Math.max(0, age);
   const size = plasmaCloudPuffSize(variant);
   root.scale.setScalar(1 + Math.min(time, 1.5) * 0.18);
+  const center = plasmaCloudPuffCenter(root);
   for (let layer = 0; layer < layerScales.length; layer++) {
     const sprite = root.children[layer];
     if (!sprite) continue;
     const phase = variant * 0.87 + layer * 2.1;
     const swirl = time * (1.4 + layer * 0.35) + phase;
     const drift = size * (0.08 + layer * 0.035);
-    sprite.position.set(Math.cos(swirl) * drift, Math.sin(swirl * 0.83) * drift, Math.sin(swirl * 0.6) * drift * 0.4);
+    sprite.position.set(Math.cos(swirl) * drift, Math.sin(swirl * 0.83) * drift, center + Math.sin(swirl * 0.6) * drift * 0.4);
     const width = size * layerScales[layer];
     sprite.scale.set(width * (1 + Math.sin(swirl) * 0.08), width * (0.88 + variant * 0.025 + Math.cos(swirl * 1.1) * 0.09), 1);
   }

@@ -53,7 +53,7 @@ import { makeBlasterBoltMesh } from '../fx/blaster-bolt.js';
 import { makeReaperBoltMesh } from '../fx/reaper-bolt.js';
 import { HELLGUN_LASER_NAME, makeHellgunLaserMesh } from '../fx/hellgun-laser.js';
 import { LASGUN_LASER_NAME, makeLasgunLaserMesh } from '../fx/lasgun-laser.js';
-import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, plasmaCloudPuffOffset } from '../fx/plasma-cloud-puff.js';
+import { PLASMA_CLOUD_PUFF, PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
 import { attachPlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
 import { mkBox, mkSphere, mkCylinder, mkPlane, mkGroup, disposeObj, childMeshes, descendants } from '../render/three-helpers.js';
 
@@ -979,24 +979,20 @@ export function createPlasmaCloudPuffVolley(world: any, origin: THREE.Vector3, t
   const aim = target.getWorldPosition(new THREE.Vector3());
   aim.y += 1;
   const direction = aim.clone().sub(origin).normalize();
-  const right = new THREE.Vector3(direction.z, 0, -direction.x);
-  if (right.lengthSq() < 1e-8) right.set(1, 0, 0);
-  right.normalize();
-  const up = new THREE.Vector3().crossVectors(direction, right).normalize();
   const damage = (damageOverride ?? (14 + Math.random() * 6) * damageMult) / PLASMA_CLOUD_PUFF_COUNT;
   const ids: number[] = [];
   const shotLength = origin.distanceTo(aim);
   for (let index = 0; index < PLASMA_CLOUD_PUFF_COUNT; index++) {
     const id = world.createEntity([TAG.bullet]);
     const mesh = makePlasmaCloudPuffMesh(index);
-    const angle = index * Math.PI * 2 / PLASMA_CLOUD_PUFF_COUNT;
-    mesh.position.copy(origin)
-      .addScaledVector(direction, plasmaCloudPuffOffset(index, shotLength))
-      .addScaledVector(right, Math.cos(angle) * 0.045).addScaledVector(up, Math.sin(angle) * 0.045);
+    mesh.position.copy(origin);
+    mesh.userData.plasmaPathDistance = shotLength;
+    mesh.userData.plasmaPathTravelled = 0;
     mesh.lookAt(aim);
-    if (index === 0) attachPlasmaCloudBlaster(mesh, mesh.position.distanceTo(aim));
+    updatePlasmaCloudPuff(mesh, 0);
+    if (index === 0) attachPlasmaCloudBlaster(mesh, shotLength);
     // One shared speed keeps the arranged cluster intact for the whole flight.
-    const velocity = aim.clone().sub(mesh.position).normalize().multiplyScalar(35);
+    const velocity = direction.clone().multiplyScalar(35);
     world.add(id, 'bullet', {
       team, targetId, ownerRef: ownerId, projectileType: PLASMA_CLOUD_PUFF, puffVariant: index,
       vx: velocity.x, vy: velocity.y, vz: velocity.z, damage, age: 0, travelled: 0,

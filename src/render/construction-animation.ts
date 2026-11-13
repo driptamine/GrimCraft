@@ -18,7 +18,7 @@ export interface ConstructionTimeline {
 
 export const CONSTRUCTION_DELIVERY_TIME = 1;
 export function hasAnimatedConstruction(building: { type: string; faction: string }): boolean {
-    return building.faction === 'ig' && ['hq', 'hq-anim', 'infantry_command', 'barracks', 'listening_post', 'mechanized', 'mars_pattern', 'plasma_generator', 'tactica_control'].includes(building.type);
+    return building.faction === 'ig' && ['hq', 'hq-anim', 'infantry_command', 'barracks', 'listening_post', 'mechanized', 'mars_pattern', 'plasma_generator', 'tactica_control', 'turret'].includes(building.type);
 }
 
 function hasMotion(track: THREE.KeyframeTrack): boolean {

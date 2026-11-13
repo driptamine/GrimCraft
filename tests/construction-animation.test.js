@@ -178,7 +178,7 @@ test('delivery precedes worker arrival, the worker builds until completion, and 
   } finally { factionContainers.ig.structures.infantry_command = previous; }
 });
 
-for (const type of ['listening_post', 'mechanized', 'mars_pattern', 'plasma_generator', 'tactica_control', 'hq', 'hq-anim']) {
+for (const type of ['listening_post', 'mechanized', 'mars_pattern', 'plasma_generator', 'tactica_control', 'turret', 'hq', 'hq-anim']) {
   test(`${type}: delivery, assembly, worker animation and multiplayer completion`, async () => {
     globalThis.window = { addEventListener() {} };
     globalThis.document = { getElementById: () => null, querySelector: () => null };
@@ -202,7 +202,7 @@ for (const type of ['listening_post', 'mechanized', 'mars_pattern', 'plasma_gene
       const world = new World();sceneModule.setWorld(world);
       const pointId = world.createEntity([]);
       world.add(pointId, 'strategicPoint', { position: new THREE.Vector3(), owner: 'blue', hasListeningPost: false, lpTier: 0 });
-      const kind = ['plasma_generator', 'tactica_control'].includes(type) ? 'structure' : 'building';
+      const kind = ['plasma_generator', 'tactica_control', 'turret'].includes(type) ? 'structure' : 'building';
       let orderedPostId;
       if (type === 'listening_post') {
         sceneModule.setRequisition(500);
@@ -319,7 +319,7 @@ for (const kind of ['structure', 'airfield']) {
     const { systemBuilder } = await import('../src/systems/builder.js');
     const { disposeMeshComponent } = await import('../src/systems/combat.js');
     const world = new World();sceneModule.setWorld(world);
-    const id = kind === 'airfield' ? createAirfieldEntity(world, new THREE.Vector3(), 'ig', 'blue') : createStructureEntity(world, 'turret', new THREE.Vector3(), 'ig', 'blue');
+    const id = kind === 'airfield' ? createAirfieldEntity(world, new THREE.Vector3(), 'ig', 'blue') : createStructureEntity(world, 'mines', new THREE.Vector3(), 'ig', 'blue');
     const site = world.get(id, kind);site.requiresWorker = true;site.pendingWorker = true;
     const tick = () => (kind === 'airfield' ? systemAirfield : systemStructure)(world, .5);
     tick();assert.equal(site.constructProgress, 0);

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { enforceCameraLock } from '../render/camera-lock.js';
 import { applyObjectLighting, bindLighting, shadowsEnabled, SUN_OFFSET } from '../render/lighting.js';
 import { attachGroundShadowOverlay } from '../render/ground-shadows.js';
 import { isComputerOnlyMatch } from './local-match.js';
@@ -513,10 +514,11 @@ export function updateCamera() {
   if (!camera) {
     return;
   }
-  if (updateFirstPersonCamera()) {
+  const locked = enforceCameraLock(camera);
+  if (!locked && updateFirstPersonCamera()) {
     return;
   }
-  if (updateThirdPersonCamera()) {
+  if (!locked && updateThirdPersonCamera()) {
     return;
   }
   camera.radius = Math.max(camera.lowerRadiusLimit, Math.min(camera.upperRadiusLimit, camera.radius));

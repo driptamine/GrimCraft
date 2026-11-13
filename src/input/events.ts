@@ -1,5 +1,6 @@
 import { findConstructionTarget } from './construction-target.js';
 import * as THREE from 'three';
+import { isCameraLocked } from '../render/camera-lock.js';
 import { DEFAULT_CAMERA_ALPHA, DEFAULT_CAMERA_BETA, DEFAULT_CAMERA_RADIUS, applyZoom } from '../render/camera-zoom.js';
 import {
   cursorCss,
@@ -180,6 +181,7 @@ export function setupPointerEvents(): void {
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   canvas.addEventListener('pointerdown', (event) => {
     if (!canvas) return;
+    if (isCameraLocked(camera)) return;
     clearUnitHover();
     // Touch in shooter mode is owned by the touch controls (left stick for
     // movement, right-side drag for look, FIRE button to shoot): letting the
@@ -440,6 +442,7 @@ export function setupPointerEvents(): void {
     }
   }
   canvas.addEventListener('pointermove', (event) => {
+    if (isCameraLocked(camera)) return;
     // Shooter look under pointer lock: cursor deltas steer the view, the
     // frozen cursor position feeds nothing else this frame.
     if (fpsLook(event.movementX || 0, event.movementY || 0)) {
@@ -485,6 +488,10 @@ export function setupPointerEvents(): void {
     if (event.pointerId !== undefined) {
       try { canvas.releasePointerCapture(event.pointerId); } catch (_) {}
     }
+    if (isCameraLocked(camera)) {
+      setIsSelecting(false);setIsAltOrbiting(false);setRightDown(false);setIsOrbiting(false);
+      return;
+    }
     if (event.button === 0) {
       if (isAltOrbiting) {
         setIsAltOrbiting(false);
@@ -528,6 +535,7 @@ export function setupPointerEvents(): void {
     }
   });
   canvas.addEventListener('wheel', (event) => {
+    if (isCameraLocked(camera)) { event.preventDefault();return; }
     camera.radius = applyZoom(camera.radius, event.deltaY, camera.lowerRadiusLimit, camera.upperRadiusLimit);
     event.preventDefault();
   }, { passive: false });
@@ -538,6 +546,10 @@ export function initInput(): void {
   preloadCursors();
   preloadTaskbarIcons();
   window.addEventListener('keydown', (event) => {
+    if (isCameraLocked(camera) && /^(Arrow(?:Up|Down|Left|Right)|AltLeft|AltRight|Backspace|Tab|KeyP)$/.test(event.code)) {
+      if (event.code !== 'Tab') event.preventDefault();
+      return;
+    }
     keys[event.code] = true;
     if (event.code.startsWith('Arrow')) {
       event.preventDefault();

@@ -180,5 +180,33 @@
         "maxZ": 7.6
       }
     }
+  },
+  "turret": {
+    "construction": {
+      "minX": -4.8,
+      "maxX": 4.8,
+      "minZ": -3.8,
+      "maxZ": 3.2
+    },
+    "completed": {
+      "minX": -4.7,
+      "maxX": 3.2,
+      "minZ": -3.8,
+      "maxZ": 2.9
+    },
+    "selection": {
+      "construction": {
+        "minX": -3.3,
+        "maxX": 3.3,
+        "minZ": -3.2,
+        "maxZ": 3.2
+      },
+      "completed": {
+        "minX": -4.3,
+        "maxX": 2.7,
+        "minZ": -2.7,
+        "maxZ": 2.7
+      }
+    }
   }
 }

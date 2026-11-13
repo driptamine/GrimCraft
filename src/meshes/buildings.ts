@@ -66,6 +66,7 @@ export function makeBuildingConstructionMesh(type: string, position: THREE.Vecto
   const root = _instantiateFromContainer({ ...container, _hiddenNodes: null }, metaPayload) as AnyGroup;
   root.position.copy(position);
   if (type === 'hq-anim') root.rotation.y = Math.PI / 2;
+  if (type === 'turret') root._turret = descendants(root).find(node => node.name.toLowerCase().includes('turret')) || root;
   const bounds = (BUILDING_BOUNDS as any)[type === 'hq-anim' ? 'hq' : type] || (STRUCTURE_BOUNDS as any)[type] || BUILDING_BOUNDS.barracks;
   const ring = makeStructureSelRing(root, { type, faction: metaPayload.faction as string, constructing: true }, bounds, .13);
   root._ring = ring;root._ringMat = ring._material;

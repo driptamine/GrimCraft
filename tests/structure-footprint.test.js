@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { World } from '../src/core/ecs.js';
 import { structureFootprint, selectionFootprint, worldFootprint, insideFootprint, canWorkAtStructure, constructionWorkPosition, constructionApproachWaypoint, segmentEntersFootprint } from '../src/core/structure-footprint.js';
-const types = ['hq', 'infantry_command', 'mechanized', 'mars_pattern', 'listening_post', 'plasma_generator', 'tactica_control'];
+const types = ['hq', 'infantry_command', 'mechanized', 'mars_pattern', 'listening_post', 'plasma_generator', 'tactica_control', 'turret'];
 
 test('measured profiles preserve the different widths, depths and model origins', () => {
   const post = structureFootprint({ type: 'listening_post', faction: 'ig' }, true);

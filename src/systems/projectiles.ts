@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { updatePlasmaBoltCrackle } from '../fx/plasma-bolt.js';
-import { PLASMA_CLOUD_PUFF, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
+import { PLASMA_CLOUD_PUFF, plasmaCloudTuning, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
+import { plasmaCloudLayout } from '../fx/plasma-cloud-layout.js';
 import { updatePlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
 import { HELLGUN_LASER_NAME, fadeHellgunLaser } from '../fx/hellgun-laser.js';
 import { LASGUN_LASER_NAME, fadeLasgunLaser } from '../fx/lasgun-laser.js';
@@ -20,6 +21,7 @@ import { _groundAt, _snapTerrainBegin } from './terrain.js';
 export const _boltLookTarget = new THREE.Vector3();
 export const _boltFlashWhite = new THREE.Color(1, 1, 1);
 const _puffStart = new THREE.Vector3();
+const _puffEnd = new THREE.Vector3();
 const _puffTravel = new THREE.Vector3();
 const _puffClosest = new THREE.Vector3();
 
@@ -402,12 +404,11 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
       continue;
     }
     const meshComponent = world.get(id, 'mesh');
-    if (!meshComponent) {
+    if (!meshComponent || meshComponent.root.userData.disposed) {
       continue;
     }
     bulletComponent.age += deltaTime;
     const cloudPuff = bulletComponent.projectileType === PLASMA_CLOUD_PUFF;
-    if (cloudPuff) updatePlasmaCloudPuff(meshComponent.root, bulletComponent.age);
     // Elongated bolt flies nose-first along its velocity; filaments swirl.
     _boltLookTarget.set(
       meshComponent.root.position.x + bulletComponent.vx,
@@ -421,6 +422,7 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
     }
     updatePlasmaBoltCrackle(meshComponent.root, bulletComponent.age);
     if (window._multiplayerMode) {
+      if (cloudPuff) updatePlasmaCloudPuff(meshComponent.root, bulletComponent.age);
       continue;
     }
     if (bulletComponent.age > 2.5) {
@@ -432,9 +434,26 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
     meshComponent.root.position.x += bulletComponent.vx * deltaTime;
     meshComponent.root.position.y += bulletComponent.vy * deltaTime;
     meshComponent.root.position.z += bulletComponent.vz * deltaTime;
+    let reachedEnd = false;
     if (cloudPuff) {
       bulletComponent.travelled = (bulletComponent.travelled || 0) + meshComponent.root.position.distanceTo(_puffStart);
+      meshComponent.root.userData.plasmaPathTravelled = bulletComponent.travelled;
+      updatePlasmaCloudPuff(meshComponent.root, bulletComponent.age);
       updatePlasmaCloudBlaster(meshComponent.root, bulletComponent.travelled);
+      _puffEnd.copy(meshComponent.root.position);
+      const pathDistance = meshComponent.root.userData.plasmaPathDistance;
+      if (pathDistance > 0) {
+        const layout = plasmaCloudLayout(pathDistance, bulletComponent.travelled, plasmaCloudTuning.blasterLength);
+        const speed = Math.hypot(bulletComponent.vx, bulletComponent.vy, bulletComponent.vz);
+        // Collision follows the rendered tip, including its growth and the
+        // endpoint clamp. Checking only the carrier lets the visible bolt
+        // sit inside a target while its rear is still approaching.
+        if (speed > 1e-8) {
+          _puffTravel.set(bulletComponent.vx, bulletComponent.vy, bulletComponent.vz);
+          _puffEnd.addScaledVector(_puffTravel, (layout.start + layout.length - bulletComponent.travelled) / speed);
+        }
+        reachedEnd = bulletComponent.travelled >= pathDistance - layout.length - 1e-6;
+      }
     }
     const targetMeshComponent = world.get(bulletComponent.targetId, 'mesh');
     if (targetMeshComponent && world.has(bulletComponent.targetId, 'soldier')) {
@@ -446,7 +465,7 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
       let distance = meshComponent.root.position.distanceTo(_boltLookTarget);
       if (cloudPuff) {
         // Small, fast puffs must still hit if a frame steps past the target.
-        _puffTravel.copy(meshComponent.root.position).sub(_puffStart);
+        _puffTravel.copy(_puffEnd).sub(_puffStart);
         const lengthSq = _puffTravel.lengthSq();
         const t = lengthSq > 0 ? THREE.MathUtils.clamp(_puffClosest.copy(_boltLookTarget).sub(_puffStart).dot(_puffTravel) / lengthSq, 0, 1) : 0;
         _puffClosest.copy(_puffStart).addScaledVector(_puffTravel, t);
@@ -462,6 +481,12 @@ export function systemPlasmaBullet(world: any, deltaTime: number) {
         world.destroyEntity(id);
         continue;
       }
+    }
+    // A dodging, dead or removed target must not leave the clouds pinned
+    // to the original aim point until the general lifetime timer expires.
+    if (cloudPuff && reachedEnd) {
+      disposeObj(meshComponent.root);
+      world.destroyEntity(id);
     }
   }
 }

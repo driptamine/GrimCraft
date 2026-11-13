@@ -32,14 +32,20 @@ function decalDisplayName(path: string): string {
 function highlight(path: string, index = -1): void {
   const list = document.getElementById('decal-selection-list');
   if (!list) return;
-  list.querySelectorAll('.decal-group-row').forEach((row) => {
-    row.classList.toggle('selected', (row as HTMLElement).dataset.path === path && index === -1);
+  list.querySelectorAll('.decal-group-row, .decal-sel-row').forEach((row) => {
+    const selected = (row as HTMLElement).dataset.path === path;
+    row.classList.toggle('selected', selected);
+    row.setAttribute('aria-pressed', String(selected));
   });
   list.querySelectorAll('.decal-instance-row').forEach((row) => {
     const idx = Number((row as HTMLElement).dataset.index);
-    row.classList.toggle('selected', idx === index);
+    const selected = idx === index && (row as HTMLElement).dataset.path === path;
+    row.classList.toggle('selected', selected);
+    row.setAttribute('aria-pressed', String(selected));
   });
-  const selected = list.querySelector('.decal-instance-row.selected') || list.querySelector('.decal-group-row.selected');
+  const instance = list.querySelector('.decal-instance-row.selected');
+  const selected = instance?.closest('.decal-group')?.classList.contains('expanded') ? instance
+    : list.querySelector('.decal-group-row.selected, .decal-sel-row.selected');
   if (selected) selected.scrollIntoView({ block: 'nearest' });
   syncPosControls();
 }
@@ -144,7 +150,7 @@ export function buildDecalsSelectionList(): void {
 
       const header = document.createElement('button');
       header.type = 'button';
-      header.className = 'decal-group-row' + (getSelectedDecalPath() === group.path && getSelectedDecalIndex() === -1 ? ' selected' : '');
+      header.className = 'decal-group-row' + (getSelectedDecalPath() === group.path ? ' selected' : '');
       header.dataset.path = group.path;
       header.title = group.path;
 
@@ -250,12 +256,16 @@ export function toggleDecalsPanel(): void {
   panel.classList.toggle('open', opening);
   const btn = document.getElementById('decals-panel-btn');
   if (btn) btn.classList.toggle('active', opening);
-  if (opening) buildDecalsSelectionList();
+  if (opening) {
+    const path = getSelectedDecalPath();
+    if (path && getSelectedDecalIndex() !== -1) _expanded.add(path);
+    buildDecalsSelectionList();
+  }
 }
 
 window.addEventListener('decal-selected', (event) => {
   const path = (event as CustomEvent).detail?.path || '';
-  const idx = (event as CustomEvent).detail?.idx ?? -1;
+  const idx = (event as CustomEvent).detail?.index ?? -1;
   if (path && idx !== -1 && !_expanded.has(path)) {
     _expanded.add(path);
     buildDecalsSelectionList();

@@ -177,9 +177,9 @@ function AmmoSubPanel({ data }: any): JSX.Element | null {
       />}
       {puffSquads.length > 0 && <AmmoButton
         icon="🔍"
-        label={isPlasmaPuffPreviewOpen() ? 'CLOSE PREVIEW' : 'VIEW PUFFS'}
+        label={isPlasmaPuffPreviewOpen() ? 'CLOSE EDITOR' : 'EDIT PLASMA'}
         disabled={false}
-        tooltip="VIEW PLASMA CLOUD PUFF\nInspect all seven stationary projectiles up close\nMouse wheel: zoom · Alt + drag: orbit · Esc: close"
+        tooltip="PLASMA EDITOR\nSelect clouds, edit sizes and positions, preview the beam\nUndo / redo · Pause / scrub · Copy settings · Esc: close"
         style={{ borderColor: isPlasmaPuffPreviewOpen() ? '#879eff' : undefined }}
         onClick={togglePlasmaPuffPreview}
       />}

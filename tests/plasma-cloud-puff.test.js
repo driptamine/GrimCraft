@@ -118,14 +118,37 @@ describe('plasma cloud puff projectiles', () => {
       assert.equal(bullet.puffVariant, index);
       assert.equal(bullet.targetId, f.target);
       assert.equal(bullet.ownerRef, f.shooter);
-      const expected = origin.clone().addScaledVector(direction, plasmaCloudPuffOffset(index, shotLength));
-      assert.ok(root.position.distanceTo(expected) < 0.06, `puff ${index} spawns on the front 55% of the path`);
+      assert.ok(root.position.distanceTo(origin) < 1e-9, 'all seven puffs share the beam flight origin');
+      assert.equal(root.userData.plasmaPathDistance, shotLength);
       const speed = Math.hypot(bullet.vx, bullet.vy, bullet.vz);
       assert.ok(Math.abs(speed - 35) < 1e-9, 'one shared speed keeps the arranged cluster intact');
       assert.equal(root.parent, headless);
       damage += bullet.damage;
     }
     assert.equal(damage, 28, 'seven puffs share the damage of one shot');
+  });
+
+  it('keeps all seven visual clouds on the same beam through all three flight stages in every direction', () => {
+    for (const targetPosition of [new THREE.Vector3(40,0,0),new THREE.Vector3(-40,0,0),new THREE.Vector3(0,0,40),new THREE.Vector3(0,0,-40),new THREE.Vector3(25,10,30)]) {
+      const f=fixture(), origin=new THREE.Vector3(0,1,0);
+      f.world.get(f.target,'mesh').root.position.copy(targetPosition);
+      const ids=createPlasmaCloudPuffVolley(f.world,origin,'blue',f.shooter,f.target);
+      const carrier=f.world.get(ids[0],'mesh').root,beam=carrier.getObjectByName('plasma_cloud_blaster');
+      for(const delta of [0,.1,.35,.35]){
+        systemPlasmaBullet(f.world,delta);headless.updateMatrixWorld(true);
+        const start=beam.getWorldPosition(new THREE.Vector3()),end=beam.localToWorld(new THREE.Vector3(0,0,.65));
+        const direction=end.clone().sub(start),length=direction.length();direction.normalize();
+        for(const id of ids){
+          const root=f.world.get(id,'mesh').root;
+          assert.ok(root.position.distanceTo(carrier.position)<1e-9,'all clouds move with the beam carrier');
+          for(const sprite of root.children.slice(0,3)){
+            const relative=sprite.getWorldPosition(new THREE.Vector3()).sub(start),along=relative.dot(direction);
+            assert.ok(along>=-.03&&along<=length+.03,'cloud centers remain along the short beam, not spread over the whole shot path');
+            assert.ok(relative.addScaledVector(direction,-along).length()<.08,'wisps stay wrapped around the beam axis');
+          }
+        }
+      }
+    }
   });
 
   it('applies tuned sizes and spread to new meshes and restores defaults on reset', () => {
@@ -188,14 +211,41 @@ describe('plasma cloud puff projectiles', () => {
     assert.ok(Math.abs(bounds.min.x - carrier.position.x) < 0.025, 'beam travels with the clouds');
     assert.ok(bounds.max.x - bounds.min.x < 1.85 * 0.6 + 0.025, 'beam never stretches beyond 60% of soldier height');
     assert.equal(f.world.query('bullet').length, 7, 'visual beam creates no extra damaging projectile');
-    assert.equal(f.world.get(f.target, 'soldier').hp, 494, 'staggered heads strike first while the tail is still flying');
+    assert.equal(f.world.get(f.target, 'soldier').hp, 500, 'a connected bolt does not deal damage ahead of its flight');
     f.world._flushDestroyed();
-    assert.equal(f.world.query('bullet').length, 5, 'impacted heads are gone like after a real frame flush');
+    assert.equal(f.world.query('bullet').length, 7, 'all seven clouds remain with the bolt until impact');
     systemPlasmaBullet(f.world, 0.5);
     f.world._flushDestroyed();
     assert.ok(Math.abs(f.world.get(f.target, 'soldier').hp - 479) < 1e-9);
     assert.equal(beam.parent.parent, null, 'beam is cleaned up with its cloud carrier');
     assert.equal(scene.particles.length, 0);
+  });
+
+  it('removes the entire plasma effect when its visible tip reaches the enemy', () => {
+    const f=fixture();
+    const ids=createPlasmaCloudPuffVolley(f.world,new THREE.Vector3(0,1,0),'blue',f.shooter,f.target,1,21);
+    const roots=ids.map(id=>f.world.get(id,'mesh').root),beam=roots[0].getObjectByName('plasma_cloud_blaster');
+    systemPlasmaBullet(f.world,.24); // Carrier at 8.4; the tip already touches the target at 10.
+    assert.ok(Math.abs(f.world.get(f.target,'soldier').hp-479)<1e-9);
+    assert.ok(roots.every(root=>root.parent===null),'all seven clouds disappear on impact');
+    assert.equal(beam.parent.parent,null,'the blue core disappears with the clouds');
+    systemPlasmaBullet(f.world,.01);
+    assert.ok(Math.abs(f.world.get(f.target,'soldier').hp-479)<1e-9,'queued destruction cannot apply damage twice');
+    f.world._flushDestroyed();assert.equal(f.world.query('bullet').length,0);
+  });
+
+  it('does not leave plasma at the old aim point when a target dodges or disappears', () => {
+    for(const removed of [false,true]){
+      const f=fixture();
+      const ids=createPlasmaCloudPuffVolley(f.world,new THREE.Vector3(0,1,0),'blue',f.shooter,f.target,1,21);
+      const roots=ids.map(id=>f.world.get(id,'mesh').root);
+      if(removed)f.world.remove(f.target,'soldier');
+      else f.world.get(f.target,'mesh').root.position.z=5;
+      systemPlasmaBullet(f.world,.28);f.world._flushDestroyed();
+      assert.equal(f.world.query('bullet').length,0,'the bolt ends at its launch range instead of sticking there');
+      assert.ok(roots.every(root=>root.parent===null));
+      if(!removed)assert.equal(f.world.get(f.target,'soldier').hp,500,'a dodged shot deals no damage');
+    }
   });
 
   it('expires missed clouds and allocates nothing when the target is missing', () => {

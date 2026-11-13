@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { plasmaCloudTuning } from './plasma-cloud-puff.js';
+import { CLOUD_BLASTER_STAGE_LENGTHS, plasmaCloudLayout } from './plasma-cloud-layout.js';
+export { CLOUD_BLASTER_STAGE_LENGTHS } from './plasma-cloud-layout.js';
 
-// Same nominal guardsman height used by the custom soldier model importer.
-const SOLDIER_HEIGHT = 1.85;
-export const CLOUD_BLASTER_STAGE_LENGTHS = [0.2, 0.4, 0.6].map(fraction => SOLDIER_HEIGHT * fraction);
 export const CLOUD_BLASTER_INITIAL_LENGTH = CLOUD_BLASTER_STAGE_LENGTHS[0];
 const GEOMETRY_LENGTH = 0.65;
 
@@ -58,15 +57,15 @@ export function updatePlasmaCloudBlaster(carrier: THREE.Object3D, travelled: num
   const state = carrier.userData.cloudBlaster as CloudBlaster | undefined;
   if (!state) return;
   const travel = Math.max(0, travelled);
-  const stage = Math.min(2, Math.floor(travel / state.distance * 3));
-  const length = Math.min(state.distance, CLOUD_BLASTER_STAGE_LENGTHS[stage] * Math.max(0.05, plasmaCloudTuning.blasterLength));
+  const layout = plasmaCloudLayout(state.distance, travel, plasmaCloudTuning.blasterLength);
+  const length = layout.length;
   const width = Math.max(0.05, plasmaCloudTuning.blasterWidth);
   const node = state.node;
-  node.visible = travel < state.distance;
+  node.visible = layout.visible;
   if (!node.visible) return;
   // Travel with the clouds; stop the head at B without stretching the bolt.
-  // A stationary preview carrier uses the same path without moving its clouds.
-  const start = Math.min(travel, state.distance - length);
+  // A stationary preview carrier evaluates the same beam-and-cloud path.
+  const start = layout.start;
   const offset = start - (state.movingCarrier ? travel : 0);
   node.position.set(0, 0, offset / carrier.scale.z);
   node.scale.set(

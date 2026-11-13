@@ -4,14 +4,15 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import * as THREE from 'three';
+import * as cameraLock from '../src/render/camera-lock.js';
 import { createPlasmaPuffPreview, findPlasmaPuffPreviewCenter } from '../src/render/plasma-puff-preview.js';
 import { makePlasmaCloudPuffMesh } from '../src/fx/plasma-cloud-puff.js';
 import * as puffFx from '../src/fx/plasma-cloud-puff.js';
 import * as blasterFx from '../src/fx/plasma-cloud-blaster.js';
 import { World } from '../src/core/ecs.js';
 
-describe('stationary plasma projectile preview', () => {
-  it('keeps all seven samples in place indefinitely while the gas keeps moving', () => {
+describe('plasma projectile preview', () => {
+  it('loops the attached clouds indefinitely without moving the preview origin', () => {
     const scene = new THREE.Scene();
     const preview = createPlasmaPuffPreview(scene, new THREE.Vector3(10, 2, 20), new THREE.Vector3(-1, 0, 0));
     assert.equal(preview.root.children.length, 7);
@@ -45,7 +46,7 @@ describe('stationary plasma projectile preview', () => {
     assert.equal(live.parent, scene);
   });
 
-  it('shows the three beam stages across the sample row while keeping all seven clouds stationary', () => {
+  it('shows all three beam stages while the seven clouds stay attached to the moving core', () => {
     const scene = new THREE.Scene();
     const preview = createPlasmaPuffPreview(scene, new THREE.Vector3(10, 2, 20), new THREE.Vector3(1, 0, 0));
     const carrier = preview.root.children[0];
@@ -69,6 +70,26 @@ describe('stationary plasma projectile preview', () => {
     assert.ok(Math.abs(longLength - 1.85 * 0.6) < 1e-6);
     assert.ok(preview.root.children.every((puff, index) => puff.position.equals(positions[index])));
     preview.dispose();
+  });
+
+  it('keeps cloud centers and the selected marker on the beam when scrubbing and changing its length', () => {
+    const scene=new THREE.Scene(),preview=createPlasmaPuffPreview(scene,new THREE.Vector3(2,1,3),new THREE.Vector3(-1,0,0));
+    preview.select(6);
+    for(const lengthScale of [.2,1,2.5]){
+      puffFx.plasmaCloudTuning.blasterLength=lengthScale;
+      for(const time of [0,.8,1.7,2.8,3.99,4.1]){
+        preview.setTime(time);scene.updateMatrixWorld(true);
+        const beam=preview.root.getObjectByName('plasma_cloud_blaster'),start=beam.getWorldPosition(new THREE.Vector3());
+        const end=beam.localToWorld(new THREE.Vector3(0,0,.65)),direction=end.clone().sub(start),length=direction.length();direction.normalize();
+        for(const puff of preview.root.children){
+          const center=puff.children[0].getWorldPosition(new THREE.Vector3()).sub(start),along=center.dot(direction);
+          assert.ok(along>=-.03&&along<=length+.03);assert.ok(center.addScaledVector(direction,-along).length()<.08);
+        }
+        const marker=preview.root.getObjectByName('plasma_puff_selection');
+        assert.ok(marker.getWorldPosition(new THREE.Vector3()).distanceTo(end)<1e-5,'selected tip marker follows the cloud at the end of the beam');
+      }
+    }
+    puffFx.resetPlasmaCloudTuning();preview.dispose();
   });
 });
 
@@ -127,6 +148,7 @@ function fixture() {
     if (name.endsWith('/hud.js')) return { updateHUD() {} };
     if (name.endsWith('/terrain.js')) return { _groundAt: () => 5 };
     if (name.endsWith('/camera-fps.js')) return { setCameraMode() {} };
+    if (name.endsWith('/camera-lock.js')) return cameraLock;
     if (name.endsWith('/render/plasma-puff-preview.js')) return { createPlasmaPuffPreview, findPlasmaPuffPreviewCenter };
     if (name.endsWith('/fx/plasma-cloud-puff.js')) return puffFx;
     if (name.endsWith('/fx/plasma-cloud-blaster.js')) return blasterFx;
@@ -157,13 +179,26 @@ describe('projectile preview controls', () => {
     for (const tick of f.callbacks) tick();
     camera.alpha += 1;
     camera.radius = 2;
-    findByText(f.body.children[0], 'Закрыть').listeners.click();
+    findByText(f.body.children[0], 'Готово').listeners.click();
     assert.equal(f.isPlasmaPuffPreviewOpen(), false);
     assert.deepEqual(camera.target, saved.target);
     for (const key of ['alpha', 'beta', 'radius', 'lowerRadiusLimit']) assert.equal(camera[key], saved[key], key);
     assert.equal(f.callbacks.size, 0);
     assert.equal(f.body.children.length, 0);
     assert.equal(f.state.scene.children.length, 0);
+  });
+
+  it('holds the preview camera pose while editing and releases the lock on close or world replacement', () => {
+    const f=fixture(),camera=f.state.camera;
+    f.togglePlasmaPuffPreview();assert.equal(cameraLock.isCameraLocked(camera),true);
+    const expected={target:camera.target.clone(),alpha:camera.alpha,beta:camera.beta,radius:camera.radius};
+    camera.target.set(200,0,-200);camera.alpha+=1;camera.beta=.1;camera.radius=100;
+    assert.equal(cameraLock.enforceCameraLock(camera),true);
+    assert.deepEqual(camera.target,expected.target);assert.equal(camera.alpha,expected.alpha);assert.equal(camera.beta,expected.beta);assert.equal(camera.radius,expected.radius);
+    f.togglePlasmaPuffPreview();assert.equal(cameraLock.isCameraLocked(camera),false);
+    camera.target.x=42;assert.equal(cameraLock.enforceCameraLock(camera),false);assert.equal(camera.target.x,42);
+    f.togglePlasmaPuffPreview();assert.equal(cameraLock.isCameraLocked(camera),true);
+    f.state.world={};for(const tick of f.callbacks)tick();assert.equal(cameraLock.isCameraLocked(camera),false);
   });
 
   it('chooses a free row beside guardsmen instead of placing samples on buildings, structures, or airfields', () => {

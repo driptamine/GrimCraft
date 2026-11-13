@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, plasmaCloudPuffOffset, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
+import { PLASMA_CLOUD_PUFF_COUNT, makePlasmaCloudPuffMesh, plasmaCloudPuffOffset, plasmaCloudPuffSize, plasmaCloudPuffCenter, updatePlasmaCloudPuff } from '../fx/plasma-cloud-puff.js';
 import { attachPlasmaCloudBlaster, updatePlasmaCloudBlaster } from '../fx/plasma-cloud-blaster.js';
 
 const SAMPLE_SPACING = 0.55;
 
-/** Full A→B length of the preview row; puffs cluster on its front 55%. */
+/** Full travel path of the preview bolt; the seven clouds ride its short core. */
 export function pathPreviewLength(): number {
   return (PLASMA_CLOUD_PUFF_COUNT - 1) * SAMPLE_SPACING;
 }
@@ -81,35 +81,68 @@ export function createPlasmaPuffPreview(scene: THREE.Object3D, center: THREE.Vec
   direction.normalize();
   const pathLength = pathPreviewLength();
   const start = center.clone().addScaledVector(direction, -pathLength / 2);
-  const place = (puff: THREE.Group, index: number): void => {
-    puff.position.copy(start).addScaledVector(direction, plasmaCloudPuffOffset(index, pathLength));
+  const place = (puff: THREE.Group): void => {
+    puff.position.copy(start);
+    puff.userData.plasmaPathDistance = pathLength;
+    puff.userData.plasmaStationaryCarrier = true;
+    puff.lookAt(start.clone().add(direction));
   };
   const puffs: THREE.Group[] = [];
   for (let index = 0; index < PLASMA_CLOUD_PUFF_COUNT; index++) {
     const puff = makePlasmaCloudPuffMesh(index);
-    place(puff, index);
+    place(puff);
     root.add(puff);
     puffs.push(puff);
   }
   scene.add(root);
   puffs[0].lookAt(puffs[0].position.clone().add(direction));
   attachPlasmaCloudBlaster(puffs[0], pathLength, false);
+  const guide = new THREE.ArrowHelper(direction, start.clone().add(new THREE.Vector3(0, -.3, 0)), pathLength, 0x6ca9cf, .12, .07);
+  guide.name = 'plasma_puff_direction';
+  guide.line.userData.pickable = guide.cone.userData.pickable = false;
+  scene.add(guide);
+  const selection = new THREE.Mesh(new THREE.SphereGeometry(.65, 16, 8), new THREE.MeshBasicMaterial({
+    color: 0x9be6ff, wireframe: true, transparent: true, opacity: .5, depthTest: false, depthWrite: false,
+  }));
+  selection.name = 'plasma_puff_selection';selection.userData.pickable = false;selection.renderOrder = 20;
+  let selected: number | null = null;
   let age = 0;
+  const sample = (time: number): void => {
+    age = Math.max(0, Number.isFinite(time) ? time : 0);
+    for (const [index, puff] of puffs.entries()) {
+      place(puff);
+      puff.userData.plasmaPathTravelled = (age % 4) / 4 * pathLength;
+      updatePlasmaCloudPuff(puff, age);
+    }
+    if (selected != null) {
+      selection.scale.setScalar(plasmaCloudPuffSize(selected));
+      selection.position.z = plasmaCloudPuffCenter(puffs[selected]);
+    }
+    // The beam and clouds share one layout throughout all three stages.
+    updatePlasmaCloudBlaster(puffs[0], (age % 4) / 4 * pathLength);
+  };
   return {
     root,
+    get time(): number { return age; },
+    duration: 4,
+    setTime: sample,
+    select(index: number): void {
+      selected = THREE.MathUtils.clamp(Math.trunc(index), 0, puffs.length - 1);
+      puffs[selected].add(selection);
+      selection.scale.setScalar(plasmaCloudPuffSize(selected));
+      selection.position.z = plasmaCloudPuffCenter(puffs[selected]);
+    },
     update(deltaTime: number): void {
-      age += Math.max(0, deltaTime);
-      for (const [index, puff] of puffs.entries()) {
-        place(puff, index);
-        updatePlasmaCloudPuff(puff, age);
-      }
-      // The clouds stay fixed while the bolt travels through its three stages.
-      updatePlasmaCloudBlaster(puffs[0], (age % 4) / 4 * pathLength);
+      sample(age + Math.max(0, deltaTime));
     },
     dispose(): void {
       // Sprite geometry, textures and materials belong to the shared FX cache.
       root.removeFromParent();
       root.clear();
+      guide.removeFromParent();
+      (guide.line.material as THREE.Material).dispose();
+      (guide.cone.material as THREE.Material).dispose();
+      selection.removeFromParent();selection.geometry.dispose();selection.material.dispose();
     },
   };
 }

@@ -51,6 +51,12 @@ let _decalPointerReady = false;
 const OUTLINE_HOVER = new THREE.Color(1, 0.9, 0.2);
 const OUTLINE_SELECT = new THREE.Color(1, 0.3, 0.3);
 
+function _adjustCraterDustHeight(plane: THREE.Mesh): void {
+  if (plane.userData.decalPath === 'art/decals/z_all/crater_dust_01' && plane.position.y.toFixed(1) === '10.1') {
+    plane.position.y = 10;
+  }
+}
+
 function _makeOutline(mesh: THREE.Mesh, color: THREE.Color): THREE.Object3D | null {
   // Hover mode OFF suppresses every decal outline (hover yellow + select
   // red). Callers store the null; _disposeOutline tolerates it.
@@ -567,6 +573,7 @@ export function buildSgbDecals(root: THREE.Group | null, mapData: SgbMapData | n
 
     plane.scale.x = size / side;
     plane.scale.y = size / side;
+    _adjustCraterDustHeight(plane);
     _decalMeshes.push(plane);
   });
 
@@ -656,6 +663,7 @@ export function buildSgbDecalsFromLayout(
       centerH: y - 0.08, sampleHeight: drapeSampler,
     } : null;
     _drapeDecalPlane(plane);
+    _adjustCraterDustHeight(plane);
     _decalMeshes.push(plane);
   });
 
